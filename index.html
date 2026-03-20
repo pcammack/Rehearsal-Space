@@ -176,6 +176,8 @@ input[type=file]{display:none}
 .lib-status-reload{color:var(--accent)}
 .lib-row-right{display:flex;align-items:center;gap:0.5rem}
 .lib-date{font-size:0.4rem;color:var(--text-faint)}
+.lib-drag-handle{color:var(--text-faint);font-size:0.6rem;cursor:grab;padding:0 0.2rem;opacity:0.5}
+.lib-drag-handle:hover{opacity:1}
 .lib-del{background:none;border:none;color:var(--text-faint);cursor:pointer;
   font-size:0.5rem;padding:0.1rem 0.25rem;transition:color 0.15s;line-height:1}
 .lib-del:hover{color:var(--red)}
@@ -228,7 +230,7 @@ input[type=file]{display:none}
 
 <header>
   <span class="app-name">Music Rehearsal</span>
-  <span class="app-ver">v4.4</span>
+  <span class="app-ver">v4.5</span>
 </header>
 
 <div class="piece-title-bar">
@@ -514,6 +516,17 @@ function onAudioFile(file) {
       const trimEnabled = document.getElementById('trim-silence').checked;
       audioBuffer   = trimEnabled ? trimEdges(raw) : raw;
       audioDuration = audioBuffer.duration;
+      // #5 file integrity: warn if duration differs from stored value by >1s
+      try {
+        const stored = JSON.parse(localStorage.getItem(SESSION_KEY)||'{}');
+        if (stored.audioDuration && Math.abs(stored.audioDuration - audioDuration) > 1) {
+          const notice = document.getElementById('no-file-notice');
+          const msg = document.getElementById('expected-filename');
+          msg.textContent = `Warning: expected ~${Math.round(stored.audioDuration)}s, got ~${Math.round(audioDuration)}s — wrong file?`;
+          notice.classList.add('visible');
+          setTimeout(() => _updateNoFileNotice(), 5000);
+        }
+      } catch(e) {}
       viewStart = 0; viewEnd = audioDuration; zoomLevel = 1;
       updateZoomLabel();
       document.getElementById('audio-player').style.display = 'block';
@@ -871,6 +884,17 @@ function resetSpeed() {
 // ══════════════════════════════════════════════
 function nextLabel(label) {
   const s = String(label).trim();
+  // Dash-subsection: prefix-suffix — only increment suffix
+  // e.g. A-1 → A-2, A-2 → A-3, 3-A → 3-B, 3-B → 3-C
+  const dashM = s.match(/^(.+)-([A-Za-z]+|\d+)$/);
+  if (dashM) {
+    const prefix = dashM[1], suffix = dashM[2];
+    if (/^\d+$/.test(suffix)) return `${prefix}-${parseInt(suffix)+1}`;
+    const last = suffix[suffix.length-1];
+    const next = String.fromCharCode(last.charCodeAt(0)+1);
+    return `${prefix}-${suffix.slice(0,-1)+next}`;
+  }
+  // Alpha-only or alpha+number: A→B, A1→A2
   const m = s.match(/^([A-Za-z]+)(\d*)$/);
   if (m) {
     const letters = m[1], nums = m[2];
@@ -879,6 +903,7 @@ function nextLabel(label) {
     const next = String.fromCharCode(last.charCodeAt(0)+1);
     return letters.slice(0,-1) + next;
   }
+  // Numeric: 1→2, 12→13
   const dm = s.match(/^(\d+)(.*)$/);
   if (dm) return (parseInt(dm[1])+1) + dm[2];
   return s;
@@ -920,10 +945,21 @@ function removeMarker(id) {
   const m = markers.find(x=>x.id===id);
   if (!m||m.locked) return;
   pushUndo();
+  const idx = markers.findIndex(x=>x.id===id);
   markers = markers.filter(x=>x.id!==id);
-  // Remove segments that referenced this marker
+  // Remove loops that referenced this marker
   segments = segments.filter(s=>s.startId!==id && s.endId!==id);
-  renderMarkers(); renderSegments();
+  // Auto-renumber: cascade from the marker before the deleted one
+  if (idx > 0 && markers.length > 0) {
+    const prevIdx = Math.min(idx-1, markers.length-1);
+    const prevLabel = markers[prevIdx].label;
+    if (!isPlaceholder(prevLabel)) cascadeAfter(prevIdx, prevLabel);
+  } else if (idx === 0 && markers.length > 0) {
+    // Deleted the first marker — cascade from new first if not placeholder
+    const firstLabel = markers[0].label;
+    if (!isPlaceholder(firstLabel)) cascadeAfter(0, firstLabel);
+  }
+  renderMarkers(); renderLoops();
   refreshSegmentDropdowns();
   saveSession();
 }
@@ -1168,6 +1204,7 @@ function saveSession() {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
       pieceName: currentPieceName,
       audioFileName,
+      audioDuration,
       markers, markerIdCounter,
       segments, segmentIdCounter,
       notes: document.getElementById('piece-notes').value
@@ -1225,14 +1262,19 @@ async function saveSessionToStorage() {
   const def = currentPieceName || audioFileName || 'Untitled';
   const name = prompt('Save piece as:', def);
   if (!name||!name.trim()) return;
+  const trimmed = name.trim();
   const sessions = await loadSessionsFromStorage();
-  sessions[name.trim()] = {
+  sessions[trimmed] = {
     pieceName: currentPieceName,
-    audioFileName, markers, markerIdCounter,
+    audioFileName, audioDuration, markers, markerIdCounter,
     segments, segmentIdCounter,
     notes: document.getElementById('piece-notes').value,
     savedAt: Date.now()
   };
+  // Maintain order — append if new
+  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
+  if (!order.includes(trimmed)) order.push(trimmed);
+  sessions.__order__ = order;
   await saveSessionsToStorage(sessions);
   renderSessionsList();
 }
@@ -1268,19 +1310,53 @@ async function loadNamedSession(name) {
 }
 
 async function deleteNamedSession(name) {
-  if (!confirm(`Delete session "${name}"?`)) return;
+  if (!confirm(`Delete "${name}" from library?`)) return;
   const sessions = await loadSessionsFromStorage();
+  if (sessions.__order__) {
+    sessions.__order__ = sessions.__order__.filter(k => k !== name);
+  }
   delete sessions[name];
   await saveSessionsToStorage(sessions);
   renderSessionsList();
 }
 
+async function renameSession(oldName) {
+  const sessions = await loadSessionsFromStorage();
+  if (!sessions[oldName]) return;
+  const newName = prompt('Rename piece:', oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  if (sessions[trimmed]) { alert('A piece with that name already exists.'); return; }
+  sessions[trimmed] = { ...sessions[oldName] };
+  delete sessions[oldName];
+  // Update order array
+  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
+  const oi = order.indexOf(oldName);
+  if (oi !== -1) order[oi] = trimmed;
+  sessions.__order__ = order;
+  if (currentPieceName === oldName) {
+    currentPieceName = trimmed;
+    _updatePieceTitle();
+    saveSession();
+  }
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+let _dragSrcName = null;
+
 async function renderSessionsList() {
   const sessions = await loadSessionsFromStorage();
   const el = document.getElementById('sessions-list');
-  const keys = Object.keys(sessions).sort((a,b)=>(sessions[b].savedAt||0)-(sessions[a].savedAt||0));
-  if (!keys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
-  el.innerHTML = keys.map(name => {
+  // Determine display order
+  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
+  const storedOrder = sessions.__order__ || [];
+  const orderedKeys = [
+    ...storedOrder.filter(k => allKeys.includes(k)),
+    ...allKeys.filter(k => !storedOrder.includes(k))
+  ];
+  if (!orderedKeys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
+  el.innerHTML = orderedKeys.map(name => {
     const s = sessions[name];
     const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
     const mc = s.markers?s.markers.length:0, sc = s.segments?s.segments.length:0;
@@ -1292,17 +1368,65 @@ async function renderSessionsList() {
           ? `<span class="lib-status-loaded">● loaded</span>`
           : `<span class="lib-status-reload">○ needs file</span>`)
       : '';
-    return `<div class="lib-row${isActive?' active':''}" onclick="loadNamedSession('${safe}')">
+    return `<div class="lib-row${isActive?' active':''}"
+        data-name="${safe}"
+        draggable="true"
+        onclick="loadNamedSession('${safe}')"
+        ondragstart="libDragStart(event,'${safe}')"
+        ondragover="libDragOver(event)"
+        ondrop="libDrop(event,'${safe}')"
+        ondragleave="libDragLeave(event)"
+        ondragend="libDragEnd(event)">
       <div class="lib-row-left">
-        <span class="lib-name">${safe}</span>
+        <span class="lib-name" ondblclick="event.stopPropagation();renameSession('${safe}')"
+          title="Double-click to rename">${safe}</span>
         <span class="lib-meta">${mc} marker${mc!==1?'s':''} · ${sc} loop${sc!==1?'s':''} ${statusHtml}</span>
       </div>
       <div class="lib-row-right">
+        <span class="lib-drag-handle" title="Drag to reorder">⠿</span>
         <span class="lib-date">${date}</span>
         <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function libDragStart(e, name) {
+  _dragSrcName = name;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function libDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.borderTop = '2px solid var(--accent)';
+}
+function libDragLeave(e) {
+  e.currentTarget.style.borderTop = '';
+}
+function libDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  e.currentTarget.style.borderTop = '';
+  document.querySelectorAll('.lib-row').forEach(r => { r.style.borderTop = ''; });
+}
+async function libDrop(e, targetName) {
+  e.preventDefault();
+  e.currentTarget.style.borderTop = '';
+  if (!_dragSrcName || _dragSrcName === targetName) return;
+  const sessions = await loadSessionsFromStorage();
+  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
+  const storedOrder = sessions.__order__ || allKeys;
+  const order = [...storedOrder.filter(k => allKeys.includes(k)),
+                  ...allKeys.filter(k => !storedOrder.includes(k))];
+  const fromIdx = order.indexOf(_dragSrcName);
+  const toIdx   = order.indexOf(targetName);
+  if (fromIdx === -1 || toIdx === -1) return;
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, _dragSrcName);
+  sessions.__order__ = order;
+  await saveSessionsToStorage(sessions);
+  _dragSrcName = null;
+  renderSessionsList();
 }
 
 // ══════════════════════════════════════════════
