@@ -15,54 +15,28 @@
   --green:#4a9e6a; --red:#c45a4a; --blue:#4a7ec4;
   --r-color:#c4922a; --d-color:#4a9e6a;
 }
-html{font-size:18px}
+html{font-size:20px}
 body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;
-  min-height:100vh;padding-bottom:4rem}
+  min-height:100vh;padding-bottom:2.5rem}
 
 /* ── HEADER ── */
-header{padding:1.2rem 1.5rem 0.8rem;border-bottom:1px solid var(--border);
-  display:flex;align-items:baseline;gap:1rem}
-h1{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:400;
-  letter-spacing:0.02em;color:var(--text)}
-.tagline{font-size:0.5rem;letter-spacing:0.22em;text-transform:uppercase;
-  color:var(--text-faint)}
+header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.app-name{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:400;
+  color:var(--text-faint);letter-spacing:0.03em}
+.app-ver{font-size:0.38rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--border-l)}
+
+/* ── PIECE TITLE ── */
+.piece-title-bar{padding:1rem 1.5rem 0.9rem;border-bottom:1px solid var(--border)}
+.piece-title{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:400;
+  color:var(--text);letter-spacing:0.01em;min-height:2rem}
+.piece-title.empty{color:var(--text-faint);font-style:italic;font-size:1.1rem}
 
 /* ── WORKSPACE ── */
 .workspace{max-width:1300px;margin:0 auto;padding:0.9rem 1.5rem}
 
-/* ── TOP ROW ── */
-.top-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem}
-.panel{background:var(--bg2);border:1px solid var(--border);padding:0.75rem 1rem}
-
-/* ── UPLOAD ── */
-.upload-zone{border:1px dashed var(--border-l);padding:0.8rem 1rem;cursor:pointer;
-  transition:border-color 0.2s;position:relative}
-.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent)}
-.upload-zone.has-file{border-color:var(--border-l);border-style:solid}
-.upload-lbl{font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;
-  color:var(--text-faint);margin-bottom:0.2rem}
-.upload-name{font-size:0.65rem;color:var(--text);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
-.upload-hint{font-size:0.44rem;color:var(--text-faint);margin-top:0.15rem}
-.restore-notice{font-size:0.46rem;color:var(--accent);margin-top:0.25rem;display:none}
-input[type=file]{display:none}
-.trim-toggle{display:flex;align-items:center;gap:0.35rem;
-  font-size:0.46rem;color:var(--text-faint);margin-top:0.3rem;cursor:pointer}
-.trim-toggle input{accent-color:var(--accent);cursor:pointer}
-
-/* ── PIECE NAME ── */
-.piece-name-field{width:100%;background:none;border:none;border-bottom:1px solid var(--border-l);
-  font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);
-  padding:0.2rem 0;outline:none;transition:border-color 0.2s}
-.piece-name-field:focus{border-color:var(--accent)}
-.piece-name-field::placeholder{color:var(--text-faint);font-style:italic;font-size:0.9rem}
-.piece-name-lbl{font-size:0.44rem;letter-spacing:0.18em;text-transform:uppercase;
-  color:var(--text-faint);margin-bottom:0.35rem}
-.filename-preview{font-size:0.42rem;color:var(--text-faint);margin-top:0.2rem;
-  font-style:italic;min-height:0.7rem}
-
 /* ── PLAYER ── */
-#audio-player{display:none;margin-bottom:0.75rem;
+#audio-player{margin-bottom:0.75rem;
   background:var(--bg2);border:1px solid var(--border);padding:0.6rem 0.8rem}
 .overview-wrap{position:relative;margin-bottom:0.5rem}
 #overview-canvas{width:100%;height:128px;display:block;cursor:crosshair;background:var(--bg3)}
@@ -79,6 +53,23 @@ input[type=file]{display:none}
 .speed-val{font-size:0.5rem;color:var(--text-mid);min-width:2rem}
 .zoom-val{font-size:0.5rem;color:var(--text-mid);min-width:2.2rem;text-align:center}
 .player-hint{font-size:0.44rem;color:var(--text-faint);margin-top:0.3rem;line-height:1.8}
+.trim-toggle{display:flex;align-items:center;gap:0.35rem;
+  font-size:0.44rem;color:var(--text-faint);cursor:pointer}
+.trim-toggle input{accent-color:var(--accent);cursor:pointer}
+/* hidden audio file input */
+input[type=file]{display:none}
+
+/* ── NO-FILE NOTICE ── */
+.no-file-notice{background:var(--bg2);border:1px solid var(--border);
+  padding:0.75rem 1rem;margin-bottom:0.75rem;
+  display:none;align-items:center;justify-content:space-between}
+.no-file-notice.visible{display:flex}
+.no-file-msg{font-size:0.5rem;color:var(--text-faint)}
+.no-file-msg strong{color:var(--accent)}
+.btn-load-file{background:var(--bg3);border:1px solid var(--border-l);color:var(--text-mid);
+  padding:0.25rem 0.7rem;font-family:'JetBrains Mono',monospace;font-size:0.48rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-load-file:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── MAIN BODY: side-by-side ── */
 .main-body{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem}
@@ -92,16 +83,15 @@ input[type=file]{display:none}
 /* ── MARKER PANEL ── */
 .marker-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
 
-/* Marker grid: seq | label | type | time | dur | ▶ | 🔒 | ✕ */
+/* Marker grid: seq | label | time | dur | ▶ | 🔒 | ✕ */
 .marker-col-header,.marker-row{
   display:grid;
-  grid-template-columns:16px 58px 28px 72px 50px 20px 20px 20px;
+  grid-template-columns:16px 58px 72px 50px 20px 20px 20px;
   gap:0.3rem;align-items:center}
 .marker-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
   text-transform:uppercase;padding-bottom:0.3rem;display:none}
 .marker-row{padding:0.22rem 0;border-bottom:1px solid var(--border)}
 .marker-row:last-child{border-bottom:none}
-.marker-row.excluded{opacity:0.45}
 .marker-seq{font-size:0.48rem;color:var(--text-faint);text-align:center}
 .marker-label-input{background:var(--bg3);border:1px solid var(--border);
   color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.56rem;
@@ -120,13 +110,6 @@ input[type=file]{display:none}
 .marker-btn.lock.locked{color:var(--accent)}
 .marker-btn:disabled{opacity:0.25;cursor:not-allowed}
 
-/* Type badge */
-.type-btn{font-size:0.44rem;font-family:'JetBrains Mono',monospace;
-  border:1px solid var(--border);background:var(--bg3);cursor:pointer;
-  padding:0.1rem 0.2rem;letter-spacing:0.06em;transition:all 0.15s;text-align:center}
-.type-btn.R{color:var(--r-color);border-color:var(--r-color)}
-.type-btn.D{color:var(--d-color);border-color:var(--d-color)}
-
 /* ── SEGMENT PANEL ── */
 .segment-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
 .seg-add-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;flex-wrap:wrap}
@@ -141,15 +124,6 @@ input[type=file]{display:none}
 .btn-sm.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .btn-sm.primary:hover{background:var(--accent-d)}
 .btn-sm.danger:hover{border-color:var(--red);color:var(--red)}
-
-/* Segment filter row */
-.seg-filter-row{display:flex;align-items:center;gap:0.35rem;margin-bottom:0.4rem}
-.filter-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
-  font-family:'JetBrains Mono',monospace;font-size:0.44rem;letter-spacing:0.08em;
-  padding:0.15rem 0.45rem;cursor:pointer;transition:all 0.15s}
-.filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent)}
-.filter-btn.R.active{border-color:var(--r-color);color:var(--r-color)}
-.filter-btn.D.active{border-color:var(--d-color);color:var(--d-color)}
 
 /* Segment rows */
 .seg-col-header,.seg-row{
@@ -171,33 +145,50 @@ input[type=file]{display:none}
 .seg-chk{accent-color:var(--accent);cursor:pointer;width:12px;height:12px}
 .seg-empty{font-size:0.54rem;color:var(--text-faint);padding:0.5rem 0;text-align:center}
 
-/* ── EXPORT SUMMARY ── */
-.export-summary{background:var(--bg2);border:1px solid var(--border);
-  padding:0.65rem 0.8rem;margin-bottom:0.75rem;display:none}
-.export-summary.visible{display:block}
-.export-summary-title{font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;
-  color:var(--text-faint);margin-bottom:0.35rem}
-.export-summary-row{display:flex;justify-content:space-between;
-  font-size:0.52rem;padding:0.18rem 0;border-bottom:1px solid var(--border)}
-.export-summary-row:last-child{border-bottom:none}
+/* ── NOTES ── */
+.notes-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+.notes-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.4rem 0.6rem;resize:vertical;min-height:56px;outline:none;
+  transition:border-color 0.15s;line-height:1.7}
+.notes-textarea:focus{border-color:var(--accent)}
+.notes-textarea::placeholder{color:var(--text-faint)}
 
-/* ── SESSIONS ── */
+/* ── LIBRARY ── */
+.library-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+.library-hdr{display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);padding-bottom:0.35rem;margin-bottom:0.4rem}
+.library-title{font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-faint)}
+.library-actions{display:flex;gap:0.35rem;align-items:center}
+.lib-row{display:flex;align-items:center;justify-content:space-between;
+  padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background 0.15s;border-left:2px solid transparent}
+.lib-row:last-child{border-bottom:none}
+.lib-row:hover{background:var(--bg3)}
+.lib-row.active{background:var(--bg3);border-left-color:var(--accent)}
+.lib-row-left{display:flex;flex-direction:column;gap:0.15rem}
+.lib-name{font-size:0.58rem;color:var(--text-faint);transition:color 0.15s}
+.lib-row.active .lib-name{color:var(--text)}
+.lib-row:hover .lib-name{color:var(--text)}
+.lib-meta{font-size:0.42rem;color:var(--text-faint)}
+.lib-status-loaded{color:var(--green)}
+.lib-status-reload{color:var(--accent)}
+.lib-row-right{display:flex;align-items:center;gap:0.5rem}
+.lib-date{font-size:0.4rem;color:var(--text-faint)}
+.lib-del{background:none;border:none;color:var(--text-faint);cursor:pointer;
+  font-size:0.5rem;padding:0.1rem 0.25rem;transition:color 0.15s;line-height:1}
+.lib-del:hover{color:var(--red)}
+.lib-empty{font-size:0.5rem;color:var(--text-faint);padding:0.4rem 0;text-align:center}
+
+/* ── COLLAPSIBLE (docs only) ── */
 .collapsible-hdr{width:100%;background:none;border:none;padding:0.45rem 0;
   display:flex;justify-content:space-between;align-items:center;cursor:pointer;
   font-family:'JetBrains Mono',monospace;font-size:0.48rem;letter-spacing:0.14em;
   text-transform:uppercase;color:var(--text-faint)}
 .collapsible-body{display:none;font-size:0.52rem;color:var(--text-faint);
   border-top:1px solid var(--border);padding-top:0.5rem;padding-bottom:0.6rem}
-.session-row{display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;
-  border-bottom:1px solid var(--border)}
-.session-row:last-child{border-bottom:none}
-.session-name{flex:1;font-size:0.58rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.session-meta{font-size:0.44rem;color:var(--text-faint);white-space:nowrap}
-.session-empty{font-size:0.5rem;color:var(--text-faint)}
-.btn-save-session{background:var(--bg3);border:1px solid var(--border-l);color:var(--text-mid);
-  padding:0.2rem 0.6rem;font-family:'JetBrains Mono',monospace;font-size:0.48rem;
-  letter-spacing:0.08em;cursor:pointer;transition:all 0.15s}
-.btn-save-session:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── TIPS ── */
 .tips{font-size:0.46rem;color:var(--text-faint);line-height:2.2;
@@ -205,61 +196,16 @@ input[type=file]{display:none}
 
 /* ── DOCUMENTATION ── */
 .doc-h{color:var(--text-mid);margin-top:0.75rem;margin-bottom:0.15rem;letter-spacing:0.08em}
-.doc-ver{color:var(--accent);margin-bottom:0.35rem;font-size:0.54rem}
 
-/* ── EXPORT BAR ── */
-.export-panel{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);
-  border-top:2px solid var(--border);padding:0.55rem 1.5rem;
+/* ── UNDO BAR ── */
+.undo-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);
+  border-top:1px solid var(--border);padding:0.4rem 1.5rem;
   display:flex;align-items:center;gap:0.75rem}
-.btn-export{background:var(--accent);border:none;color:var(--bg);
-  padding:0.55rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.58rem;
-  letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
-  transition:background 0.2s;white-space:nowrap;font-weight:500}
-.btn-export:hover{background:var(--accent-d);color:var(--text)}
-.btn-export:disabled{background:var(--bg3);color:var(--text-faint);cursor:not-allowed}
 .undo-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
-  padding:0.4rem 0.9rem;font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.3rem 0.9rem;font-family:'JetBrains Mono',monospace;font-size:0.5rem;
   letter-spacing:0.08em;cursor:pointer;transition:all 0.15s}
 .undo-btn:hover:not(:disabled){border-color:var(--border-l);color:var(--text)}
 .undo-btn:disabled{opacity:0.35;cursor:not-allowed}
-.export-status{font-size:0.5rem;color:var(--text-faint);margin-left:auto}
-
-/* ── EXPORT MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);
-  display:none;align-items:center;justify-content:center;z-index:100}
-.modal-overlay.visible{display:flex}
-.modal-box{background:var(--bg2);border:1px solid var(--border-l);
-  padding:1.2rem 1.5rem;min-width:360px;max-width:540px;width:90%}
-.modal-title{font-size:0.52rem;letter-spacing:0.18em;text-transform:uppercase;
-  color:var(--text-faint);margin-bottom:0.75rem}
-.modal-field{margin-bottom:0.75rem}
-.modal-label{font-size:0.44rem;color:var(--text-faint);letter-spacing:0.1em;
-  text-transform:uppercase;margin-bottom:0.25rem}
-.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border-l);
-  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.6rem;
-  padding:0.4rem 0.6rem;outline:none;transition:border-color 0.15s}
-.modal-input:focus{border-color:var(--accent)}
-.modal-preview{font-size:0.48rem;color:var(--text-faint);margin-top:0.35rem;line-height:1.9}
-.modal-actions{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.9rem}
-.btn-modal-cancel{background:none;border:1px solid var(--border);color:var(--text-faint);
-  padding:0.4rem 1rem;font-family:'JetBrains Mono',monospace;font-size:0.52rem;cursor:pointer}
-.btn-modal-cancel:hover{border-color:var(--border-l);color:var(--text)}
-.btn-modal-primary{background:var(--accent);border:none;color:var(--bg);
-  padding:0.4rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.52rem;
-  letter-spacing:0.08em;cursor:pointer;font-weight:500}
-.btn-modal-primary:hover{background:var(--accent-d);color:var(--text)}
-
-/* ── PROGRESS ── */
-.progress-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);
-  display:none;align-items:center;justify-content:center;z-index:200}
-.progress-overlay.visible{display:flex}
-.progress-box{background:var(--bg2);border:1px solid var(--border-l);
-  padding:1.5rem 2rem;min-width:320px;text-align:center}
-.progress-title{font-size:0.52rem;letter-spacing:0.18em;text-transform:uppercase;
-  color:var(--text-faint);margin-bottom:1rem}
-.progress-bar-outer{height:3px;background:var(--bg3);margin-bottom:0.6rem}
-.progress-bar-inner{height:100%;background:var(--accent);transition:width 0.2s;width:0%}
-.progress-msg{font-size:0.5rem;color:var(--text-mid)}
 
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -267,7 +213,7 @@ input[type=file]{display:none}
 
 /* #7 auto-save confirmation flash */
 @keyframes saveFlash{0%{opacity:0;transform:translateY(2px)}20%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}
-.save-flash{position:fixed;bottom:3.8rem;right:1.5rem;background:var(--bg3);border:1px solid var(--green);
+.save-flash{position:fixed;bottom:2.8rem;right:1.5rem;background:var(--bg3);border:1px solid var(--green);
   color:var(--green);font-family:'JetBrains Mono',monospace;font-size:0.44rem;letter-spacing:0.12em;
   text-transform:uppercase;padding:0.25rem 0.6rem;pointer-events:none;
   animation:saveFlash 1.6s ease forwards;z-index:50}
@@ -282,41 +228,23 @@ input[type=file]{display:none}
 <body>
 
 <header>
-  <h1>Music Rehearsal</h1>
-  <span class="tagline">Rehearsal Library · v4.2</span>
+  <span class="app-name">Music Rehearsal</span>
+  <span class="app-ver">v4.3</span>
 </header>
 
-<div class="workspace">
-  <!-- TEMP: sandbox file input test -->
-  <div style="background:var(--bg3);border:1px solid var(--accent);padding:0.5rem 1rem;margin-bottom:0.75rem;font-size:0.6rem;color:var(--text)">
-    Sandbox test — pick any file: 
-    <input type="file" onchange="alert('File input works: ' + this.files[0].name)">
-  </div>
+<div class="piece-title-bar">
+  <div class="piece-title" id="piece-title">Select a piece from the library</div>
+</div>
 
-  <!-- Top row -->
-  <div class="top-row">
-    <div class="panel" style="padding:0">
-      <div class="upload-zone" id="audio-upload-zone"
-           onclick="document.getElementById('audio-input').click()"
-           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
-        <div class="upload-lbl">Audio File</div>
-        <div class="upload-name" id="audio-filename">Click or drag to load audio</div>
-        <div class="upload-hint">MP3 · WAV · AIFF · FLAC · M4A</div>
-        <label class="trim-toggle" onclick="event.stopPropagation()">
-          <input type="checkbox" id="trim-silence" checked> Trim leading/trailing silence
-        </label>
-        <div class="restore-notice" id="restore-notice"></div>
-        <input type="file" id="audio-input" accept=".mp3,.m4a,.wav,.aiff,.aif,.flac,audio/*"
-               onchange="onAudioFile(this.files[0])">
-      </div>
-    </div>
-    <div class="panel">
-      <div class="piece-name-lbl">Piece Name</div>
-      <input type="text" class="piece-name-field" id="piece-name"
-             placeholder="e.g. Beethoven Op.18 No.1 — I" oninput="onPieceNameInput()">
-      <div class="filename-preview" id="filename-preview"></div>
-    </div>
+<div class="workspace">
+
+  <!-- No-file notice (shown when session loaded but no audio) -->
+  <div class="no-file-notice" id="no-file-notice">
+    <span class="no-file-msg">No audio loaded — <strong id="expected-filename"></strong></span>
+    <button class="btn-load-file" onclick="document.getElementById('audio-input').click()">Load audio file</button>
   </div>
+  <input type="file" id="audio-input" accept=".mp3,.m4a,.wav,.aiff,.aif,.flac,audio/*"
+         onchange="onAudioFile(this.files[0])">
 
   <!-- Player + waveform -->
   <div id="audio-player">
@@ -332,7 +260,10 @@ input[type=file]{display:none}
         <span class="player-time" id="player-time">0:00.0 / 0:00.0</span>
       </div>
       <div class="player-right">
-        <span class="transport-label">Zoom</span>
+        <label class="trim-toggle" onclick="event.stopPropagation()">
+          <input type="checkbox" id="trim-silence" checked> Trim silence
+        </label>
+        <span class="transport-label" style="margin-left:0.5rem">Zoom</span>
         <button class="btn-player" onclick="zoomOverview(-1)" style="padding:0.22rem 0.5rem">−</button>
         <span class="zoom-val" id="zoom-val">1×</span>
         <button class="btn-player" onclick="zoomOverview(1)" style="padding:0.22rem 0.5rem">+</button>
@@ -349,27 +280,17 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <!-- Export summary -->
-  <div class="export-summary" id="export-summary">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
-      <div class="export-summary-title" style="margin-bottom:0">Last Export</div>
-      <button onclick="document.getElementById('export-summary').classList.remove('visible')"
-        style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:0.8rem;padding:0">✕</button>
-    </div>
-    <div id="export-summary-rows"></div>
-  </div>
-
   <!-- Main body: markers | segments -->
   <div class="main-body">
 
     <!-- Marker pool -->
     <div class="marker-panel">
       <div class="section-divider">
-        <span>Marker Pool</span>
+        <span>Markers</span>
         <span id="marker-count" style="color:var(--accent)">0 markers</span>
       </div>
       <div class="marker-col-header" id="marker-col-header">
-        <span>#</span><span>Label</span><span>Type</span>
+        <span>#</span><span>Label</span>
         <span>Time</span><span>Dur→next</span>
         <span>▶</span><span>🔒</span><span>✕</span>
       </div>
@@ -379,28 +300,16 @@ input[type=file]{display:none}
     <!-- Segment builder -->
     <div class="segment-panel">
       <div class="section-divider">
-        <span>Export Segments</span>
+        <span>Segments</span>
         <span id="seg-count" style="color:var(--accent)">0 segments</span>
       </div>
-
-      <!-- Add segment row -->
       <div class="seg-add-row">
         <select class="seg-select" id="seg-start"><option value="">Start…</option></select>
         <span style="color:var(--text-faint);font-size:0.6rem">→</span>
         <select class="seg-select" id="seg-end"><option value="">End…</option></select>
         <button class="btn-sm primary" onclick="addSegment()">+ Add</button>
-        <button class="btn-sm" onclick="addAllAdjacent()" title="Add all consecutive marker pairs">All adjacent</button>
+        <button class="btn-sm" onclick="addAllAdjacent()">All adjacent</button>
       </div>
-
-      <!-- Filter row -->
-      <div class="seg-filter-row">
-        <span style="font-size:0.44rem;color:var(--text-faint);margin-right:0.2rem">Select:</span>
-        <button class="filter-btn active" id="filt-all" onclick="filterSegments('all')">All</button>
-        <button class="filter-btn R" id="filt-R" onclick="filterSegments('R')">Rehearsal</button>
-        <button class="filter-btn D" id="filt-D" onclick="filterSegments('D')">Drill</button>
-        <button class="filter-btn" id="filt-none" onclick="filterSegments('none')" style="margin-left:auto">None</button>
-      </div>
-
       <div class="seg-col-header" id="seg-col-header">
         <span>Name</span><span>Span</span><span>Dur</span>
         <span>▶</span><span>✕</span><span>✓</span>
@@ -409,25 +318,30 @@ input[type=file]{display:none}
     </div>
   </div>
 
-  <!-- Sessions (collapsed) -->
-  <div style="border-top:1px solid var(--border);margin-bottom:0.35rem">
-    <button class="collapsible-hdr" onclick="toggleSection('sessions')">
-      <span>Saved Sessions</span><span id="sessions-arrow">▸</span>
-    </button>
-    <div class="collapsible-body" id="sessions-body">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.35rem">
-        <div style="display:flex;gap:0.35rem;align-items:center">
-          <button class="btn-sm" onclick="exportLibraryJSON()" title="Export full library as JSON backup">↓ Export Library</button>
-          <label style="display:inline-block">
-            <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import Library</span>
-            <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
-          </label>
-        </div>
-        <button class="btn-save-session" onclick="saveSessionToStorage()">+ Save current</button>
-      </div>
-      <div id="sessions-list"><span class="session-empty">No saved sessions yet.</span></div>
-      <div id="sessions-diag" style="font-size:0.4rem;color:var(--text-faint);margin-top:0.3rem"></div>
+  <!-- Notes -->
+  <div class="notes-panel">
+    <div class="section-divider">
+      <span>Notes</span>
     </div>
+    <textarea class="notes-textarea" id="piece-notes"
+      placeholder="Tempo markings, phrasing ideas, notes for next practice…"
+      oninput="onNotesInput()"></textarea>
+  </div>
+
+  <!-- Library -->
+  <div class="library-panel">
+    <div class="library-hdr">
+      <span class="library-title">Library</span>
+      <div class="library-actions">
+        <button class="btn-sm" onclick="exportLibraryJSON()">↓ Export</button>
+        <label style="display:inline-block">
+          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import</span>
+          <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
+        </label>
+        <button class="btn-sm" onclick="saveSessionToStorage()">+ Save current</button>
+      </div>
+    </div>
+    <div id="sessions-list"><span class="lib-empty">No pieces saved yet.</span></div>
   </div>
 
   <!-- Tips -->
@@ -444,80 +358,41 @@ input[type=file]{display:none}
   <!-- Documentation -->
   <div style="margin-top:1rem;border-top:1px solid var(--border)">
     <button class="collapsible-hdr" onclick="toggleSection('docs')">
-      <span>Documentation &amp; Release Notes</span><span id="docs-arrow">▸</span>
+      <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.1</span>
+      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.3</span>
 
       <div class="doc-h">WORKFLOW</div>
-      1. Load audio file. Marker 1 placed at 0:00 automatically.<br>
+      1. Select a piece from the Library, then load its audio file when prompted.<br>
       2. Press Play. Press <strong style="color:var(--text)">M</strong> to drop markers while listening.<br>
-      3. In the Segment Builder: pick Start → End from dropdowns, click Add.
-         Or click "All adjacent" to pre-populate consecutive pairs.<br>
-      4. Name segments (default: StartLabel→EndLabel). Check/uncheck to include in export.<br>
-      5. Click Export Segments. Each checked segment becomes one MP3.
+      3. In Segments: pick Start → End, click Add. Or "All adjacent" for consecutive pairs.<br>
+      4. Name segments, check/uncheck to include. Preview with ▶.<br>
+      5. Save the piece via Library → + Save current.
 
-      <div class="doc-h">MARKER NAMING CONVENTION</div>
-      Auto-increment rules when pressing M:<br>
+      <div class="doc-h">MARKER NAMING</div>
       · <strong style="color:var(--text)">Numeric:</strong> 1 → 2 → 3<br>
       · <strong style="color:var(--text)">Alpha:</strong> A → B → C<br>
-      · <strong style="color:var(--text)">Dash-numeric:</strong> A-2 → A-3 → A-4 (suffix increments)<br>
-      · <strong style="color:var(--text)">Dash-alpha:</strong> 3-A → 3-B → 3-C (suffix increments)<br>
-      · <strong style="color:var(--text)">Placeholder:</strong> Use <strong style="color:var(--text)">.</strong> (period) — excluded from cascade and dropdowns<br>
-      · To create subsections: rename a marker to e.g. 3-A, then M creates 3-B, 3-C etc.<br>
-      · On delete: remaining markers renumber from deletion point per cascade rules.
-
-      <div class="doc-h">SEGMENT ASSEMBLY</div>
-      Any marker can be a start or end point. A pool of 4 markers (0,1,2,3)
-      can yield segments 0→1, 1→2, 2→3, 0→2, 1→3, 0→3 — all independent.
-      "All adjacent" adds only consecutive pairs as a starting point.
+      · <strong style="color:var(--text)">Dash-numeric:</strong> A-2 → A-3 → A-4<br>
+      · <strong style="color:var(--text)">Dash-alpha:</strong> 3-A → 3-B → 3-C<br>
+      · <strong style="color:var(--text)">Placeholder:</strong> . (period) — excluded from cascade and dropdowns
 
       <div class="doc-h">KEYBOARD</div>
       SPACE play/pause · M mark · P play to next marker ·
-      Home back to start · Ctrl/⌘+Z undo · Esc close modal<br>
-      <span style="color:var(--text-faint)">Note: R/D marker type distinction has been removed. Single marker type only.</span>
-
+      Home back to start · Ctrl/⌘+Z undo
     </div>
   </div>
 
-</div><!-- /workspace -->
+</div>
 
 <!-- Drag time tooltip -->
 <div id="drag-tooltip"></div>
 
-<!-- Export modal -->
-<div class="modal-overlay" id="export-modal">
-  <div class="modal-box">
-    <div class="modal-title">Export Segments</div>
-    <div class="modal-field">
-      <div class="modal-label">Piece Name</div>
-      <input type="text" class="modal-input" id="export-piece-name" oninput="updateExportPreview()">
-    </div>
-    <div class="modal-preview" id="export-preview"></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closeExportModal()">Cancel</button>
-      <button class="btn-modal-primary" onclick="confirmExport()">Export &amp; Download</button>
-    </div>
-  </div>
-</div>
-
-<!-- Export bar -->
-<div class="export-panel">
-  <button class="btn-export" id="btn-export" onclick="openExportModal()" disabled>Export Segments</button>
+<!-- Undo bar -->
+<div class="undo-bar">
   <button class="undo-btn" id="btn-undo" onclick="undo()" disabled title="Ctrl+Z">↩ Undo</button>
-  <div class="export-status" id="export-status">Load an audio file to begin</div>
 </div>
 
-<!-- Progress overlay -->
-<div class="progress-overlay" id="progress-overlay">
-  <div class="progress-box">
-    <div class="progress-title">Encoding MP3s</div>
-    <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
-    <div class="progress-msg" id="progress-msg">Preparing…</div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // STATE
@@ -532,6 +407,7 @@ let playCtxStart   = 0;
 let animFrame      = null;
 let audioDuration  = 0;
 let audioFileName  = '';
+let currentPieceName = '';
 let previewingSegId = null;
 let currentSpeed   = 1.0;
 
@@ -591,21 +467,40 @@ function toggleSection(id) {
 // ══════════════════════════════════════════════
 // AUDIO FILE LOADING
 // ══════════════════════════════════════════════
-function onDragOver(e) { e.preventDefault(); document.getElementById('audio-upload-zone').classList.add('dragover'); }
-function onDragLeave(e) { document.getElementById('audio-upload-zone').classList.remove('dragover'); }
+function onDragOver(e) { e.preventDefault(); }
+function onDragLeave(e) {}
 function onDrop(e) {
   e.preventDefault();
-  document.getElementById('audio-upload-zone').classList.remove('dragover');
   const f = e.dataTransfer.files[0];
   if (f) onAudioFile(f);
+}
+
+function _updateNoFileNotice() {
+  const notice = document.getElementById('no-file-notice');
+  const ef = document.getElementById('expected-filename');
+  if (audioFileName && !audioBuffer) {
+    ef.textContent = audioFileName;
+    notice.classList.add('visible');
+  } else {
+    notice.classList.remove('visible');
+  }
+}
+
+function _updatePieceTitle() {
+  const el = document.getElementById('piece-title');
+  if (currentPieceName) {
+    el.textContent = currentPieceName;
+    el.classList.remove('empty');
+  } else {
+    el.textContent = 'Select a piece from the library';
+    el.classList.add('empty');
+  }
 }
 
 function onAudioFile(file) {
   if (!file) return;
   audioFileName = file.name;
-  document.getElementById('audio-filename').textContent = file.name;
-  document.getElementById('audio-upload-zone').classList.add('has-file');
-  document.getElementById('restore-notice').style.display = 'none';
+  _updateNoFileNotice();
   const reader = new FileReader();
   reader.onload = async ev => {
     try {
@@ -617,12 +512,13 @@ function onAudioFile(file) {
       viewStart = 0; viewEnd = audioDuration; zoomLevel = 1;
       updateZoomLabel();
       document.getElementById('audio-player').style.display = 'block';
+      _updateNoFileNotice();
       _updateDisplay(0);
       buildWaveformCache();
       drawOverview();
       if (markers.length === 0) addMarker('1', 'R', 0);
       else renderMarkers();
-      saveSession(); checkExportReady();
+      saveSession(); renderSessionsList();
     } catch(err) {
       alert('Could not decode audio file: ' + err.message);
     }
@@ -996,7 +892,7 @@ function addMarker(label, type, time) {
   if (!isPlaceholder(lbl) && idx >= 0) cascadeAfter(idx, lbl);
   renderMarkers();
   refreshSegmentDropdowns();
-  saveSession(); checkExportReady();
+  saveSession();
 }
 
 function tapMarker(type) {
@@ -1013,7 +909,7 @@ function removeMarker(id) {
   segments = segments.filter(s=>s.startId!==id && s.endId!==id);
   renderMarkers(); renderSegments();
   refreshSegmentDropdowns();
-  saveSession(); checkExportReady();
+  saveSession();
 }
 
 function toggleLock(id) {
@@ -1087,7 +983,6 @@ function renderMarkers() {
         onchange="updateMarkerLabel(${m.id},this.value)"
         ${m.locked?'readonly style="opacity:0.5"':''}
         title="Score label">
-      <span class="marker-dur" style="grid-column:span 1"></span>
       <input class="marker-time-input" value="${fmtTime(m.time)}"
         onblur="updateMarkerTime(${m.id},this.value)"
         ${m.locked?'readonly style="opacity:0.5"':''}
@@ -1150,7 +1045,7 @@ function addSegment() {
     name: defaultSegName(startId, endId),
     include: true
   });
-  renderSegments(); saveSession(); checkExportReady();
+  renderSegments(); saveSession();
 }
 
 function addAllAdjacent() {
@@ -1166,18 +1061,18 @@ function addAllAdjacent() {
         name: defaultSegName(a.id, b.id), include:true });
     }
   }
-  renderSegments(); saveSession(); checkExportReady();
+  renderSegments(); saveSession();
 }
 
 function removeSegment(id) {
   pushUndo();
   segments = segments.filter(s=>s.id!==id);
-  renderSegments(); saveSession(); checkExportReady();
+  renderSegments(); saveSession();
 }
 
 function toggleSegInclude(id) {
   const seg = segments.find(s=>s.id===id);
-  if (seg) { seg.include = !seg.include; saveSession(); checkExportReady(); renderSegments(); }
+  if (seg) { seg.include = !seg.include; saveSession(); renderSegments(); }
 }
 
 function updateSegName(id, val) {
@@ -1201,27 +1096,6 @@ function previewSegment(id) {
   zoomLevel = audioDuration / (newEnd - newStart);
   updateZoomLabel();
   _startPlayback(sm.time, segDur);
-}
-
-function filterSegments(type) {
-  // Update active button
-  ['all','R','D','none'].forEach(t => {
-    const btn = document.getElementById(`filt-${t}`);
-    if (btn) btn.classList.toggle('active', t===type);
-  });
-  if (type === 'none') {
-    segments.forEach(s=>s.include=false);
-  } else if (type === 'all') {
-    segments.forEach(s=>s.include=true);
-  } else {
-    // Select segments where both markers match type
-    segments.forEach(seg => {
-      const sm = markers.find(m=>m.id===seg.startId);
-      const em = markers.find(m=>m.id===seg.endId);
-      seg.include = (sm&&sm.type===type) || (em&&em.type===type);
-    });
-  }
-  renderSegments(); saveSession(); checkExportReady();
 }
 
 function renderSegments() {
@@ -1266,12 +1140,12 @@ const SESSION_KEY = 'scoreSplitter_v2';
 function saveSession() {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
-      pieceName: document.getElementById('piece-name').value,
+      pieceName: currentPieceName,
       audioFileName,
       markers, markerIdCounter,
-      segments, segmentIdCounter
+      segments, segmentIdCounter,
+      notes: document.getElementById('piece-notes').value
     }));
-    // #7 auto-save flash
     const prev = document.querySelector('.save-flash');
     if (prev) prev.remove();
     const el = document.createElement('div');
@@ -1287,7 +1161,8 @@ function loadSession() {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return;
     const s = JSON.parse(raw);
-    if (s.pieceName) document.getElementById('piece-name').value = s.pieceName;
+    currentPieceName = s.pieceName || '';
+    _updatePieceTitle();
     if (s.markers&&s.markers.length) {
       markers = s.markers;
       markerIdCounter = Math.max(s.markerIdCounter||0, ...markers.map(m=>m.id+1));
@@ -1296,17 +1171,12 @@ function loadSession() {
       segments = s.segments;
       segmentIdCounter = Math.max(s.segmentIdCounter||0, ...segments.map(s=>s.id+1));
     }
+    if (s.notes) document.getElementById('piece-notes').value = s.notes;
     if (s.audioFileName) {
       audioFileName = s.audioFileName;
-      const notice = document.getElementById('restore-notice');
-      notice.textContent = `Session restored — please reload: ${s.audioFileName}`;
-      notice.style.display = 'block';
-      document.getElementById('audio-filename').textContent = s.audioFileName;
-      document.getElementById('audio-upload-zone').classList.add('has-file');
+      _updateNoFileNotice();
     }
     renderMarkers(); renderSegments(); refreshSegmentDropdowns();
-    checkExportReady();
-    onPieceNameInput();
   } catch(e) {}
 }
 
@@ -1326,14 +1196,16 @@ async function saveSessionsToStorage(sessions) {
 }
 
 async function saveSessionToStorage() {
-  const def = document.getElementById('piece-name').value.trim() || audioFileName || 'Untitled';
-  const name = prompt('Save session as:', def);
+  const def = currentPieceName || audioFileName || 'Untitled';
+  const name = prompt('Save piece as:', def);
   if (!name||!name.trim()) return;
   const sessions = await loadSessionsFromStorage();
   sessions[name.trim()] = {
-    pieceName: document.getElementById('piece-name').value,
+    pieceName: currentPieceName,
     audioFileName, markers, markerIdCounter,
-    segments, segmentIdCounter, savedAt: Date.now()
+    segments, segmentIdCounter,
+    notes: document.getElementById('piece-notes').value,
+    savedAt: Date.now()
   };
   await saveSessionsToStorage(sessions);
   renderSessionsList();
@@ -1343,26 +1215,30 @@ async function loadNamedSession(name) {
   const sessions = await loadSessionsFromStorage();
   const s = sessions[name];
   if (!s) return;
-  if (s.pieceName) document.getElementById('piece-name').value = s.pieceName;
-  markers = s.markers||[];
-  markerIdCounter = Math.max(s.markerIdCounter||0, ...markers.map(m=>m.id+1));
-  segments = s.segments||[];
-  segmentIdCounter = Math.max(s.segmentIdCounter||0, ...segments.map(x=>x.id+1));
-  audioFileName = s.audioFileName||'';
-  if (audioFileName) {
-    const notice = document.getElementById('restore-notice');
-    notice.textContent = `Session "${name}" loaded — please reload: ${audioFileName}`;
-    notice.style.display = 'block';
-    document.getElementById('audio-filename').textContent = audioFileName;
-    document.getElementById('audio-upload-zone').classList.add('has-file');
-  }
-  // #9 reset playhead to zero on piece switch
+
+  // Stop and clear current audio
   if (isPlaying) _pause();
-  playOffset=0; queuePoint=0; _updateDisplay(0);
-  if (audioDuration) { viewStart=0; viewEnd=audioDuration; zoomLevel=1; updateZoomLabel(); drawOverview(); }
+  audioBuffer = null; audioDuration = 0;
+  document.getElementById('audio-player').style.display = 'none';
+  playOffset = 0; queuePoint = 0; _updateDisplay(0);
+
+  // Load session data
+  currentPieceName = s.pieceName || name;
+  _updatePieceTitle();
+  markers = s.markers||[];
+  markerIdCounter = Math.max(s.markerIdCounter||0, ...(markers.length?markers.map(m=>m.id+1):[0]));
+  segments = s.segments||[];
+  segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length?segments.map(x=>x.id+1):[0]));
+  audioFileName = s.audioFileName||'';
+  document.getElementById('piece-notes').value = s.notes || '';
+
   renderMarkers(); renderSegments(); refreshSegmentDropdowns();
-  saveSession(); checkExportReady();
-  onPieceNameInput();
+  renderSessionsList();
+  saveSession();
+
+  // Show no-file notice and auto-open file picker
+  _updateNoFileNotice();
+  document.getElementById('audio-input').click();
 }
 
 async function deleteNamedSession(name) {
@@ -1376,22 +1252,29 @@ async function deleteNamedSession(name) {
 async function renderSessionsList() {
   const sessions = await loadSessionsFromStorage();
   const el = document.getElementById('sessions-list');
-  // Diagnostic: show raw localStorage value for debugging
-  const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
-  const diagEl = document.getElementById('sessions-diag');
-  if (diagEl) diagEl.textContent = `storage: ${raw ? raw.length + ' chars' : 'empty/blocked'}`;
   const keys = Object.keys(sessions).sort((a,b)=>(sessions[b].savedAt||0)-(sessions[a].savedAt||0));
-  if (!keys.length) { el.innerHTML = '<span class="session-empty">No saved sessions yet.</span>'; return; }
+  if (!keys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
   el.innerHTML = keys.map(name => {
     const s = sessions[name];
-    const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '';
+    const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
     const mc = s.markers?s.markers.length:0, sc = s.segments?s.segments.length:0;
-    const safe = name.replace(/"/g,'&quot;').replace(/</g,'&lt;');
-    return `<div class="session-row">
-      <span class="session-name" title="${safe}">${safe}</span>
-      <span class="session-meta">${mc}m · ${sc}s · ${date}</span>
-      <button class="btn-sm" onclick="loadNamedSession('${safe}')">Load</button>
-      <button class="btn-sm danger" onclick="deleteNamedSession('${safe}')">✕</button>
+    const safe = escHtml(name);
+    const isActive = name === currentPieceName;
+    const fileLoaded = isActive && !!audioBuffer;
+    const statusHtml = isActive
+      ? (fileLoaded
+          ? `<span class="lib-status-loaded">● loaded</span>`
+          : `<span class="lib-status-reload">○ needs file</span>`)
+      : '';
+    return `<div class="lib-row${isActive?' active':''}" onclick="loadNamedSession('${safe}')">
+      <div class="lib-row-left">
+        <span class="lib-name">${safe}</span>
+        <span class="lib-meta">${mc}m · ${sc}s ${statusHtml}</span>
+      </div>
+      <div class="lib-row-right">
+        <span class="lib-date">${date}</span>
+        <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1489,14 +1372,6 @@ function importLibraryJSON(file) {
       if (!existing[k]) { existing[k] = sessions[k]; added++; }
     });
     await saveSessionsToStorage(existing);
-
-    // Open the sessions panel and refresh the list
-    const body = document.getElementById('sessions-body');
-    const arrow = document.getElementById('sessions-arrow');
-    if (body.style.display !== 'block') {
-      body.style.display = 'block';
-      arrow.textContent = '▾';
-    }
     await renderSessionsList();
 
     // Show a brief inline status rather than an alert
@@ -1531,182 +1406,14 @@ function undo() {
   segments = state.segments; segmentIdCounter = state.segmentIdCounter;
   if (!undoStack.length) document.getElementById('btn-undo').disabled = true;
   renderMarkers(); renderSegments(); refreshSegmentDropdowns();
-  drawOverview(); saveSession(); checkExportReady();
+  drawOverview(); saveSession();
 }
 
 // ══════════════════════════════════════════════
 // PIECE NAME
 // ══════════════════════════════════════════════
-function onPieceNameInput() {
-  const raw = document.getElementById('piece-name').value;
-  const safe = sanitizeName(raw);
-  const prev = document.getElementById('filename-preview');
-  if (prev) prev.textContent = raw ? `→ ${safe}_SegmentName.mp3` : '';
-  saveSession(); checkExportReady();
-}
-
-// ══════════════════════════════════════════════
-// EXPORT READY CHECK
-// ══════════════════════════════════════════════
-function checkExportReady() {
-  const ready = audioBuffer && segments.some(s=>s.include);
-  document.getElementById('btn-export').disabled = !ready;
-  if (audioBuffer && !segments.length)
-    document.getElementById('export-status').textContent = 'Build segments to export';
-  else if (audioBuffer && !segments.some(s=>s.include))
-    document.getElementById('export-status').textContent = 'No segments selected';
-  else if (audioBuffer)
-    document.getElementById('export-status').textContent =
-      `${segments.filter(s=>s.include).length} segment${segments.filter(s=>s.include).length!==1?'s':''} ready to export`;
-}
-
-// ══════════════════════════════════════════════
-// EXPORT MODAL
-// ══════════════════════════════════════════════
-function openExportModal() {
-  const exportable = segments.filter(s=>s.include);
-  if (!audioBuffer||!exportable.length) return;
-  const pieceName = document.getElementById('piece-name').value.trim() || audioFileName || 'piece';
-  document.getElementById('export-piece-name').value = pieceName;
-  updateExportPreview();
-  document.getElementById('export-modal').classList.add('visible');
-  document.getElementById('export-piece-name').focus();
-  document.getElementById('export-piece-name').select();
-}
-
-function closeExportModal() {
-  document.getElementById('export-modal').classList.remove('visible');
-}
-
-function updateExportPreview() {
-  const raw = document.getElementById('export-piece-name').value.trim() || 'piece';
-  const pieceName = sanitizeName(raw);
-  const exportable = segments.filter(s=>s.include);
-  const lines = exportable.map(seg => {
-    const sm = markers.find(m=>m.id===seg.startId);
-    const em = markers.find(m=>m.id===seg.endId);
-    const dur = sm&&em ? fmtTime(Math.max(0,em.time-sm.time)) : '—';
-    return `<div style="padding:0.12rem 0;border-bottom:1px solid var(--border)">
-      <span style="color:var(--text)">${pieceName}_${escHtml(seg.name)}.mp3</span>
-      <span style="color:var(--text-faint);margin-left:0.5rem">${dur}</span></div>`;
-  });
-  document.getElementById('export-preview').innerHTML = lines.join('');
-}
-
-async function confirmExport() {
-  const raw = document.getElementById('export-piece-name').value.trim() || audioFileName || 'piece';
-  const pieceName = sanitizeName(raw);
-  document.getElementById('piece-name').value = raw;
-  onPieceNameInput();
-  closeExportModal();
-  await startExport(pieceName);
-}
-
-// ══════════════════════════════════════════════
-// EXPORT
-// ══════════════════════════════════════════════
-function showProgress(pct, msg) {
-  document.getElementById('progress-overlay').classList.add('visible');
-  document.getElementById('progress-bar').style.width = pct+'%';
-  document.getElementById('progress-msg').textContent = msg;
-}
-function hideProgress() { document.getElementById('progress-overlay').classList.remove('visible'); }
-
-async function startExport(pieceName) {
-  const exportable = segments.filter(s=>s.include);
-  if (!audioBuffer||!exportable.length) return;
-  showProgress(0,'Preparing…');
-  const summaryRows = [];
-  const blobs = [];
-  const skipped = [];
-
-  for (let i = 0; i < exportable.length; i++) {
-    const seg = exportable[i];
-    const sm = markers.find(m=>m.id===seg.startId);
-    const em = markers.find(m=>m.id===seg.endId);
-    if (!sm||!em) { skipped.push(seg.name); continue; }
-    const start = sm.time, end = em.time, dur = end - start;
-    if (dur < 0.1) { skipped.push(seg.name); continue; }
-    const basePct = Math.round((i/exportable.length)*90);
-    const nextPct = Math.round(((i+1)/exportable.length)*90);
-    const onProgress = f => showProgress(
-      Math.round(basePct + f*(nextPct-basePct)),
-      `Encoding ${seg.name}… (${i+1}/${exportable.length})`
-    );
-    const blob = await sliceAudio(start, end, onProgress);
-    const filename = `${pieceName}_${sanitizeName(seg.name)}.mp3`;
-    blobs.push({blob, filename, dur});
-    summaryRows.push({filename, dur});
-  }
-
-  if (!blobs.length) {
-    hideProgress();
-    document.getElementById('export-status').textContent = 'Nothing to export.';
-    return;
-  }
-
-  showProgress(95,`Downloading ${blobs.length} files…`);
-  for (let i = 0; i < blobs.length; i++) {
-    const {blob, filename} = blobs[i];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.download=filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    await new Promise(r=>setTimeout(r,300));
-    setTimeout(()=>URL.revokeObjectURL(url),15000);
-    showProgress(95+Math.round(((i+1)/blobs.length)*5),`Downloaded ${i+1} of ${blobs.length}…`);
-  }
-
-  showProgress(100,'All done!');
-  setTimeout(()=>{
-    hideProgress();
-    const skipNote = skipped.length ? ` (${skipped.length} skipped)` : '';
-    document.getElementById('export-status').textContent =
-      `Downloaded: ${summaryRows.length} MP3 file${summaryRows.length!==1?'s':''}${skipNote}`;
-    const sumPanel = document.getElementById('export-summary');
-    document.getElementById('export-summary-rows').innerHTML = summaryRows.map(r=>
-      `<div class="export-summary-row">
-        <span>${r.filename}</span>
-        <span style="color:var(--text-faint)">${fmtTime(r.dur)}</span>
-       </div>`).join('');
-    sumPanel.classList.add('visible');
-    sumPanel.scrollIntoView({behavior:'smooth',block:'nearest'});
-  },500);
-}
-
-async function sliceAudio(startSec, endSec, onProgress=null) {
-  const sr     = audioBuffer.sampleRate;
-  const nCh    = audioBuffer.numberOfChannels;
-  const s0     = Math.floor(startSec * sr);
-  const s1     = Math.min(Math.ceil(endSec * sr), audioBuffer.length);
-  const len    = s1 - s0;
-  const mp3enc = new lamejs.Mp3Encoder(nCh, sr, 128);
-  const CHUNK  = sr * 0.5;
-  const parts  = [];
-  const chans  = [];
-  for (let c=0;c<nCh;c++) chans.push(audioBuffer.getChannelData(c).subarray(s0,s1));
-
-  for (let i=0;i<len;i+=CHUNK) {
-    const end = Math.min(i+CHUNK,len);
-    const L = new Int16Array(end-i);
-    for (let j=0;j<L.length;j++) L[j]=Math.max(-32768,Math.min(32767,chans[0][i+j]*32767));
-    let mp3buf;
-    if (nCh===1) { mp3buf = mp3enc.encodeBuffer(L); }
-    else {
-      const R = new Int16Array(end-i);
-      for (let j=0;j<R.length;j++) R[j]=Math.max(-32768,Math.min(32767,chans[1][i+j]*32767));
-      mp3buf = mp3enc.encodeBuffer(L,R);
-    }
-    if (mp3buf.length>0) parts.push(new Uint8Array(mp3buf));
-    if (onProgress) onProgress(i/len);
-    await new Promise(r=>setTimeout(r,0));
-  }
-  const flush = mp3enc.flush();
-  if (flush.length>0) parts.push(new Uint8Array(flush));
-  const total = parts.reduce((acc,p)=>acc+p.length,0);
-  const out   = new Uint8Array(total);
-  let off=0; parts.forEach(p=>{out.set(p,off);off+=p.length;});
-  return new Blob([out],{type:'audio/mp3'});
+function onNotesInput() {
+  saveSession();
 }
 
 // ══════════════════════════════════════════════
@@ -1818,7 +1525,7 @@ function _hitTestMarker(mouseX, canvasWidth) {
       dragMarkerState = null;
       canvas.classList.remove('marker-drag');
       canvas.style.cursor = 'crosshair';
-      if (wasDrag) { saveSession(); checkExportReady(); renderMarkers(); }
+      if (wasDrag) { saveSession(); renderMarkers(); }
       else {
         undoStack.pop();
         if (!undoStack.length) document.getElementById('btn-undo').disabled = true;
@@ -1857,27 +1564,18 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement.tagName;
   if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
   if (e.code==='Space') { e.preventDefault(); togglePlay(); }
-  if (e.code==='KeyM' && audioBuffer) { tapMarker(e.shiftKey?'D':'R'); }
+  if (e.code==='KeyM' && audioBuffer) { tapMarker('R'); }
   if (e.code==='KeyP' && audioBuffer) { e.preventDefault(); playToNextMarker(); }
   if (e.code==='Home') { e.preventDefault(); goToStart(); }
   if (e.code==='KeyZ' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); undo(); }
-  if (e.code==='Escape') closeExportModal();
 });
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-// Migrate storage key if needed
-(function() {
-  const newKey = 'scoreSplitter_v2';
-  if (!localStorage.getItem(newKey)) {
-    const old = localStorage.getItem('mr_lib_v4') || localStorage.getItem('musicRehearsal_library_v4');
-    // Note: v4 library format is different from v2 session format - no auto-migration possible
-    // User should import JSON backup manually if needed
-  }
-})();
 loadSession();
 renderSessionsList();
+_updatePieceTitle();
 window.addEventListener('resize', drawOverview);
 </script>
 </body>
