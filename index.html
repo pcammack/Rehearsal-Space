@@ -263,8 +263,8 @@ input[type=file]{display:none}
       <div class="player-right">
         <span class="transport-label">Speed</span>
         <input type="range" class="speed-slider" id="speed-slider"
-               min="0.5" max="2.0" step="0.05" value="1.0" oninput="onSpeedChange(this.value)">
-        <span class="speed-val" id="speed-val">1×</span>
+               min="0.5" max="1.2" step="0.01" value="1.0" oninput="onSpeedChange(this.value)">
+        <span class="speed-val" id="speed-val">100%</span>
         <button class="btn-player" onclick="resetSpeed()" style="padding:0.22rem 0.42rem;font-size:0.48rem">↺</button>
       </div>
     </div>
@@ -367,7 +367,7 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.4</span>
+      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.5</span>
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -403,9 +403,10 @@ input[type=file]{display:none}
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let audioBuffer    = null;
-let audioContext   = null;
-let audioSource    = null;
+let audioBuffer    = null;  // decoded buffer for waveform only
+let audioContext   = null;  // AudioContext for waveform decoding only
+let audioEl        = null;  // HTMLAudioElement for playback (pitch-corrected)
+let audioObjectURL = null;  // object URL for current file
 let playGen        = 0;
 let isPlaying      = false;
 let playOffset     = 0;
@@ -417,6 +418,8 @@ let currentPieceName = '';
 let previewingSegId = null;
 let activeLoopId = null;
 let currentSpeed   = 1.0;
+let loopStart      = null;
+let loopEnd        = null;
 
 const SILENCE_DB     = 0.005;
 const SNAP_THRESHOLD = 10;
@@ -508,6 +511,23 @@ function onAudioFile(file) {
   if (!file) return;
   audioFileName = file.name;
   _updateNoFileNotice();
+
+  // Revoke previous object URL
+  if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
+
+  // Create HTMLAudioElement for pitch-corrected playback
+  if (!audioEl) {
+    audioEl = new Audio();
+    audioEl.addEventListener('ended', _onAudioEnded);
+    audioEl.addEventListener('timeupdate', _onTimeUpdate);
+  }
+  audioObjectURL = URL.createObjectURL(file);
+  audioEl.src = audioObjectURL;
+  audioEl.preservesPitch = true;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.load();
+
+  // Also decode via AudioContext for waveform rendering
   const reader = new FileReader();
   reader.onload = async ev => {
     try {
@@ -516,17 +536,11 @@ function onAudioFile(file) {
       const trimEnabled = document.getElementById('trim-silence').checked;
       audioBuffer   = trimEnabled ? trimEdges(raw) : raw;
       audioDuration = audioBuffer.duration;
-      // #5 file integrity: warn if duration differs from stored value by >1s
-      try {
-        const stored = JSON.parse(localStorage.getItem(SESSION_KEY)||'{}');
-        if (stored.audioDuration && Math.abs(stored.audioDuration - audioDuration) > 1) {
-          const notice = document.getElementById('no-file-notice');
-          const msg = document.getElementById('expected-filename');
-          msg.textContent = `Warning: expected ~${Math.round(stored.audioDuration)}s, got ~${Math.round(audioDuration)}s — wrong file?`;
-          notice.classList.add('visible');
-          setTimeout(() => _updateNoFileNotice(), 5000);
-        }
-      } catch(e) {}
+      // Also set duration on audio element once metadata loads
+      audioEl.addEventListener('loadedmetadata', () => {
+        if (!audioDuration) audioDuration = audioEl.duration;
+      }, {once:true});
+
       viewStart = 0; viewEnd = audioDuration; zoomLevel = 1;
       updateZoomLabel();
       document.getElementById('audio-player').style.display = 'block';
@@ -752,45 +766,32 @@ function zoomOverview(dir) {
 function resetZoom() { _applyZoom(1, audioDuration/2); }
 
 // ══════════════════════════════════════════════
-// PLAYBACK
+// PLAYBACK (HTMLAudioElement — pitch-corrected)
 // ══════════════════════════════════════════════
 function togglePlay() {
-  if (!audioBuffer) return;
+  if (!audioEl || !audioBuffer) return;
   if (isPlaying) _pause(); else _startPlayback(playOffset);
 }
 
-async function _startPlayback(offset, stopAfterSecs=null) {
-  if (!audioContext||!audioBuffer) return;
-  const gen = ++playGen;
-  _killSource(); cancelAnimationFrame(animFrame);
-  await audioContext.resume();
-  if (gen !== playGen) return;
-  audioSource = audioContext.createBufferSource();
-  audioSource.buffer = audioBuffer;
-  audioSource.playbackRate.value = currentSpeed;
-  audioSource.connect(audioContext.destination);
-  stopAfterSecs !== null
-    ? audioSource.start(0, offset, stopAfterSecs)
-    : audioSource.start(0, offset);
-  playOffset = offset; playCtxStart = audioContext.currentTime; isPlaying = true;
-  queuePoint = offset; playStartedAt = Date.now();
+function _startPlayback(offset, stopAfterSecs=null) {
+  if (!audioEl || !audioBuffer) return;
+  loopStart = null; loopEnd = null;
+  cancelAnimationFrame(animFrame);
+  playGen++;
+  audioEl.currentTime = offset;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.preservesPitch = true;
+  audioEl.play().catch(e => console.warn('Audio play failed:', e));
+  playOffset = offset; playCtxStart = performance.now() / 1000;
+  isPlaying = true; queuePoint = offset; playStartedAt = Date.now();
+  if (stopAfterSecs !== null) {
+    const myGen = playGen;
+    setTimeout(() => {
+      if (playGen === myGen && isPlaying) _pause();
+    }, stopAfterSecs * 1000 / currentSpeed);
+  }
   document.getElementById('btn-play').textContent = '⏸ Pause';
   document.getElementById('btn-play').classList.add('active');
-  const myGen = gen;
-  audioSource.onended = () => {
-    if (playGen !== myGen) return;
-    isPlaying = false;
-    if (previewingSegId !== null) {
-      const seg = segments.find(s => s.id === previewingSegId);
-      const sm = seg ? markers.find(m => m.id === seg.startId) : null;
-      if (sm) playOffset = sm.time;
-      previewingSegId = null;
-    } else { playOffset = 0; }
-    _updateDisplay(playOffset);
-    document.getElementById('btn-play').textContent = '▶ Play';
-    document.getElementById('btn-play').classList.remove('active');
-    drawOverview();
-  };
   animFrame = requestAnimationFrame(_animLoop);
 }
 
@@ -798,7 +799,10 @@ function _pause() {
   const elapsed = (Date.now() - playStartedAt) / 1000;
   const snapBack = elapsed < SNAP_THRESHOLD;
   playOffset = snapBack ? queuePoint : _currentAudioTime();
-  playGen++; _killSource(); isPlaying = false;
+  playGen++;
+  if (audioEl) audioEl.pause();
+  isPlaying = false;
+  loopStart = null; loopEnd = null;
   previewingSegId = null; activeLoopId = null;
   cancelAnimationFrame(animFrame);
   document.getElementById('btn-play').textContent = '▶ Play';
@@ -809,12 +813,12 @@ function _pause() {
 }
 
 function _killSource() {
-  if (audioSource) { try { audioSource.stop(); } catch(e){} audioSource = null; }
+  if (audioEl) { audioEl.pause(); }
 }
 
 function _currentAudioTime() {
-  if (!audioContext||!isPlaying) return playOffset;
-  return Math.min(playOffset + (audioContext.currentTime - playCtxStart)*currentSpeed, audioDuration);
+  if (!audioEl || !isPlaying) return playOffset;
+  return Math.min(audioEl.currentTime, audioDuration);
 }
 
 function _updateDisplay(t) {
@@ -831,6 +835,32 @@ function _animLoop() {
   animFrame = requestAnimationFrame(_animLoop);
 }
 
+function _onTimeUpdate() {
+  // Handle loop boundary
+  if (loopStart !== null && loopEnd !== null && audioEl) {
+    if (audioEl.currentTime >= loopEnd - 0.05) {
+      audioEl.currentTime = loopStart;
+    }
+  }
+}
+
+function _onAudioEnded() {
+  if (!isPlaying) return;
+  isPlaying = false;
+  loopStart = null; loopEnd = null;
+  if (previewingSegId !== null) {
+    const seg = segments.find(s => s.id === previewingSegId);
+    const sm = seg ? markers.find(m => m.id === seg.startId) : null;
+    if (sm) playOffset = sm.time;
+    previewingSegId = null;
+  } else { playOffset = 0; }
+  cancelAnimationFrame(animFrame);
+  _updateDisplay(playOffset);
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').classList.remove('active');
+  drawOverview();
+}
+
 function _autoScroll(t) {
   const vDur = viewEnd - viewStart;
   const margin = vDur * 0.10;
@@ -845,13 +875,17 @@ function _autoScroll(t) {
 
 function skipAudio(secs) {
   const t = Math.max(0, Math.min(audioDuration, _currentAudioTime()+secs));
-  if (isPlaying) _startPlayback(t);
-  else { playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview(); }
+  if (isPlaying) {
+    audioEl.currentTime = t;
+    playOffset = t; queuePoint = t;
+  } else { playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview(); }
 }
 
 function goToStart() {
   if (isPlaying) _pause();
-  playOffset = 0; queuePoint = 0; _updateDisplay(0);
+  playOffset = 0; queuePoint = 0;
+  if (audioEl) audioEl.currentTime = 0;
+  _updateDisplay(0);
   const win = viewEnd - viewStart;
   viewStart = 0; viewEnd = Math.min(audioDuration, win);
   drawOverview();
@@ -869,14 +903,23 @@ function playToNextMarker() {
 
 function onSpeedChange(v) {
   currentSpeed = parseFloat(v);
-  document.getElementById('speed-val').textContent = `${parseFloat(v).toFixed(2).replace(/\.?0+$/,'')}×`;
-  if (isPlaying) _startPlayback(_currentAudioTime());
+  // Snap to nearest defined stop
+  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+  const snapped = STOPS.reduce((a,b) => Math.abs(b-currentSpeed)<Math.abs(a-currentSpeed)?b:a);
+  currentSpeed = snapped;
+  document.getElementById('speed-slider').value = currentSpeed;
+  document.getElementById('speed-val').textContent = `${Math.round(currentSpeed*100)}%`;
+  if (audioEl) {
+    audioEl.playbackRate = currentSpeed;
+    audioEl.preservesPitch = true;
+  }
 }
+
 function resetSpeed() {
   currentSpeed = 1.0;
   document.getElementById('speed-slider').value = 1.0;
-  document.getElementById('speed-val').textContent = '1×';
-  if (isPlaying) _startPlayback(_currentAudioTime());
+  document.getElementById('speed-val').textContent = '100%';
+  if (audioEl) { audioEl.playbackRate = 1.0; audioEl.preservesPitch = true; }
 }
 
 // ══════════════════════════════════════════════
@@ -1172,26 +1215,20 @@ function toggleLoop(id) {
 }
 
 function _startLooping(startTime, endTime) {
-  if (!audioBuffer) return;
-  _killSource();
+  if (!audioEl || !audioBuffer) return;
   cancelAnimationFrame(animFrame);
-  const gen = ++playGen;
-  audioContext.resume().then(() => {
-    if (gen !== playGen) return;
-    audioSource = audioContext.createBufferSource();
-    audioSource.buffer = audioBuffer;
-    audioSource.playbackRate.value = currentSpeed;
-    audioSource.loop = true;
-    audioSource.loopStart = startTime;
-    audioSource.loopEnd = endTime;
-    audioSource.connect(audioContext.destination);
-    audioSource.start(0, startTime);
-    playOffset = startTime; playCtxStart = audioContext.currentTime;
-    isPlaying = true; queuePoint = startTime; playStartedAt = Date.now();
-    document.getElementById('btn-play').textContent = '⏸ Pause';
-    document.getElementById('btn-play').classList.add('active');
-    animFrame = requestAnimationFrame(_animLoop);
-  });
+  playGen++;
+  loopStart = startTime;
+  loopEnd   = endTime;
+  audioEl.currentTime = startTime;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.preservesPitch = true;
+  audioEl.play().catch(e => console.warn('Loop play failed:', e));
+  playOffset = startTime; isPlaying = true;
+  queuePoint = startTime; playStartedAt = Date.now();
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('active');
+  animFrame = requestAnimationFrame(_animLoop);
 }
 
 // ══════════════════════════════════════════════
@@ -1286,7 +1323,10 @@ async function loadNamedSession(name) {
 
   // Stop and clear current audio
   if (isPlaying) _pause();
+  if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+  if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
   audioBuffer = null; audioDuration = 0; activeLoopId = null; previewingSegId = null;
+  loopStart = null; loopEnd = null;
   document.getElementById('audio-player').style.display = 'none';
   playOffset = 0; queuePoint = 0; _updateDisplay(0);
 
