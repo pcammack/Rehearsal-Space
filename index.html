@@ -85,12 +85,13 @@ input[type=file]{display:none}
 
 .marker-col-header,.marker-row{
   display:grid;
-  grid-template-columns:16px 58px 72px 50px 20px 20px 20px;
+  grid-template-columns:16px 58px 72px 50px 20px 20px 20px 20px 20px;
   gap:0.3rem;align-items:center}
 .marker-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
   text-transform:uppercase;padding-bottom:0.3rem;display:none}
-.marker-row{padding:0.22rem 0;border-bottom:1px solid var(--border)}
+.marker-row{padding:0.22rem 0;border-bottom:1px solid var(--border);transition:background 0.1s}
 .marker-row:last-child{border-bottom:none}
+.marker-row.active-marker{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.2rem}
 .marker-seq{font-size:0.48rem;color:var(--text-faint);text-align:center}
 .marker-label-input{background:var(--bg3);border:1px solid var(--border);
   color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.56rem;
@@ -107,7 +108,10 @@ input[type=file]{display:none}
 .marker-btn:hover{color:var(--text)}
 .marker-btn.delete:hover{color:var(--red)}
 .marker-btn.lock.locked{color:var(--accent)}
+.marker-btn.loop-active{color:var(--accent)}
 .marker-btn:disabled{opacity:0.25;cursor:not-allowed}
+.marker-btn.quick-loop-start{color:var(--blue)}
+.marker-btn.quick-loop-start:hover{color:var(--text)}
 
 /* ── LOOPS PANEL ── */
 .loop-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
@@ -124,19 +128,25 @@ input[type=file]{display:none}
 .btn-sm.primary:hover{background:var(--accent-d)}
 .btn-sm.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 
-/* Loop rows: span | dur | ▶ | ⟳ | 🎯 | ✕ */
+/* Loop rows: label | span | dur | ▶ | ⟳ | 🎯 | ✕ */
 .loop-col-header,.loop-row{
   display:grid;
-  grid-template-columns:1fr 50px 22px 22px 22px 22px;
+  grid-template-columns:1fr 70px 46px 22px 22px 22px 22px;
   gap:0.3rem;align-items:center}
 .loop-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
   text-transform:uppercase;padding-bottom:0.3rem;border-bottom:1px solid var(--border);
   margin-bottom:0.2rem;display:none}
-.loop-row{padding:0.25rem 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.loop-row{padding:0.25rem 0;border-bottom:1px solid var(--border);transition:background 0.1s}
 .loop-row:last-child{border-bottom:none}
 .loop-row:hover{background:var(--bg3)}
 .loop-row.active-loop{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
-.loop-span{font-size:0.5rem;color:var(--text)}
+.loop-label-input{background:none;border:none;color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.1rem 0;width:100%;outline:none;border-bottom:1px solid transparent;
+  transition:border-color 0.15s}
+.loop-label-input:focus{border-bottom-color:var(--accent)}
+.loop-label-input::placeholder{color:var(--text-faint);font-style:italic}
+.loop-span{font-size:0.44rem;color:var(--text-faint);white-space:nowrap}
 .loop-dur{font-size:0.46rem;color:var(--text-faint);text-align:center}
 .loop-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;
   color:var(--text-faint);padding:0.1rem;transition:color 0.15s;text-align:center}
@@ -248,7 +258,7 @@ input[type=file]{display:none}
 
 <header>
   <span class="app-name">Music Rehearsal</span>
-  <span class="app-ver">v4.7</span>
+  <span class="app-ver">v4.8</span>
 </header>
 
 <div class="piece-title-bar">
@@ -293,7 +303,7 @@ input[type=file]{display:none}
       </div>
     </div>
     <div class="player-hint">
-      SPACE play/pause · M mark · P play to next · ← −5s · → +10s · Home start · click to seek · drag markers · scroll to zoom · − + step tempo
+      SPACE play/pause · M mark · P play to next · ← −5s · → +10s · ↑↓ prev/next marker · Enter loop start/end · L loop · T tempo train · S save loop · [ ] tempo · , . lead-in · Home start · Ctrl+Z undo
     </div>
   </div>
 
@@ -303,16 +313,18 @@ input[type=file]{display:none}
     <!-- Left column: markers + loops -->
     <div class="main-left">
 
-      <!-- Markers -->
       <div class="marker-panel">
         <div class="section-divider">
           <span>Markers</span>
-          <span id="marker-count" style="color:var(--accent)">0 markers</span>
+          <div style="display:flex;align-items:center;gap:0.4rem">
+            <button class="btn-sm" id="lock-all-btn" onclick="toggleLockAll()" style="font-size:0.38rem;padding:0.1rem 0.4rem">Lock all</button>
+            <span id="marker-count" style="color:var(--accent)">0 markers</span>
+          </div>
         </div>
         <div class="marker-col-header" id="marker-col-header">
           <span>#</span><span>Label</span>
           <span>Time</span><span>Dur→next</span>
-          <span>▶</span><span>🔒</span><span>✕</span>
+          <span>▶</span><span>⟳</span><span>T</span><span>🔒</span><span>✕</span>
         </div>
         <div id="marker-list"></div>
       </div>
@@ -401,7 +413,7 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.7</span>
+      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.8</span>
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -450,12 +462,14 @@ let audioDuration  = 0;
 let audioFileName  = '';
 let currentPieceName = '';
 let previewingSegId = null;
-let activeLoopId = null;
-let currentSpeed   = 1.0;
-let trimOffset     = 0;      // seconds of silence trimmed from file start
-let leadIn         = 0.5;    // lead-in before playback starts (seconds)
-let loopStart      = null;
-let loopEnd        = null;
+let activeLoopId    = null;
+let activeMarkerIdx = -1;   // for ↑/↓ navigation and Enter quick-loop
+let quickLoopStartId = null; // first Enter press sets this
+let currentSpeed    = 1.0;
+let trimOffset      = 0;
+let leadIn          = 0.5;
+let loopStart       = null;
+let loopEnd         = null;
 
 const SILENCE_DB     = 0.005;
 const SNAP_THRESHOLD = 10;
@@ -1002,10 +1016,25 @@ function autoNextLabel() {
   return nextLabel(nonPh[nonPh.length-1].label);
 }
 
+function _labelFamily(label) {
+  const s = String(label).trim();
+  // Dash-subsection: family is the prefix (e.g. "A" for "A-1", "3" for "3-A")
+  const dashM = s.match(/^(.+)-([A-Za-z]+|\d+)$/);
+  if (dashM) return dashM[1];
+  // Pure alpha: family is the letter(s) (e.g. "A" for "A", "B" for "B")
+  if (/^[A-Za-z]+$/.test(s)) return 'alpha';
+  // Pure numeric: family is 'numeric'
+  if (/^\d+$/.test(s)) return 'numeric';
+  return s;
+}
+
 function cascadeAfter(fromIdx, prevLabel) {
+  const family = _labelFamily(prevLabel);
   let lbl = prevLabel;
   for (let i = fromIdx+1; i < markers.length; i++) {
     if (isPlaceholder(markers[i].label)) continue;
+    // Only cascade within same naming family
+    if (_labelFamily(markers[i].label) !== family) break;
     lbl = nextLabel(lbl);
     markers[i].label = lbl;
   }
@@ -1013,11 +1042,27 @@ function cascadeAfter(fromIdx, prevLabel) {
 
 function addMarker(label, type, time) {
   pushUndo();
-  const lbl = label || autoNextLabel();
-  markers.push({ id: markerIdCounter++, label: lbl, type: type||'R', time, locked: false });
+  markers.push({ id: markerIdCounter++, label: label || '.', type: type||'R', time, locked: false });
   markers.sort((a,b)=>a.time-b.time);
-  const idx = markers.findIndex(m => m.label === lbl && m.time === time);
-  if (!isPlaceholder(lbl) && idx >= 0) cascadeAfter(idx, lbl);
+  const insertIdx = markers.findIndex(m => m.time === time && (m.label === label || m.label === '.'));
+
+  if (label) {
+    // Explicit label provided — cascade within family from insert point
+    if (!isPlaceholder(label)) cascadeAfter(insertIdx, label);
+  } else {
+    // Auto-label: only append at end gets auto-incremented label
+    // If inserting in middle, use placeholder
+    const isAtEnd = insertIdx === markers.length - 1;
+    if (isAtEnd) {
+      // Find last non-placeholder before this
+      const prevNonPh = markers.slice(0, insertIdx).filter(m => !isPlaceholder(m.label));
+      const autoLbl = prevNonPh.length ? nextLabel(prevNonPh[prevNonPh.length-1].label) : '1';
+      markers[insertIdx].label = autoLbl;
+      cascadeAfter(insertIdx, autoLbl);
+    }
+    // else: leave as placeholder '.'
+  }
+
   renderMarkers();
   refreshSegmentDropdowns();
   saveSession();
@@ -1036,15 +1081,13 @@ function removeMarker(id) {
   markers = markers.filter(x=>x.id!==id);
   // Remove loops that referenced this marker
   segments = segments.filter(s=>s.startId!==id && s.endId!==id);
-  // Auto-renumber: cascade from the marker before the deleted one
-  if (idx > 0 && markers.length > 0) {
-    const prevIdx = Math.min(idx-1, markers.length-1);
-    const prevLabel = markers[prevIdx].label;
-    if (!isPlaceholder(prevLabel)) cascadeAfter(prevIdx, prevLabel);
-  } else if (idx === 0 && markers.length > 0) {
-    // Deleted the first marker — cascade from new first if not placeholder
-    const firstLabel = markers[0].label;
-    if (!isPlaceholder(firstLabel)) cascadeAfter(0, firstLabel);
+  // Auto-renumber within same family from deletion point
+  if (markers.length > 0) {
+    const prevIdx = Math.max(0, idx - 1);
+    const prevLabel = markers[prevIdx]?.label;
+    if (prevLabel && !isPlaceholder(prevLabel)) {
+      cascadeAfter(prevIdx, prevLabel);
+    }
   }
   renderMarkers(); renderLoops();
   refreshSegmentDropdowns();
@@ -1070,17 +1113,7 @@ function updateMarkerLabel(id, val) {
   m.label = val;
   const idx = markers.findIndex(x=>x.id===id);
   if (!isPlaceholder(val)) cascadeAfter(idx, val);
-  // Update segment names that were auto-named
-  segments.forEach(seg => {
-    const sm = markers.find(x=>x.id===seg.startId);
-    const em = markers.find(x=>x.id===seg.endId);
-    if (sm&&em) {
-      const auto = `${sm.label}→${em.label}`;
-      // Only update if still matches auto pattern
-      if (seg.name === auto || seg.name.match(/^.+→.+$/)) seg.name = auto;
-    }
-  });
-  renderMarkers(); renderSegments(); refreshSegmentDropdowns();
+  renderMarkers(); renderLoops(); refreshSegmentDropdowns();
   saveSession();
 }
 
@@ -1102,6 +1135,7 @@ function renderMarkers() {
   const header = document.getElementById('marker-col-header');
   const countEl= document.getElementById('marker-count');
   countEl.textContent = `${markers.length} marker${markers.length!==1?'s':''}`;
+  _updateLockAllBtn();
 
   if (!markers.length) {
     header.style.display = 'none';
@@ -1115,7 +1149,9 @@ function renderMarkers() {
     const end = i < markers.length-1 ? markers[i+1].time : audioDuration;
     const dur = Math.max(0, end - m.time);
     const ph  = isPlaceholder(m.label);
-    return `<div class="marker-row" id="marker-row-${m.id}">
+    const isActive = i === activeMarkerIdx;
+    const isQLS = m.id === quickLoopStartId; // quick loop start marker
+    return `<div class="marker-row${isActive?' active-marker':''}" id="marker-row-${m.id}">
       <span class="marker-seq">${i+1}</span>
       <input class="marker-label-input${ph?' is-placeholder':''}"
         value="${escHtml(m.label)}"
@@ -1127,7 +1163,9 @@ function renderMarkers() {
         ${m.locked?'readonly style="opacity:0.5"':''}
         title="Start time">
       <span class="marker-dur">${fmtTime(dur)}</span>
-      <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here">▶</button>
+      <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here (lead-in)">▶</button>
+      <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next marker">⟳</button>
+      <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Tempo training from here">T</button>
       <button class="marker-btn lock${m.locked?' locked':''}"
         onclick="toggleLock(${m.id})" title="${m.locked?'Unlock':'Lock'} marker">🔒</button>
       <button class="marker-btn delete"
@@ -1143,6 +1181,120 @@ function previewFromMarker(id) {
   if (!m) return;
   playOffset = m.time; queuePoint = m.time;
   _startPlayback(m.time);
+}
+
+function _updateLockAllBtn() {
+  const btn = document.getElementById('lock-all-btn');
+  if (!btn) return;
+  const allLocked = markers.length > 0 && markers.every(m => m.locked);
+  btn.textContent = allLocked ? 'Unlock all' : 'Lock all';
+}
+
+function toggleLockAll() {
+  if (!markers.length) return;
+  const allLocked = markers.every(m => m.locked);
+  pushUndo();
+  markers.forEach(m => m.locked = !allLocked);
+  saveSession(); renderMarkers();
+}
+
+function markerLoopToNext(id) {
+  const idx = markers.findIndex(m => m.id === id);
+  if (idx < 0 || idx >= markers.length - 1) return;
+  const startM = markers[idx];
+  const endM   = markers[idx + 1];
+  // Create a temporary ad-hoc loop (not saved to segments)
+  activeLoopId = null; // clear any named loop
+  _startLooping(startM.time, endM.time);
+  // Zoom waveform to show the range
+  const dur = endM.time - startM.time;
+  const pad = dur * 0.15;
+  viewStart = Math.max(0, startM.time - pad);
+  viewEnd   = Math.min(audioDuration, endM.time + pad);
+  zoomLevel = audioDuration / (viewEnd - viewStart);
+  drawOverview();
+}
+
+function openTempoTrainingFromMarker(id) {
+  const idx = markers.findIndex(m => m.id === id);
+  if (idx < 0 || idx >= markers.length - 1) return;
+  const startM = markers[idx];
+  const endM   = markers[idx + 1];
+  // Create a temporary segment for tempo training
+  const tempId = -1; // sentinel for ad-hoc
+  ttLoopId = null;
+  ttAdHocStart = startM.time;
+  ttAdHocEnd   = endM.time;
+  renderTempoTrainPanel();
+  document.getElementById('tempo-train-panel').classList.add('visible');
+  document.getElementById('tempo-train-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── Active marker navigation ──
+function setActiveMarker(idx) {
+  if (!markers.length) return;
+  activeMarkerIdx = Math.max(0, Math.min(markers.length - 1, idx));
+  const m = markers[activeMarkerIdx];
+  // Scroll marker row into view
+  const row = document.getElementById(`marker-row-${m.id}`);
+  if (row) row.scrollIntoView({behavior:'smooth', block:'nearest'});
+  // Show marker position on waveform
+  playOffset = m.time; queuePoint = m.time;
+  if (!isPlaying) _updateDisplay(m.time);
+  renderMarkers();
+  drawOverview();
+}
+
+function navMarker(dir) {
+  if (!markers.length) return;
+  const newIdx = activeMarkerIdx === -1
+    ? (dir > 0 ? 0 : markers.length - 1)
+    : activeMarkerIdx + dir;
+  setActiveMarker(newIdx);
+}
+
+// Quick loop: Enter sets start, Enter again sets end and starts loop
+function enterQuickLoop() {
+  if (!markers.length || activeMarkerIdx < 0) return;
+  const m = markers[activeMarkerIdx];
+  if (quickLoopStartId === null) {
+    // First Enter: set start
+    quickLoopStartId = m.id;
+    renderMarkers();
+  } else {
+    const startM = markers.find(x => x.id === quickLoopStartId);
+    const endM   = m;
+    if (!startM || startM.id === endM.id) { quickLoopStartId = null; renderMarkers(); return; }
+    // Ensure start < end
+    const s = startM.time < endM.time ? startM : endM;
+    const e = startM.time < endM.time ? endM   : startM;
+    quickLoopStartId = null;
+    activeLoopId = null;
+    _startLooping(s.time, e.time);
+    const dur = e.time - s.time;
+    const pad = dur * 0.15;
+    viewStart = Math.max(0, s.time - pad);
+    viewEnd   = Math.min(audioDuration, e.time + pad);
+    zoomLevel = audioDuration / (viewEnd - viewStart);
+    renderMarkers();
+    drawOverview();
+  }
+}
+
+function saveQuickLoop() {
+  // Save current ad-hoc loop (loopStart/loopEnd) to segments panel
+  if (!loopStart || !loopEnd || !audioBuffer) return;
+  const startTime = loopStart - trimOffset;
+  const endTime   = loopEnd   - trimOffset;
+  // Find closest markers
+  const sm = markers.reduce((a,b) => Math.abs(b.time-startTime)<Math.abs(a.time-startTime)?b:a, markers[0]);
+  const em = markers.reduce((a,b) => Math.abs(b.time-endTime  )<Math.abs(a.time-endTime  )?b:a, markers[0]);
+  if (!sm||!em||sm.id===em.id) return;
+  const name = prompt('Save loop as:', `${sm.label} → ${em.label}`);
+  if (!name||!name.trim()) return;
+  pushUndo();
+  segments.push({ id: segmentIdCounter++, startId: sm.id, endId: em.id, name: name.trim(), include: true });
+  renderLoops(); saveSession();
 }
 
 // ══════════════════════════════════════════════
@@ -1218,20 +1370,40 @@ function renderLoops() {
   list.innerHTML = segments.map(seg => {
     const sm = markers.find(m=>m.id===seg.startId);
     const em = markers.find(m=>m.id===seg.endId);
-    if (!sm||!em) return '';
+    if (!sm||!em) {
+      // Broken loop — marker was deleted
+      return `<div class="loop-row" style="opacity:0.4" id="seg-row-${seg.id}">
+        <span class="loop-label-input" style="font-style:italic;color:var(--red)">⚠ missing marker</span>
+        <span class="loop-span"></span>
+        <span class="loop-dur"></span>
+        <span></span><span></span><span></span>
+        <button class="loop-btn delete" onclick="removeSegment(${seg.id})" title="Remove">✕</button>
+      </div>`;
+    }
     const dur = Math.max(0, em.time - sm.time);
     const isActive = seg.id === activeLoopId;
+    const defaultName = `${sm.label} → ${em.label}`;
+    const displayName = seg.name || defaultName;
     return `<div class="loop-row${isActive?' active-loop':''}" id="seg-row-${seg.id}">
-      <span class="loop-span">${sm.label} → ${em.label}</span>
+      <input class="loop-label-input" value="${escHtml(displayName)}"
+        placeholder="${escHtml(defaultName)}"
+        onchange="updateLoopName(${seg.id},this.value)"
+        title="Click to rename loop">
+      <span class="loop-span">${sm.label}→${em.label}</span>
       <span class="loop-dur">${fmtTime(dur)}</span>
       <button class="loop-btn" onclick="previewSegment(${seg.id})" title="Preview">▶</button>
       <button class="loop-btn${isActive?' loop-active':''}" onclick="toggleLoop(${seg.id})" title="Loop">⟳</button>
-      <button class="loop-btn${isActive?' loop-active':''}" onclick="openTempoTraining(${seg.id})" title="Tempo training" style="${isActive?'':'opacity:0.3'}">🎯</button>
+      <button class="loop-btn${isActive?' loop-active':''}" onclick="openTempoTraining(${seg.id})" title="Tempo training">🎯</button>
       <button class="loop-btn delete" onclick="removeSegment(${seg.id})" title="Remove">✕</button>
     </div>`;
   }).filter(Boolean).join('');
 
   drawOverview();
+}
+
+function updateLoopName(id, val) {
+  const seg = segments.find(s=>s.id===id);
+  if (seg) { seg.name = val.trim(); saveSession(); }
 }
 
 function toggleLoop(id) {
@@ -1374,6 +1546,7 @@ async function loadNamedSession(name) {
   if (audioEl) { audioEl.pause(); audioEl.src = ''; }
   if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
   audioBuffer = null; audioDuration = 0; activeLoopId = null; previewingSegId = null;
+  activeMarkerIdx = -1; quickLoopStartId = null;
   loopStart = null; loopEnd = null;
   document.getElementById('audio-player').style.display = 'none';
   playOffset = 0; queuePoint = 0; _updateDisplay(0);
@@ -1633,11 +1806,21 @@ let ttState     = null; // null = idle, else { stepIdx, repsDone, paused }
 let ttLoopId    = null;
 let ttRepTimeout = null;
 
+let ttAdHocStart = null;
+let ttAdHocEnd   = null;
+
 function openTempoTraining(loopId) {
   ttLoopId = loopId;
-  if (!activeLoopId || activeLoopId !== loopId) toggleLoop(loopId);
+  ttAdHocStart = null; ttAdHocEnd = null;
+  // Do NOT start playback — just highlight the loop
+  if (!activeLoopId || activeLoopId !== loopId) {
+    activeLoopId = loopId;
+    renderLoops();
+    drawOverview();
+  }
   renderTempoTrainPanel();
   document.getElementById('tempo-train-panel').classList.add('visible');
+  document.getElementById('tempo-train-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function closeTempoTraining() {
@@ -1692,11 +1875,19 @@ function _ttRunStep() {
   if (!ttState || ttState.paused) return;
   const { stepIdx, repsDone, enabledSteps } = ttState;
   const cfg = ttConfig[stepIdx];
-  const seg = segments.find(s => s.id === ttLoopId);
-  if (!seg) { tempoTrainStop(); return; }
-  const sm = markers.find(m => m.id === seg.startId);
-  const em = markers.find(m => m.id === seg.endId);
-  if (!sm || !em) { tempoTrainStop(); return; }
+
+  // Get range — named loop or ad-hoc
+  let startTime, endTime;
+  if (ttLoopId !== null) {
+    const seg = segments.find(s => s.id === ttLoopId);
+    if (!seg) { tempoTrainStop(); return; }
+    const sm = markers.find(m => m.id === seg.startId);
+    const em = markers.find(m => m.id === seg.endId);
+    if (!sm || !em) { tempoTrainStop(); return; }
+    startTime = sm.time; endTime = em.time;
+  } else if (ttAdHocStart !== null && ttAdHocEnd !== null) {
+    startTime = ttAdHocStart; endTime = ttAdHocEnd;
+  } else { tempoTrainStop(); return; }
 
   // Set tempo
   onSpeedChange(cfg.pct);
@@ -1707,23 +1898,21 @@ function _ttRunStep() {
   renderTempoTrainPanel();
 
   // Play one rep
-  const dur = (em.time - sm.time) / cfg.pct;
+  const dur = (endTime - startTime) / cfg.pct;
   if (isPlaying) { if (audioEl) audioEl.pause(); isPlaying = false; }
-  _startLooping(sm.time, em.time);
+  _startLooping(startTime, endTime);
 
   // Schedule advance after this rep
   ttRepTimeout = setTimeout(() => {
     if (!ttState || ttState.paused) return;
     ttState.repsDone++;
     if (ttState.repsDone >= ttConfig[ttState.stepIdx].reps) {
-      // Advance to next enabled step
       const curEnabledIdx = enabledSteps.findIndex(s => s.i === ttState.stepIdx);
       if (curEnabledIdx < enabledSteps.length - 1) {
         ttState.stepIdx = enabledSteps[curEnabledIdx + 1].i;
         ttState.repsDone = 0;
         _ttRunStep();
       } else {
-        // Done
         tempoTrainStop();
         document.getElementById('tt-status').textContent = '✓ Complete';
         renderTempoTrainPanel();
@@ -1731,7 +1920,7 @@ function _ttRunStep() {
     } else {
       _ttRunStep();
     }
-  }, dur * 1000 + 200); // +200ms gap between reps
+  }, dur * 1000 + 200);
 }
 
 function tempoTrainPause() {
@@ -1859,24 +2048,16 @@ function _hitTestMarker(mouseX, canvasWidth) {
       if (isPlaying) _pause();
     } else {
       dragMarkerState = null;
-      if (zoomLevel > 1) {
-        // Pan mode when zoomed in
-        isPanning = true;
-        panStartX = e.clientX;
-        panStartViewStart = viewStart;
-        canvas.classList.add('dragging');
-        canvas.style.cursor = 'grab';
-      } else {
-        // Seek mode at 1x zoom
-        isDragging = true;
-        dragStartX = e.clientX; lastDragX = e.clientX;
-        dragStartTime = _timeFromOverviewX(e);
-        canvas.classList.add('dragging');
-        dragWasPlaying = isPlaying;
-        if (isPlaying) _pause();
-        const t = Math.max(0, Math.min(audioDuration, dragStartTime));
-        playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
-      }
+      isDragging = false; isPanning = false;
+      dragStartX = e.clientX; lastDragX = e.clientX;
+      dragStartTime = _timeFromOverviewX(e);
+      dragWasPlaying = isPlaying;
+      if (isPlaying) _pause();
+      // Immediately seek on mousedown (works at any zoom)
+      const t = Math.max(0, Math.min(audioDuration, dragStartTime));
+      playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
+      // We'll decide pan vs seek in mousemove based on distance
+      canvas.classList.add('dragging');
     }
   });
 
@@ -1932,16 +2113,27 @@ function _hitTestMarker(mouseX, canvasWidth) {
       const dx = e.clientX - dragStartX;
       const newTime = Math.max(0, Math.min(audioDuration, dragStartTime + dx*(vDur/rect.width)));
       playOffset = newTime; _updateDisplay(newTime); drawOverview();
-      // #11 show tooltip while dragging playhead
       tooltip.textContent = fmtTime(newTime);
       tooltip.style.display = 'block';
       tooltip.style.left = e.clientX + 'px';
       tooltip.style.top  = (rect.top + window.scrollY - 4) + 'px';
-    } else {
+    } else if (!dragMarkerState && !isPanning && !isDragging) {
+      // Not yet committed — check if we've moved enough to start pan or seek
+      const moved = Math.abs(e.clientX - dragStartX);
+      if (moved > 4 && canvas.classList.contains('dragging')) {
+        if (zoomLevel > 1) {
+          // Start pan
+          isPanning = true;
+          panStartX = e.clientX;
+          panStartViewStart = viewStart;
+          canvas.style.cursor = 'grab';
+        } else {
+          isDragging = true;
+        }
+      }
       tooltip.style.display = 'none';
       const hit = _hitTestMarker(mouseX, rect.width);
-      canvas.style.cursor = hit ? (hit.locked?'pointer':'ew-resize') : 'crosshair';
-      // #7 cursor hover → update timer display
+      canvas.style.cursor = hit ? (hit.locked?'pointer':'ew-resize') : (zoomLevel>1?'grab':'crosshair');
       if (mouseX >= 0 && mouseX <= rect.width) {
         const hoverTime = Math.max(0, Math.min(audioDuration, viewStart + (mouseX/rect.width)*(viewEnd-viewStart)));
         if (!isPlaying) _updateDisplay(hoverTime);
@@ -1972,6 +2164,10 @@ function _hitTestMarker(mouseX, canvasWidth) {
       isDragging = false;
       canvas.classList.remove('dragging');
       if (dragWasPlaying && Math.abs(lastDragX-dragStartX)>4) _startPlayback(playOffset);
+    } else if (canvas.classList.contains('dragging')) {
+      // Click with no drag — seek already happened on mousedown, just clean up
+      canvas.classList.remove('dragging');
+      canvas.style.cursor = zoomLevel > 1 ? 'grab' : 'crosshair';
     }
   });
 
@@ -2003,13 +2199,35 @@ document.addEventListener('keydown', e => {
   if (e.code==='KeyM' && audioBuffer) { tapMarker('R'); }
   if (e.code==='KeyP' && audioBuffer) { e.preventDefault(); playToNextMarker(); }
   if (e.code==='Home') { e.preventDefault(); goToStart(); }
-  if (e.code==='ArrowLeft' && audioBuffer) { e.preventDefault(); skipAudio(-5); }
+  if (e.code==='ArrowLeft'  && audioBuffer) { e.preventDefault(); skipAudio(-5); }
   if (e.code==='ArrowRight' && audioBuffer) { e.preventDefault(); skipAudio(10); }
+  if (e.code==='ArrowUp'    && audioBuffer) { e.preventDefault(); navMarker(-1); }
+  if (e.code==='ArrowDown'  && audioBuffer) { e.preventDefault(); navMarker(1); }
+  if (e.code==='Enter'      && audioBuffer) { e.preventDefault(); enterQuickLoop(); }
+  if (e.code==='Escape') {
+    e.preventDefault();
+    quickLoopStartId = null;
+    if (activeLoopId !== null) { toggleLoop(activeLoopId); }
+    else if (isPlaying) { _pause(); }
+    renderMarkers();
+  }
   if (e.code==='KeyL' && audioBuffer) {
     e.preventDefault();
     if (activeLoopId !== null) { toggleLoop(activeLoopId); }
     else if (segments.length) { toggleLoop(segments[segments.length-1].id); }
   }
+  if (e.code==='KeyT' && audioBuffer) {
+    e.preventDefault();
+    if (activeLoopId !== null) { openTempoTraining(activeLoopId); }
+    else if (activeMarkerIdx >= 0 && activeMarkerIdx < markers.length - 1) {
+      openTempoTrainingFromMarker(markers[activeMarkerIdx].id);
+    }
+  }
+  if (e.code==='KeyS' && audioBuffer) { e.preventDefault(); saveQuickLoop(); }
+  if (e.code==='BracketLeft')  { e.preventDefault(); stepTempo(-1); }
+  if (e.code==='BracketRight') { e.preventDefault(); stepTempo(1); }
+  if (e.code==='Comma')  { e.preventDefault(); stepLeadIn(-1); }
+  if (e.code==='Period') { e.preventDefault(); stepLeadIn(1); }
   if (e.code==='KeyZ' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); undo(); }
 });
 
