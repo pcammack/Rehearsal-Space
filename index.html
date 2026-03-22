@@ -85,8 +85,48 @@ input[type=file]{display:none}
 
 .marker-col-header,.marker-row{
   display:grid;
-  grid-template-columns:16px 58px 72px 50px 20px 20px 20px 20px 20px;
+  grid-template-columns:16px 52px 48px 66px 46px 20px 20px 20px 20px 20px;
   gap:0.3rem;align-items:center}
+
+/* ── BAR NUMBER INPUT ── */
+.marker-bar-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.46rem;
+  padding:0.15rem 0.25rem;width:100%;outline:none;transition:border-color 0.15s;
+  text-align:center}
+.marker-bar-input:focus{border-color:var(--blue);color:var(--text)}
+.marker-bar-input::placeholder{color:var(--text-faint)}
+
+/* ── RECORDING PANEL ── */
+.rec-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+.rec-controls{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.45rem;flex-wrap:wrap}
+.btn-rec{background:var(--red);border:1px solid var(--red);color:#fff;
+  padding:0.25rem 0.7rem;font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-rec:hover{background:#a84a3a;border-color:#a84a3a}
+.btn-rec.recording{animation:recPulse 1s ease-in-out infinite}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:0.65}}
+.rec-indicator{font-size:0.46rem;color:var(--red);letter-spacing:0.1em;
+  display:none;align-items:center;gap:0.3rem}
+.rec-indicator.visible{display:flex}
+.rec-dot{width:6px;height:6px;border-radius:50%;background:var(--red);
+  animation:recPulse 1s ease-in-out infinite}
+.rec-timer{font-size:0.5rem;color:var(--text-mid);min-width:3rem}
+.rec-scope{font-size:0.44rem;color:var(--text-faint)}
+.rec-clip-list{display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem}
+.rec-clip-row{display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0.5rem;
+  background:var(--bg3);border:1px solid var(--border)}
+.rec-clip-label{font-size:0.5rem;color:var(--text);flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-clip-dur{font-size:0.44rem;color:var(--text-faint);white-space:nowrap}
+.rec-clip-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;
+  color:var(--text-faint);padding:0.1rem;transition:color 0.15s}
+.rec-clip-btn:hover{color:var(--text)}
+.rec-clip-btn.download:hover{color:var(--green)}
+.rec-clip-btn.delete:hover{color:var(--red)}
+.rec-clip-audio{width:100%;height:24px;margin-top:0.2rem;display:block}
+.rec-no-clips{font-size:0.48rem;color:var(--text-faint);padding:0.3rem 0;text-align:center}
+.rec-warning{font-size:0.42rem;color:var(--text-faint);margin-top:0.3rem;line-height:1.7}
 .marker-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
   text-transform:uppercase;padding-bottom:0.3rem;display:none}
 .marker-row{padding:0.22rem 0;border-bottom:1px solid var(--border);transition:background 0.1s}
@@ -258,7 +298,7 @@ input[type=file]{display:none}
 
 <header>
   <span class="app-name">Music Rehearsal</span>
-  <span class="app-ver">v4.8</span>
+  <span class="app-ver">v4.9</span>
 </header>
 
 <div class="piece-title-bar">
@@ -303,7 +343,7 @@ input[type=file]{display:none}
       </div>
     </div>
     <div class="player-hint">
-      SPACE play/pause · M mark · P play to next · ← −5s · → +10s · ↑↓ prev/next marker · Enter loop start/end · L loop · T tempo train · S save loop · [ ] tempo · , . lead-in · Home start · Ctrl+Z undo
+      SPACE play/pause · M mark · P play to next · ← −5s · → +10s · ↑↓ prev/next marker · Enter loop start/end · L loop · T tempo train · S save loop · R record · K discard clip · [ ] tempo · , . lead-in · Home start · Ctrl+Z undo
     </div>
   </div>
 
@@ -312,6 +352,29 @@ input[type=file]{display:none}
 
     <!-- Left column: markers + loops -->
     <div class="main-left">
+
+      <!-- Recording Panel -->
+      <div class="rec-panel" id="rec-panel">
+        <div class="section-divider">
+          <span>Recording</span>
+          <div style="display:flex;align-items:center;gap:0.4rem">
+            <div class="rec-indicator" id="rec-indicator">
+              <span class="rec-dot"></span>
+              <span>REC</span>
+              <span class="rec-timer" id="rec-timer">0:00</span>
+            </div>
+            <span class="rec-scope" id="rec-scope"></span>
+          </div>
+        </div>
+        <div class="rec-controls">
+          <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">⏺ Record</button>
+          <button class="btn-sm" id="btn-kill-clip" onclick="killLastClip()" style="display:none" title="Discard last clip (K)">✕ Discard last</button>
+        </div>
+        <div id="rec-clip-list" class="rec-clip-list">
+          <div class="rec-no-clips">No clips yet — press R to record</div>
+        </div>
+        <div class="rec-warning">Clips are session-only and will not survive a page reload. Download immediately to keep.</div>
+      </div>
 
       <div class="marker-panel">
         <div class="section-divider">
@@ -323,7 +386,7 @@ input[type=file]{display:none}
         </div>
         <div class="marker-col-header" id="marker-col-header">
           <span>#</span><span>Label</span>
-          <span>Time</span><span>Dur→next</span>
+          <span>Bar</span><span>Time</span><span>Dur→next</span>
           <span>▶</span><span>⟳</span><span>T</span><span>🔒</span><span>✕</span>
         </div>
         <div id="marker-list"></div>
@@ -396,7 +459,8 @@ input[type=file]{display:none}
 
   <!-- Tips -->
   <div class="tips">
-    <strong style="color:var(--text-mid)">SPACE</strong> play/pause ·
+    <strong style="color:var(--text-mid)">R</strong> record ·
+    <strong style="color:var(--text-mid)">K</strong> discard last clip ·
     <strong style="color:var(--text-mid)">M</strong> mark ·
     <strong style="color:var(--text-mid)">P</strong> play to next marker ·
     <strong style="color:var(--text-mid)">← →</strong> −5s / +10s ·
@@ -413,7 +477,12 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.8</span>
+      <span style="color:var(--accent);font-size:0.56rem">MUSIC REHEARSAL v4.9</span>
+
+      <div class="doc-h">WHAT'S NEW IN v4.9</div>
+      · <strong style="color:var(--text)">Recording:</strong> Press R to start/stop recording. Clips appear immediately with playback and one-click download. Press K to discard the last clip.<br>
+      · <strong style="color:var(--text)">Bar numbers:</strong> Each marker now has an optional bar number field. Fill it in to navigate by musical position rather than memory.<br>
+      · Recordings are session-only — download immediately if you want to keep them.
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -431,7 +500,8 @@ input[type=file]{display:none}
 
       <div class="doc-h">KEYBOARD</div>
       SPACE play/pause · M mark · P play to next marker · ← −5s · → +10s ·
-      L loop active · Home back to start · Ctrl/⌘+Z undo
+      L loop active · Home back to start · Ctrl/⌘+Z undo ·
+      R record/stop · K discard last clip
     </div>
   </div>
 
@@ -1130,6 +1200,14 @@ function updateMarkerTime(id, val) {
   renderMarkers(); drawOverview(); saveSession();
 }
 
+function updateMarkerBar(id, val) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  const trimmed = val.trim();
+  m.bar = trimmed;
+  saveSession();
+}
+
 function renderMarkers() {
   const list   = document.getElementById('marker-list');
   const header = document.getElementById('marker-col-header');
@@ -1158,6 +1236,11 @@ function renderMarkers() {
         onchange="updateMarkerLabel(${m.id},this.value)"
         ${m.locked?'readonly style="opacity:0.5"':''}
         title="Score label">
+      <input class="marker-bar-input"
+        value="${escHtml(m.bar||'')}"
+        placeholder="bar"
+        onchange="updateMarkerBar(${m.id},this.value)"
+        title="Bar number">
       <input class="marker-time-input" value="${fmtTime(m.time)}"
         onblur="updateMarkerTime(${m.id},this.value)"
         ${m.locked?'readonly style="opacity:0.5"':''}
@@ -1956,6 +2039,167 @@ function tempoTrainStop() {
 }
 
 // ══════════════════════════════════════════════
+// RECORDING
+// ══════════════════════════════════════════════
+let mediaRecorder  = null;
+let recChunks      = [];
+let recStartTime   = null;
+let recTimerInterval = null;
+let recClips       = [];   // { id, label, blob, url, duration, scopeLabel }
+let recClipCounter = 0;
+let isRecording    = false;
+
+function _recScopeLabel() {
+  // Describe what will be recorded
+  if (activeLoopId !== null) {
+    const seg = segments.find(s => s.id === activeLoopId);
+    if (seg) {
+      const sm = markers.find(m => m.id === seg.startId);
+      const em = markers.find(m => m.id === seg.endId);
+      if (sm && em) return `loop ${sm.label}→${em.label}`;
+    }
+  }
+  if (loopStart !== null && loopEnd !== null) return 'active loop';
+  return 'free (no loop active)';
+}
+
+async function toggleRecording() {
+  if (isRecording) {
+    _stopRecording();
+  } else {
+    await _startRecording();
+  }
+}
+
+async function _startRecording() {
+  if (!audioBuffer) { alert('Load an audio file first.'); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 }
+    });
+
+    // Prefer webm/opus, fall back to whatever browser supports
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : '';
+
+    mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+
+    recChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    mediaRecorder.onstop = _onRecordingStop;
+    mediaRecorder.start(100);
+
+    isRecording = true;
+    recStartTime = Date.now();
+
+    // Start recording scope — snap to loop if active
+    const scopeLabel = _recScopeLabel();
+    document.getElementById('rec-scope').textContent = scopeLabel;
+    document.getElementById('rec-indicator').classList.add('visible');
+    document.getElementById('btn-rec').textContent = '⏹ Stop';
+    document.getElementById('btn-rec').classList.add('recording');
+
+    // Timer display
+    recTimerInterval = setInterval(() => {
+      const elapsed = (Date.now() - recStartTime) / 1000;
+      const m = Math.floor(elapsed / 60);
+      const s = Math.floor(elapsed % 60);
+      document.getElementById('rec-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }, 500);
+
+  } catch(err) {
+    alert('Microphone access denied or unavailable.\n\n' + err.message);
+  }
+}
+
+function _stopRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  mediaRecorder.stop();
+  // Stop all mic tracks
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  isRecording = false;
+  clearInterval(recTimerInterval);
+  document.getElementById('rec-indicator').classList.remove('visible');
+  document.getElementById('btn-rec').textContent = '⏺ Record';
+  document.getElementById('btn-rec').classList.remove('recording');
+  document.getElementById('rec-scope').textContent = '';
+  document.getElementById('rec-timer').textContent = '0:00';
+}
+
+function _onRecordingStop() {
+  const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'audio/webm';
+  const blob = new Blob(recChunks, { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const duration = (Date.now() - recStartTime) / 1000;
+  const scopeLabel = _recScopeLabel();
+  const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+  const piecePart = currentPieceName
+    ? currentPieceName.replace(/\s+/g,'_').replace(/[^\w-]/g,'').slice(0,20)
+    : 'clip';
+  const timePart = new Date().toISOString().slice(11,19).replace(/:/g,'');
+  const filename = `${piecePart}_${timePart}.${ext}`;
+
+  const clip = { id: recClipCounter++, label: filename, blob, url, duration, scopeLabel, ext };
+  recClips.push(clip);
+  renderRecClips();
+  document.getElementById('btn-kill-clip').style.display = '';
+}
+
+function renderRecClips() {
+  const el = document.getElementById('rec-clip-list');
+  if (!recClips.length) {
+    el.innerHTML = '<div class="rec-no-clips">No clips yet — press R to record</div>';
+    document.getElementById('btn-kill-clip').style.display = 'none';
+    return;
+  }
+  el.innerHTML = recClips.map(clip => {
+    const mins = Math.floor(clip.duration / 60);
+    const secs = Math.floor(clip.duration % 60);
+    const durStr = `${mins}:${secs.toString().padStart(2,'0')}`;
+    return `<div class="rec-clip-row" id="rec-clip-${clip.id}">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:0.4rem">
+          <span class="rec-clip-label" title="${escHtml(clip.label)}">${escHtml(clip.label)}</span>
+          <span class="rec-clip-dur">${durStr}</span>
+          <button class="rec-clip-btn download" onclick="downloadClip(${clip.id})" title="Download clip">⬇</button>
+          <button class="rec-clip-btn delete" onclick="deleteClip(${clip.id})" title="Discard clip">✕</button>
+        </div>
+        <audio class="rec-clip-audio" src="${clip.url}" controls preload="none"></audio>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function downloadClip(id) {
+  const clip = recClips.find(c => c.id === id);
+  if (!clip) return;
+  const a = document.createElement('a');
+  a.href = clip.url;
+  a.download = clip.label;
+  a.click();
+}
+
+function deleteClip(id) {
+  const clip = recClips.find(c => c.id === id);
+  if (clip) URL.revokeObjectURL(clip.url);
+  recClips = recClips.filter(c => c.id !== id);
+  renderRecClips();
+  if (!recClips.length) document.getElementById('btn-kill-clip').style.display = 'none';
+}
+
+function killLastClip() {
+  if (!recClips.length) return;
+  const last = recClips[recClips.length - 1];
+  deleteClip(last.id);
+}
+
+// ══════════════════════════════════════════════
 // UNDO
 // ══════════════════════════════════════════════
 function pushUndo() {
@@ -2224,6 +2468,8 @@ document.addEventListener('keydown', e => {
     }
   }
   if (e.code==='KeyS' && audioBuffer) { e.preventDefault(); saveQuickLoop(); }
+  if (e.code==='KeyR' && audioBuffer) { e.preventDefault(); toggleRecording(); }
+  if (e.code==='KeyK') { e.preventDefault(); killLastClip(); }
   if (e.code==='BracketLeft')  { e.preventDefault(); stepTempo(-1); }
   if (e.code==='BracketRight') { e.preventDefault(); stepTempo(1); }
   if (e.code==='Comma')  { e.preventDefault(); stepLeadIn(-1); }
