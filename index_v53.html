@@ -1,0 +1,3568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rehearsal Space</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f; --bg2:#161616; --bg3:#1e1e1e; --bg4:#252525;
+  --border:#2a2a2a; --border-l:#333;
+  --text:#e8e4dc; --text-mid:#a09890; --text-faint:#5a5550;
+  --accent:#c4922a; --accent-d:#a87820;
+  --green:#4a9e6a; --red:#c45a4a; --blue:#4a7ec4;
+  --r-color:#c4922a; --d-color:#4a9e6a;
+}
+html{font-size:20px}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;
+  min-height:100vh;padding-bottom:2.5rem}
+
+/* ── HEADER ── */
+header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.app-name{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:400;
+  color:var(--text-faint);letter-spacing:0.03em}
+.app-ver{font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--accent);border:1px solid var(--border-l);
+  padding:0.15rem 0.5rem;margin-left:0.6rem}
+
+/* ── PIECE TITLE ── */
+.piece-title-bar{padding:1rem 1.5rem 0.9rem;border-bottom:1px solid var(--border)}
+.piece-title{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:400;
+  color:var(--text);letter-spacing:0.01em;min-height:2rem}
+.piece-title.empty{color:var(--text-faint);font-style:italic;font-size:1.1rem}
+
+/* ── WORKSPACE ── */
+.workspace{max-width:1300px;margin:0 auto;padding:0.9rem 1.5rem}
+
+/* ── PLAYER ── */
+#audio-player{margin-bottom:0.75rem;
+  background:var(--bg2);border:1px solid var(--border);padding:0.6rem 0.8rem}
+.overview-wrap{position:relative;margin-bottom:0.5rem}
+#overview-canvas{width:100%;height:128px;display:block;cursor:crosshair;background:var(--bg3)}
+.transport{display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
+.player-left,.player-right{display:flex;align-items:center;gap:0.4rem}
+.btn-player{background:var(--bg3);border:1px solid var(--border);color:var(--text-mid);
+  padding:0.25rem 0.65rem;font-family:'JetBrains Mono',monospace;font-size:0.52rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-player:hover{border-color:var(--border-l);color:var(--text)}
+.btn-player.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.player-time{font-size:0.78rem;color:var(--text);min-width:10rem;text-align:right;font-weight:500;letter-spacing:0.04em}
+.transport-label{font-size:0.44rem;color:var(--text-faint);letter-spacing:0.1em}
+.speed-slider{width:70px;accent-color:var(--accent);cursor:pointer}
+.speed-val{font-size:0.5rem;color:var(--text-mid);min-width:2rem}
+.player-hint{font-size:0.44rem;color:var(--text-faint);margin-top:0.3rem;line-height:1.8}
+.trim-toggle{display:flex;align-items:center;gap:0.35rem;
+  font-size:0.44rem;color:var(--text-faint);cursor:pointer}
+.trim-toggle input{accent-color:var(--accent);cursor:pointer}
+input[type=file]{display:none}
+
+/* ── NO-FILE NOTICE ── */
+.no-file-notice{background:var(--bg2);border:1px solid var(--border);
+  padding:0.75rem 1rem;margin-bottom:0.75rem;
+  display:none;align-items:center;justify-content:space-between}
+.no-file-notice.visible{display:flex}
+.no-file-msg{font-size:0.5rem;color:var(--text-faint)}
+.no-file-msg strong{color:var(--accent)}
+.btn-load-file{background:var(--bg3);border:1px solid var(--border-l);color:var(--text-mid);
+  padding:0.25rem 0.7rem;font-family:'JetBrains Mono',monospace;font-size:0.48rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-load-file:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── MAIN BODY: markers+loops left | notes right ── */
+.main-body{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;align-items:start}
+.main-left{display:flex;flex-direction:column;gap:0.75rem}
+.main-right{position:sticky;top:0.75rem}
+
+/* ── SECTION DIVIDER ── */
+.section-divider{font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--text-faint);padding:0.4rem 0 0.3rem;
+  border-bottom:1px solid var(--border);margin-bottom:0.4rem;
+  display:flex;justify-content:space-between;align-items:center}
+
+/* ── MARKER PANEL ── */
+.marker-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
+
+.marker-col-header,.marker-row{
+  display:grid;
+  grid-template-columns:16px 52px 48px 66px 46px 20px 20px 20px 20px 20px 20px;
+  gap:0.3rem;align-items:center}
+
+/* ── BAR NUMBER INPUT ── */
+.marker-bar-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.46rem;
+  padding:0.15rem 0.25rem;width:100%;outline:none;transition:border-color 0.15s;
+  text-align:center}
+.marker-bar-input:focus{border-color:var(--blue);color:var(--text)}
+.marker-bar-input::placeholder{color:var(--text-faint)}
+
+/* ── RECORDING PANEL ── */
+.rec-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+.rec-controls{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.45rem;flex-wrap:wrap}
+.btn-rec{background:var(--red);border:1px solid var(--red);color:#fff;
+  padding:0.25rem 0.7rem;font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-rec:hover{background:#a84a3a;border-color:#a84a3a}
+.btn-rec.recording{animation:recPulse 1s ease-in-out infinite}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:0.65}}
+.rec-indicator{font-size:0.46rem;color:var(--red);letter-spacing:0.1em;
+  display:none;align-items:center;gap:0.3rem}
+.rec-indicator.visible{display:flex}
+.rec-dot{width:6px;height:6px;border-radius:50%;background:var(--red);
+  animation:recPulse 1s ease-in-out infinite}
+.rec-timer{font-size:0.5rem;color:var(--text-mid);min-width:3rem}
+.rec-scope{font-size:0.44rem;color:var(--text-faint)}
+.rec-clip-list{display:flex;flex-direction:column;gap:0.3rem;margin-top:0.3rem}
+.rec-clip-row{display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0.5rem;
+  background:var(--bg3);border:1px solid var(--border)}
+.rec-clip-label{font-size:0.5rem;color:var(--text);flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-clip-dur{font-size:0.44rem;color:var(--text-faint);white-space:nowrap}
+.rec-clip-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;
+  color:var(--text-faint);padding:0.1rem;transition:color 0.15s}
+.rec-clip-btn:hover{color:var(--text)}
+.rec-clip-btn.download:hover{color:var(--green)}
+.rec-clip-btn.delete:hover{color:var(--red)}
+.rec-clip-audio{width:100%;height:24px;margin-top:0.2rem;display:block}
+.rec-no-clips{font-size:0.48rem;color:var(--text-faint);padding:0.3rem 0;text-align:center}
+.rec-warning{font-size:0.42rem;color:var(--text-faint);margin-top:0.3rem;line-height:1.7}
+
+/* ── MINI CLIP PLAYER ── */
+.clip-player{display:flex;flex-direction:column;gap:0.25rem;
+  padding:0.35rem 0;border-top:1px solid var(--border);margin-top:0.2rem}
+.clip-player-controls{display:flex;align-items:center;gap:0.4rem}
+.clip-play-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-size:0.5rem;padding:0.15rem 0.4rem;cursor:pointer;transition:all 0.15s;
+  font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.clip-play-btn:hover{border-color:var(--border-l);color:var(--text)}
+.clip-play-btn.playing{border-color:var(--accent);color:var(--accent)}
+.clip-time{font-size:0.42rem;color:var(--text-faint);min-width:4rem;white-space:nowrap}
+.clip-waveform-canvas{flex:1;height:36px;cursor:pointer;display:block;
+  background:var(--bg3);border:1px solid var(--border)}
+.clip-waveform-canvas:hover{border-color:var(--border-l)}
+
+/* ── CLIP ROW layout fix — ✕ always far right ── */
+.rec-clip-row{display:flex;flex-direction:column;gap:0;
+  padding:0.4rem 0.5rem;background:var(--bg3);border:1px solid var(--border);
+  margin-bottom:0.3rem}
+.rec-clip-top{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap}
+.rec-clip-top .rec-clip-btn.delete{margin-left:auto}
+
+/* ── FIX: ✕ far right in all row types ── */
+.marker-row .marker-btn.delete{margin-left:auto}
+.loop-row .loop-btn.delete{margin-left:auto}
+
+/* ── BLEND TOGGLE refined ── */
+.blend-toggle{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-family:'JetBrains Mono',monospace;font-size:0.4rem;padding:0.08rem 0.35rem;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;letter-spacing:0.04em;
+  flex-shrink:0}
+.blend-toggle:hover{border-color:var(--border-l);color:var(--text)}
+.blend-toggle.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.marker-btn.record{color:var(--red);opacity:0;transition:opacity 0.15s,color 0.15s}
+.marker-row:hover .marker-btn.record{opacity:1}
+.marker-btn.record:hover{color:#ff6b5b}
+.loop-btn.record{color:var(--red);opacity:0;transition:opacity 0.15s,color 0.15s}
+.loop-row:hover .loop-btn.record{opacity:1}
+.loop-btn.record:hover{color:#ff6b5b}
+
+/* ── BLEND TOGGLE on clip ── */
+.blend-toggle{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-family:'JetBrains Mono',monospace;font-size:0.4rem;padding:0.08rem 0.35rem;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;letter-spacing:0.04em}
+.blend-toggle:hover{border-color:var(--border-l);color:var(--text)}
+.blend-toggle.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ── TAKE BADGE ── */
+.take-badge{font-size:0.38rem;color:var(--text-faint);white-space:nowrap}
+.folder-banner{background:var(--bg2);border:1px solid var(--border);
+  padding:0.5rem 0.8rem;margin-bottom:0.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
+.folder-banner.connected{border-color:var(--green)}
+.folder-banner.needs-reconnect{border-color:var(--accent)}
+.folder-banner-msg{font-size:0.46rem;color:var(--text-faint);flex:1}
+.folder-banner-msg strong{color:var(--text-mid)}
+.folder-banner.connected .folder-banner-msg strong{color:var(--green)}
+.folder-banner.needs-reconnect .folder-banner-msg strong{color:var(--accent)}
+.folder-banner-actions{display:flex;gap:0.3rem;align-items:center;flex-shrink:0}
+.migrate-status{font-size:0.42rem;color:var(--text-faint);margin-top:0.35rem;line-height:1.9}
+.migrate-row{display:flex;align-items:center;gap:0.4rem}
+.migrate-check{color:var(--green)}
+.migrate-pending{color:var(--text-faint)}
+
+/* ── MARKER TOOLTIP on waveform ── */
+#marker-tooltip{position:fixed;background:var(--bg3);border:1px solid var(--border-l);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.42rem;
+  padding:0.3rem 0.5rem;pointer-events:none;display:none;z-index:70;
+  max-width:220px;line-height:1.8;white-space:pre-wrap}
+.mtt-label{color:var(--accent);font-weight:500}
+.mtt-bar{color:var(--text-mid)}
+.mtt-annotation{color:var(--text);margin-top:0.15rem}
+.mtt-time{color:var(--text-faint);font-size:0.38rem}
+.rec-armed{font-size:0.46rem;color:var(--blue);letter-spacing:0.06em;
+  display:none;align-items:center;gap:0.3rem;margin-top:0.3rem}
+.rec-armed.visible{display:flex}
+.rec-armed-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);
+  animation:recPulse 1.2s ease-in-out infinite}
+
+/* ── BLEND CONTROLS ── */
+.blend-row{display:flex;align-items:center;gap:0.5rem;margin-top:0.4rem;
+  padding:0.4rem 0.5rem;background:var(--bg3);border:1px solid var(--border)}
+.blend-label{font-size:0.42rem;color:var(--text-faint);white-space:nowrap}
+.blend-slider{flex:1;accent-color:var(--accent);cursor:pointer}
+.blend-ends{font-size:0.4rem;color:var(--text-faint);white-space:nowrap}
+
+/* ── LATENCY CONTROL ── */
+.latency-row{display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0;
+  border-top:1px solid var(--border);margin-top:0.4rem}
+.latency-label{font-size:0.42rem;color:var(--text-faint);flex:1}
+.latency-val{font-size:0.46rem;color:var(--text-mid);min-width:3rem;text-align:right}
+
+/* ── MARKER ANNOTATIONS ── */
+.marker-annotation-row{grid-column:2/-1;padding:0.15rem 0 0.2rem;
+  display:flex;align-items:flex-start;gap:0.35rem}
+.marker-annotation-input{flex:1;background:none;border:none;border-bottom:1px solid var(--border);
+  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.44rem;
+  padding:0.1rem 0;outline:none;resize:none;height:auto;line-height:1.6;
+  transition:border-color 0.15s}
+.marker-annotation-input:focus{border-bottom-color:var(--accent);color:var(--text)}
+.marker-annotation-input::placeholder{color:var(--text-faint);font-style:italic}
+.annotation-tag{font-size:0.38rem;padding:0.08rem 0.3rem;border-radius:2px;
+  cursor:pointer;white-space:nowrap;transition:all 0.15s;border:1px solid var(--border);
+  color:var(--text-faint);background:none;font-family:'JetBrains Mono',monospace}
+.annotation-tag.teacher{border-color:var(--blue);color:var(--blue);background:rgba(74,126,196,0.1)}
+.annotation-date{font-size:0.38rem;color:var(--text-faint);white-space:nowrap;align-self:flex-end;padding-bottom:0.1rem}
+
+/* ── RIGHT COLUMN PANELS ── */
+.right-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+
+/* ── SESSION LOG ── */
+.session-log{font-size:0.44rem;color:var(--text-faint);line-height:2;
+  border-top:1px solid var(--border);padding-top:0.4rem;margin-top:0.4rem}
+.session-log-entry{color:var(--text-mid)}
+.session-log-date{color:var(--accent);margin-right:0.4rem}
+
+/* ── SCRATCHPAD ── */
+.scratchpad-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.48rem;
+  padding:0.35rem 0.5rem;resize:none;height:120px;overflow-y:auto;
+  outline:none;transition:border-color 0.15s;line-height:1.7}
+.scratchpad-textarea:focus{border-color:var(--accent)}
+.scratchpad-textarea::placeholder{color:var(--text-faint)}
+
+/* ── END-OF-SESSION REVIEW ── */
+.review-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem;display:none}
+.review-panel.visible{display:block}
+.review-clip-row{display:flex;flex-direction:column;gap:0.25rem;
+  padding:0.4rem 0;border-bottom:1px solid var(--border)}
+.review-clip-row:last-child{border-bottom:none}
+.review-clip-top{display:flex;align-items:center;gap:0.4rem}
+.review-clip-check{accent-color:var(--accent);cursor:pointer;width:14px;height:14px}
+.review-clip-meta{flex:1;font-size:0.46rem;color:var(--text-mid)}
+.review-clip-tag{font-size:0.38rem;padding:0.06rem 0.28rem;border-radius:2px;
+  font-family:'JetBrains Mono',monospace}
+.tag-solo{background:rgba(74,158,106,0.15);color:var(--green);border:1px solid rgba(74,158,106,0.3)}
+.tag-withref{background:rgba(74,126,196,0.15);color:var(--blue);border:1px solid rgba(74,126,196,0.3)}
+.review-label-input{background:none;border:none;border-bottom:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.46rem;
+  padding:0.1rem 0;outline:none;flex:1;transition:border-color 0.15s}
+.review-label-input:focus{border-bottom-color:var(--accent)}
+.review-format-row{display:flex;align-items:center;gap:0.5rem;font-size:0.42rem;
+  color:var(--text-faint);padding-left:1.2rem}
+.review-format-row label{display:flex;align-items:center;gap:0.25rem;cursor:pointer}
+.review-format-row input{accent-color:var(--accent)}
+.marker-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
+  text-transform:uppercase;padding-bottom:0.3rem;display:none}
+.marker-row{padding:0.22rem 0;border-bottom:1px solid var(--border);transition:background 0.1s}
+.marker-row:last-child{border-bottom:none}
+.marker-row.active-marker{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.2rem}
+.marker-seq{font-size:0.48rem;color:var(--text-faint);text-align:center}
+.marker-label-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.56rem;
+  padding:0.15rem 0.3rem;width:100%;outline:none;transition:border-color 0.15s}
+.marker-label-input:focus{border-color:var(--accent)}
+.marker-label-input.is-placeholder{color:var(--text-faint);font-style:italic}
+.marker-time-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.15rem 0.3rem;width:100%;outline:none;transition:border-color 0.15s}
+.marker-time-input:focus{border-color:var(--accent)}
+.marker-dur{font-size:0.46rem;color:var(--text-faint);text-align:center}
+.marker-btn{background:none;border:none;cursor:pointer;font-size:0.6rem;
+  color:var(--text-faint);padding:0.1rem;transition:color 0.15s;text-align:center}
+.marker-btn:hover{color:var(--text)}
+.marker-btn.delete:hover{color:var(--red)}
+.marker-btn.lock.locked{color:var(--accent)}
+.marker-btn.loop-active{color:var(--accent)}
+.marker-btn:disabled{opacity:0.25;cursor:not-allowed}
+.marker-btn.quick-loop-start{color:var(--blue)}
+.marker-btn.quick-loop-start:hover{color:var(--text)}
+
+/* ── LOOPS PANEL ── */
+.loop-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
+.loop-add-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;flex-wrap:wrap}
+.seg-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:0.52rem;padding:0.2rem 0.4rem;
+  outline:none;cursor:pointer;min-width:70px}
+.seg-select:focus{border-color:var(--accent)}
+.btn-sm{background:var(--bg3);border:1px solid var(--border-l);color:var(--text-mid);
+  padding:0.2rem 0.55rem;font-family:'JetBrains Mono',monospace;font-size:0.48rem;
+  letter-spacing:0.06em;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn-sm.primary:hover{background:var(--accent-d)}
+.btn-sm.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+/* Loop rows: label | span | dur | ▶ | ⟳ | 🎯 | ✕ */
+.loop-col-header,.loop-row{
+  display:grid;
+  grid-template-columns:1fr 70px 46px 22px 22px 22px 22px 22px;
+  gap:0.3rem;align-items:center}
+.loop-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
+  text-transform:uppercase;padding-bottom:0.3rem;border-bottom:1px solid var(--border);
+  margin-bottom:0.2rem;display:none}
+.loop-row{padding:0.25rem 0;border-bottom:1px solid var(--border);transition:background 0.1s}
+.loop-row:last-child{border-bottom:none}
+.loop-row:hover{background:var(--bg3)}
+.loop-row.active-loop{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
+.loop-label-input{background:none;border:none;color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.1rem 0;width:100%;outline:none;border-bottom:1px solid transparent;
+  transition:border-color 0.15s}
+.loop-label-input:focus{border-bottom-color:var(--accent)}
+.loop-label-input::placeholder{color:var(--text-faint);font-style:italic}
+.loop-span{font-size:0.44rem;color:var(--text-faint);white-space:nowrap}
+.loop-dur{font-size:0.46rem;color:var(--text-faint);text-align:center}
+.loop-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;
+  color:var(--text-faint);padding:0.1rem;transition:color 0.15s;text-align:center}
+.loop-btn:hover{color:var(--text)}
+.loop-btn.loop-active{color:var(--accent)}
+.loop-btn.delete:hover{color:var(--red)}
+.loop-empty{font-size:0.5rem;color:var(--text-faint);padding:0.5rem 0;text-align:center}
+
+/* ── NOTES (right column, fixed+scrollable) ── */
+.notes-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
+.notes-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  padding:0.4rem 0.6rem;resize:none;height:260px;max-height:400px;
+  overflow-y:auto;outline:none;transition:border-color 0.15s;line-height:1.7}
+.notes-textarea:focus{border-color:var(--accent)}
+.notes-textarea::placeholder{color:var(--text-faint)}
+
+/* ── LIBRARY ── */
+.library-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-bottom:0.75rem}
+.library-hdr{display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);padding-bottom:0.35rem;margin-bottom:0.4rem}
+.library-title{font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-faint)}
+.library-actions{display:flex;gap:0.35rem;align-items:center}
+.lib-row{display:flex;align-items:center;justify-content:space-between;
+  padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background 0.15s;border-left:2px solid transparent}
+.lib-row:last-child{border-bottom:none}
+.lib-row:hover{background:var(--bg3)}
+.lib-row.active{background:var(--bg3);border-left-color:var(--accent)}
+.lib-row-left{display:flex;flex-direction:column;gap:0.15rem}
+.lib-name{font-size:0.58rem;color:var(--text-faint);transition:color 0.15s}
+.lib-row.active .lib-name{color:var(--text)}
+.lib-row:hover .lib-name{color:var(--text)}
+.lib-meta{font-size:0.42rem;color:var(--text-faint)}
+.lib-status-loaded{color:var(--green)}
+.lib-status-reload{color:var(--accent)}
+.lib-row-right{display:flex;align-items:center;gap:0.5rem}
+.lib-date{font-size:0.4rem;color:var(--text-faint)}
+.lib-drag-handle{color:var(--text-faint);font-size:0.6rem;cursor:grab;padding:0 0.2rem;opacity:0.5}
+.lib-drag-handle:hover{opacity:1}
+.lib-del{background:none;border:none;color:var(--text-faint);cursor:pointer;
+  font-size:0.5rem;padding:0.1rem 0.25rem;transition:color 0.15s;line-height:1}
+.lib-del:hover{color:var(--red)}
+.lib-empty{font-size:0.5rem;color:var(--text-faint);padding:0.4rem 0;text-align:center}
+
+/* ── TEMPO TRAINING ── */
+.tempo-train-panel{background:var(--bg2);border:1px solid var(--border);
+  padding:0.65rem 0.8rem;margin-top:0.75rem;display:none}
+.tempo-train-panel.visible{display:block}
+.tempo-train-stops{display:flex;flex-direction:column;gap:0.25rem;margin-bottom:0.6rem}
+.tempo-train-row{display:grid;grid-template-columns:20px 60px 1fr 80px;
+  gap:0.4rem;align-items:center;padding:0.15rem 0}
+.tempo-train-row.active-step{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
+.tempo-train-pct{font-size:0.5rem;color:var(--text)}
+.tempo-train-reps{display:flex;align-items:center;gap:0.25rem}
+.rep-count{font-size:0.5rem;color:var(--text);min-width:1rem;text-align:center}
+.rep-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-size:0.44rem;padding:0.05rem 0.3rem;cursor:pointer;line-height:1.4;
+  font-family:'JetBrains Mono',monospace;transition:all 0.15s}
+.rep-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tempo-train-progress{font-size:0.46rem;color:var(--accent);text-align:right;white-space:nowrap}
+.tempo-train-controls{display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;
+  padding-top:0.4rem;border-top:1px solid var(--border)}
+.tempo-train-status{font-size:0.46rem;color:var(--text-faint);margin-left:auto}
+.collapsible-hdr{width:100%;background:none;border:none;padding:0.45rem 0;
+  display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:0.48rem;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--text-faint)}
+.collapsible-body{display:none;font-size:0.52rem;color:var(--text-faint);
+  border-top:1px solid var(--border);padding-top:0.5rem;padding-bottom:0.6rem}
+
+/* ── TIPS ── */
+.tips{font-size:0.46rem;color:var(--text-faint);line-height:2.2;
+  border-top:1px solid var(--border);padding-top:0.5rem;margin-top:0.35rem}
+
+/* ── DOCUMENTATION ── */
+.doc-h{color:var(--text-mid);margin-top:0.75rem;margin-bottom:0.15rem;letter-spacing:0.08em}
+
+/* ── UNDO BAR ── */
+.undo-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);
+  border-top:1px solid var(--border);padding:0.4rem 1.5rem;
+  display:flex;align-items:center;gap:0.75rem}
+.undo-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  padding:0.3rem 0.9rem;font-family:'JetBrains Mono',monospace;font-size:0.5rem;
+  letter-spacing:0.08em;cursor:pointer;transition:all 0.15s}
+.undo-btn:hover:not(:disabled){border-color:var(--border-l);color:var(--text)}
+.undo-btn:disabled{opacity:0.35;cursor:not-allowed}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border-l)}
+
+/* #7 auto-save confirmation flash */
+@keyframes saveFlash{0%{opacity:0;transform:translateY(2px)}20%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}
+.save-flash{position:fixed;bottom:2.8rem;right:1.5rem;background:var(--bg3);border:1px solid var(--green);
+  color:var(--green);font-family:'JetBrains Mono',monospace;font-size:0.44rem;letter-spacing:0.12em;
+  text-transform:uppercase;padding:0.25rem 0.6rem;pointer-events:none;
+  animation:saveFlash 1.6s ease forwards;z-index:50}
+
+/* #11 drag tooltip */
+#drag-tooltip{position:fixed;background:var(--bg3);border:1px solid var(--border-l);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.44rem;
+  padding:0.15rem 0.4rem;pointer-events:none;display:none;z-index:60;
+  transform:translate(-50%,-130%);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center">
+    <span class="app-name">Rehearsal Space</span>
+    <span class="app-ver">v5.3</span>
+  </div>
+</header>
+
+<div class="piece-title-bar">
+  <div class="piece-title" id="piece-title">Select a piece from the library</div>
+</div>
+
+<div class="workspace">
+
+  <!-- No-file notice (shown when session loaded but no audio) -->
+  <div class="no-file-notice" id="no-file-notice">
+    <span class="no-file-msg">No audio loaded — <strong id="expected-filename"></strong></span>
+    <button class="btn-load-file" onclick="document.getElementById('audio-input').click()">Load audio file</button>
+  </div>
+  <input type="file" id="audio-input" accept=".mp3,.m4a,.wav,.aiff,.aif,.flac,audio/*"
+         onchange="onAudioFile(this.files[0])">
+
+  <!-- Player + waveform -->
+  <div id="audio-player">
+    <div class="overview-wrap">
+      <canvas id="overview-canvas"></canvas>
+    </div>
+    <div class="transport">
+      <div class="player-left">
+        <button class="btn-player" onclick="goToStart()" title="Back to start (Home)">⏮</button>
+        <button class="btn-player" id="btn-play" onclick="togglePlay()">▶ Play</button>
+        <button class="btn-player" onclick="skipAudio(-5)">−5s</button>
+        <button class="btn-player" onclick="skipAudio(10)">+10s</button>
+        <span class="player-time" id="player-time">0:00.0 / 0:00.0</span>
+      </div>
+      <div class="player-right">
+        <span class="transport-label">Lead-in</span>
+        <button class="btn-player" onclick="stepLeadIn(-1)" style="padding:0.22rem 0.5rem">−</button>
+        <span class="speed-val" id="lead-in-val">0.5s</span>
+        <button class="btn-player" onclick="stepLeadIn(1)" style="padding:0.22rem 0.5rem">+</button>
+        <span class="transport-label" style="margin-left:0.5rem">Tempo</span>
+        <button class="btn-player" onclick="stepTempo(-1)" style="padding:0.22rem 0.5rem">−</button>
+        <input type="range" class="speed-slider" id="speed-slider"
+               min="0.5" max="1.2" step="0.01" value="1.0" oninput="onSpeedChange(this.value)">
+        <button class="btn-player" onclick="stepTempo(1)" style="padding:0.22rem 0.5rem">+</button>
+        <span class="speed-val" id="speed-val">100%</span>
+        <button class="btn-player" onclick="resetSpeed()" style="padding:0.22rem 0.42rem;font-size:0.48rem">↺</button>
+      </div>
+    </div>
+    <div class="player-hint">
+      SPACE play/pause · M mark · P play to next · ← −5s · → +10s · ↑↓ prev/next marker · Enter loop start/end · L loop · T tempo train · S save loop · R record · K discard clip · [ ] tempo · , . lead-in · Home start · Ctrl+Z undo
+    </div>
+  </div>
+
+  <!-- Main body: left (markers + loops) | right (notes) -->
+  <div class="main-body">
+
+    <!-- Left column: markers + loops -->
+    <div class="main-left">
+
+      <div class="marker-panel">
+        <div class="section-divider">
+          <span>Markers</span>
+          <div style="display:flex;align-items:center;gap:0.4rem">
+            <button class="btn-sm" id="lock-all-btn" onclick="toggleLockAll()" style="font-size:0.38rem;padding:0.1rem 0.4rem">Lock all</button>
+            <span id="marker-count" style="color:var(--accent)">0 markers</span>
+          </div>
+        </div>
+        <div class="marker-col-header" id="marker-col-header">
+          <span>#</span><span>Label</span>
+          <span>Bar</span><span>Time</span><span>Dur→next</span>
+          <span>▶</span><span>⟳</span><span>T</span><span>🔒</span><span>●</span><span>✕</span>
+        </div>
+        <div id="marker-list"></div>
+      </div>
+
+      <!-- Loops -->
+      <div class="loop-panel">
+        <div class="section-divider">
+          <span>Loops</span>
+          <span id="loop-count" style="color:var(--accent)">0 loops</span>
+        </div>
+        <div class="loop-add-row">
+          <select class="seg-select" id="seg-start"><option value="">Start…</option></select>
+          <span style="color:var(--text-faint);font-size:0.6rem">→</span>
+          <select class="seg-select" id="seg-end"><option value="">End…</option></select>
+          <button class="btn-sm primary" onclick="addSegment()">+ Add</button>
+        </div>
+        <div class="loop-col-header" id="loop-col-header">
+          <span>Range</span><span>Dur</span><span>▶</span><span>⟳</span><span>🎯</span><span>●</span><span>✕</span>
+        </div>
+        <div id="seg-list"></div>
+      </div>
+
+      <!-- Tempo Training (shown when loop is active) -->
+      <div class="tempo-train-panel" id="tempo-train-panel">
+        <div class="section-divider">
+          <span>Tempo Training</span>
+          <button class="btn-sm" onclick="closeTempoTraining()" style="font-size:0.4rem;padding:0.1rem 0.35rem">✕</button>
+        </div>
+        <div class="tempo-train-stops" id="tempo-train-stops"></div>
+        <div class="tempo-train-controls">
+          <button class="btn-sm primary" id="tt-start-btn" onclick="tempoTrainStart()">▶ Start</button>
+          <button class="btn-sm" id="tt-pause-btn" onclick="tempoTrainPause()" style="display:none">⏸ Pause</button>
+          <button class="btn-sm" id="tt-stop-btn" onclick="tempoTrainStop()" style="display:none">■ Stop</button>
+          <span class="tempo-train-status" id="tt-status"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column: recording + notes -->
+    <div class="main-right">
+
+      <!-- Recording Panel — consolidated -->
+      <div class="right-panel" id="rec-panel">
+        <div class="section-divider">
+          <span>Recording</span>
+          <div style="display:flex;align-items:center;gap:0.4rem">
+            <div class="rec-indicator" id="rec-indicator">
+              <span class="rec-dot"></span>
+              <span>REC</span>
+              <span class="rec-timer" id="rec-timer">0:00</span>
+            </div>
+            <span class="rec-scope" id="rec-scope"></span>
+          </div>
+        </div>
+        <div class="rec-controls">
+          <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">⏺ Record</button>
+        </div>
+        <!-- Clip list with inline players, labels, format choice, download -->
+        <div id="rec-clip-list" class="rec-clip-list">
+          <div class="rec-no-clips">No clips yet — press R to record</div>
+        </div>
+        <!-- Blend slider — shown when any loop-recorded clip exists -->
+        <div class="blend-row" id="blend-row" style="display:none">
+          <span class="blend-ends">Ref</span>
+          <input type="range" class="blend-slider" id="blend-slider" min="0" max="100" value="50"
+            oninput="onBlendSlider(this.value)">
+          <span class="blend-ends">You</span>
+          <span style="font-size:0.42rem;color:var(--text-faint);margin-left:0.3rem" id="blend-val">50/50</span>
+        </div>
+        <!-- Download selected -->
+        <div id="rec-download-row" style="display:none;margin-top:0.5rem;
+          display:none;align-items:center;gap:0.5rem;flex-wrap:wrap">
+          <button class="btn-sm primary" onclick="downloadSelected()">⬇ Download selected</button>
+          <span id="review-status" style="font-size:0.44rem;color:var(--text-faint)"></span>
+        </div>
+        <!-- Latency calibration -->
+        <div class="latency-row">
+          <span class="latency-label">Blend sync offset</span>
+          <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.1rem 0.4rem">−</button>
+          <span class="latency-val" id="latency-val">0ms</span>
+          <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.1rem 0.4rem">+</button>
+        </div>
+        <div class="rec-warning">Clips are session-only. Download before closing.</div>
+      </div>
+
+      <!-- Session log (auto-generated, last session only) -->
+      <div class="right-panel" id="session-log-panel" style="display:none">
+        <div class="section-divider"><span>Last session</span></div>
+        <div class="session-log" id="session-log-content"></div>
+      </div>
+
+      <!-- Scratchpad (replaces old notes textarea) -->
+      <div class="right-panel">
+        <div class="section-divider">
+          <span>Notes</span>
+          <span style="font-size:0.4rem;color:var(--text-faint)">general observations</span>
+        </div>
+        <textarea class="scratchpad-textarea" id="piece-notes"
+          placeholder="Musical intentions, teacher feedback, ensemble notes…"
+          oninput="onNotesInput()"></textarea>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Library -->
+  <div class="library-panel">
+    <!-- Folder connection banner -->
+    <div id="folder-banner" class="folder-banner" style="display:none">
+      <span class="folder-banner-msg" id="folder-banner-msg"></span>
+      <div class="folder-banner-actions">
+        <button class="btn-sm primary" id="folder-banner-btn" onclick="folderBannerAction()"></button>
+        <button class="btn-sm" onclick="changeFolder()" title="Choose a different folder" id="folder-change-btn" style="display:none">Change</button>
+      </div>
+    </div>
+    <!-- Migration status (shown after first connect) -->
+    <div id="migrate-status-panel" style="display:none;padding:0.4rem 0.8rem 0.2rem">
+      <div class="migrate-status" id="migrate-status-content"></div>
+      <div style="margin-top:0.4rem;display:none" id="clear-ls-row">
+        <button class="btn-sm" onclick="clearLocalStorageBackup()" style="font-size:0.4rem">
+          Clear localStorage backup
+        </button>
+        <span style="font-size:0.4rem;color:var(--text-faint);margin-left:0.4rem">all pieces migrated ✓</span>
+      </div>
+    </div>
+    <div class="library-hdr">
+      <span class="library-title">Library</span>
+      <div class="library-actions">
+        <button class="btn-sm" onclick="exportLibraryJSON()">↓ Export</button>
+        <label style="display:inline-block">
+          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import</span>
+          <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
+        </label>
+        <button class="btn-sm" onclick="saveSessionToStorage()">+ Save current</button>
+      </div>
+    </div>
+    <div id="sessions-list"><span class="lib-empty">No pieces saved yet.</span></div>
+  </div>
+
+  <!-- Tips -->
+  <div class="tips">
+    <strong style="color:var(--text-mid)">R</strong> record ·
+    <strong style="color:var(--text-mid)">K</strong> discard last clip ·
+    <strong style="color:var(--text-mid)">M</strong> mark ·
+    <strong style="color:var(--text-mid)">P</strong> play to next marker ·
+    <strong style="color:var(--text-mid)">← →</strong> −5s / +10s ·
+    <strong style="color:var(--text-mid)">L</strong> loop active segment ·
+    <strong style="color:var(--text-mid)">Home</strong> back to start ·
+    <strong style="color:var(--text-mid)">Ctrl+Z</strong> undo ·
+    drag gold lines to reposition · 🔒 locks position ·
+    <strong style="color:var(--text-mid)">.</strong> = placeholder label
+  </div>
+
+  <!-- Documentation -->
+  <div style="margin-top:1rem;border-top:1px solid var(--border)">
+    <button class="collapsible-hdr" onclick="toggleSection('docs')">
+      <span>Documentation</span><span id="docs-arrow">▸</span>
+    </button>
+    <div class="collapsible-body" id="docs-body">
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.3</span>
+
+      <div class="doc-h">WHAT'S NEW IN v5.3</div>
+      · <strong style="color:var(--text)">Unified recording:</strong> One recording model. ● on a marker records from that marker to the next. ● on a segment records the full segment. R with nothing selected records freely.<br>
+      · <strong style="color:var(--text)">Take numbering:</strong> Multiple recordings of the same passage are labelled automatically — A→B take 1, A→B take 2.<br>
+      · <strong style="color:var(--text)">Blend toggle per clip:</strong> Each loop-recorded clip has a blend toggle — switch instantly between yourself alone and yourself against the reference.<br>
+      · <strong style="color:var(--text)">Consistent icons:</strong> ● for record throughout. Hover marker or segment rows to reveal the ● button.<br>
+      · Armed loop boundary recording removed — recording is now always musician-initiated.<br>
+      · Folder architecture, waveform tooltips, and marker annotations from v5.1 all retained.
+
+      <div class="doc-h">WORKFLOW</div>
+      1. Select a piece from the Library — the file picker opens automatically.<br>
+      2. Press Play. Press <strong style="color:var(--text)">M</strong> to drop markers while listening.<br>
+      3. In Loops: pick Start → End markers, click Add. Click ⟳ to loop, ▶ to preview.<br>
+      4. Add notes in the Notes panel — saved automatically.<br>
+      5. Save via Library → + Save current.
+
+      <div class="doc-h">MARKER NAMING</div>
+      · <strong style="color:var(--text)">Numeric:</strong> 1 → 2 → 3<br>
+      · <strong style="color:var(--text)">Alpha:</strong> A → B → C<br>
+      · <strong style="color:var(--text)">Dash-numeric:</strong> A-2 → A-3 → A-4 (subsections)<br>
+      · <strong style="color:var(--text)">Dash-alpha:</strong> 3-A → 3-B → 3-C (subsections)<br>
+      · <strong style="color:var(--text)">Placeholder:</strong> . (period) — excluded from cascade and loop dropdowns
+
+      <div class="doc-h">KEYBOARD</div>
+      SPACE play/pause · M mark · P play to next marker · ← −5s · → +10s ·
+      L loop active · Home back to start · Ctrl/⌘+Z undo ·
+      R record/stop · K discard last clip
+    </div>
+  </div>
+
+</div>
+
+<!-- Drag time tooltip -->
+<div id="drag-tooltip"></div>
+<!-- Marker hover tooltip -->
+<div id="marker-tooltip"></div>
+
+<!-- Undo bar -->
+<div class="undo-bar">
+  <button class="undo-btn" id="btn-undo" onclick="undo()" disabled title="Ctrl+Z">↩ Undo</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let audioBuffer    = null;  // decoded buffer for waveform only
+let audioContext   = null;  // AudioContext for waveform decoding only
+let audioEl        = null;  // HTMLAudioElement for playback (pitch-corrected)
+let audioObjectURL = null;  // object URL for current file
+let playGen        = 0;
+let isPlaying      = false;
+let playOffset     = 0;
+let playCtxStart   = 0;
+let animFrame      = null;
+let audioDuration  = 0;
+let audioFileName  = '';
+let currentPieceName = '';
+let previewingSegId = null;
+let activeLoopId    = null;
+let activeMarkerIdx = -1;   // for ↑/↓ navigation and Enter quick-loop
+let quickLoopStartId = null; // first Enter press sets this
+let currentSpeed    = 1.0;
+let trimOffset      = 0;
+let leadIn          = 0.5;
+let loopStart       = null;
+let loopEnd         = null;
+
+const SILENCE_DB     = 0.005;
+const SNAP_THRESHOLD = 10;
+const GRAB_PX        = 8;
+
+let queuePoint    = 0;
+let playStartedAt = 0;
+
+// Markers: { id, label, type:'R'|'D', time, locked }
+let markers         = [];
+let markerIdCounter = 0;
+
+// Segments: { id, startId, endId, name, include }
+let segments         = [];
+let segmentIdCounter = 0;
+
+let undoStack = [];
+const UNDO_MAX = 50;
+
+// Waveform view
+let viewStart  = 0;
+let viewEnd    = 0;
+let zoomLevel  = 1;
+let isDragging = false;
+let isPanning  = false;
+let panStartX  = 0;
+let panStartViewStart = 0;
+let dragStartX = 0;
+let lastDragX  = 0;
+let dragStartTime  = 0;
+let dragWasPlaying = false;
+let dragMarkerState = null;
+
+// ══════════════════════════════════════════════
+// UTILITY
+// ══════════════════════════════════════════════
+function fmtTime(s) {
+  if (!isFinite(s)||s<0) s=0;
+  const m = Math.floor(s/60), sec = s%60;
+  return `${m}:${sec.toFixed(1).padStart(4,'0')}`;
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function sanitizeName(s) {
+  return (s||'').trim().replace(/[\\/:"*?<>|]/g,'').replace(/\s+/g,'_') || 'piece';
+}
+function isPlaceholder(label) { return String(label).trim() === '.'; }
+
+function toggleSection(id) {
+  const body = document.getElementById(`${id}-body`);
+  const arrow = document.getElementById(`${id}-arrow`);
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent = open ? '▸' : '▾';
+}
+
+// ══════════════════════════════════════════════
+// AUDIO FILE LOADING
+// ══════════════════════════════════════════════
+function onDragOver(e) { e.preventDefault(); }
+function onDragLeave(e) {}
+function onDrop(e) {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f) onAudioFile(f);
+}
+
+function _updateNoFileNotice() {
+  const notice = document.getElementById('no-file-notice');
+  const ef = document.getElementById('expected-filename');
+  if (audioFileName && !audioBuffer) {
+    ef.textContent = audioFileName;
+    notice.classList.add('visible');
+  } else {
+    notice.classList.remove('visible');
+  }
+}
+
+function _updatePieceTitle() {
+  const el = document.getElementById('piece-title');
+  if (currentPieceName) {
+    el.textContent = currentPieceName;
+    el.classList.remove('empty');
+  } else {
+    el.textContent = 'Select a piece from the library';
+    el.classList.add('empty');
+  }
+}
+
+function onAudioFile(file) {
+  if (!file) return;
+  audioFileName = file.name;
+  _updateNoFileNotice();
+
+  // Revoke previous object URL
+  if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
+
+  // Create HTMLAudioElement for pitch-corrected playback
+  if (!audioEl) {
+    audioEl = new Audio();
+    audioEl.addEventListener('ended', _onAudioEnded);
+    audioEl.addEventListener('timeupdate', _onTimeUpdate);
+  }
+  audioObjectURL = URL.createObjectURL(file);
+  audioEl.src = audioObjectURL;
+  audioEl.preservesPitch = true;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.load();
+
+  // Decode via AudioContext for waveform rendering + trim detection
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      if (!audioContext) audioContext = new (window.AudioContext||window.webkitAudioContext)();
+      const raw = await audioContext.decodeAudioData(ev.target.result.slice(0));
+      const { buffer: trimmed, offsetSecs } = trimEdges(raw);
+      audioBuffer  = trimmed;
+      trimOffset   = offsetSecs;
+      audioDuration = audioBuffer.duration;
+
+      viewStart = 0; viewEnd = audioDuration; zoomLevel = 1;
+      updateZoomLabel();
+      document.getElementById('audio-player').style.display = 'block';
+      _updateNoFileNotice();
+      _updateDisplay(0);
+      buildWaveformCache();
+      drawOverview();
+      if (markers.length === 0) addMarker('1', 'R', 0);
+      else renderMarkers();
+      saveSession(); renderSessionsList();
+    } catch(err) {
+      alert('Could not decode audio file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function trimEdges(buf) {
+  const d = buf.getChannelData(0), n = d.length;
+  let head = 0, tail = n - 1;
+  while (head < n && Math.abs(d[head]) < SILENCE_DB) head++;
+  while (tail > head && Math.abs(d[tail]) < SILENCE_DB) tail--;
+  const PAD = Math.floor(buf.sampleRate * 0.005);
+  head = Math.max(0, head - PAD);
+  tail = Math.min(n-1, tail + PAD);
+  const len = tail - head + 1;
+  const out = audioContext.createBuffer(buf.numberOfChannels, len, buf.sampleRate);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    out.getChannelData(c).set(buf.getChannelData(c).subarray(head, tail+1));
+  }
+  const offsetSecs = head / buf.sampleRate;
+  return { buffer: out, offsetSecs };
+}
+
+// ══════════════════════════════════════════════
+// WAVEFORM RENDERING
+// ══════════════════════════════════════════════
+let waveCache = null; // downsampled peaks for fast drawing
+
+function buildWaveformCache() {
+  if (!audioBuffer) return;
+  const BUCKETS = 2000;
+  const data = audioBuffer.getChannelData(0);
+  const n    = data.length;
+  waveCache  = new Float32Array(BUCKETS);
+  const step = n / BUCKETS;
+  for (let i = 0; i < BUCKETS; i++) {
+    const s = Math.floor(i * step), e = Math.floor((i+1) * step);
+    let peak = 0;
+    for (let j = s; j < e; j++) { const v = Math.abs(data[j]); if (v > peak) peak = v; }
+    waveCache[i] = peak;
+  }
+  // Normalize to 95th percentile
+  const sorted = waveCache.slice().sort((a,b)=>a-b);
+  const p95 = sorted[Math.floor(sorted.length * 0.95)] || 1;
+  for (let i = 0; i < BUCKETS; i++) waveCache[i] = Math.min(1, waveCache[i] / p95);
+}
+
+function drawOverview() {
+  const canvas = document.getElementById('overview-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (canvas.width !== W*dpr || canvas.height !== H*dpr) {
+    canvas.width = W*dpr; canvas.height = H*dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W*dpr, H*dpr);
+  ctx.scale(dpr, dpr);
+
+  const LABEL_H = 18; // reserved at top for labels
+  const WAVE_TOP = LABEL_H;
+  const WAVE_H   = H - LABEL_H;
+
+  // Background
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg3').trim();
+  ctx.fillRect(0, 0, W, H);
+
+  if (!waveCache || !audioDuration) { ctx.setTransform(1,0,0,1,0,0); return; }
+
+  const vDur = viewEnd - viewStart;
+  const BUCKETS = waveCache.length;
+
+  // Draw waveform
+  ctx.fillStyle = '#2d2a26';
+  for (let px = 0; px < W; px++) {
+    const tLeft  = viewStart + (px/W) * vDur;
+    const tRight = viewStart + ((px+1)/W) * vDur;
+    const bLeft  = Math.floor((tLeft/audioDuration) * BUCKETS);
+    const bRight = Math.ceil((tRight/audioDuration) * BUCKETS);
+    let peak = 0;
+    for (let b = bLeft; b < bRight && b < BUCKETS; b++) {
+      if (waveCache[b] > peak) peak = waveCache[b];
+    }
+    const h = Math.max(1, peak * (WAVE_H * 0.92));
+    ctx.fillRect(px, WAVE_TOP + (WAVE_H - h)/2, 1, h);
+  }
+
+  // Highlight active loop on waveform
+  const highlightId = activeLoopId !== null ? activeLoopId : previewingSegId;
+  if (highlightId !== null) {
+    const seg = segments.find(s => s.id === highlightId);
+    if (seg) {
+      const sm = markers.find(m => m.id === seg.startId);
+      const em = markers.find(m => m.id === seg.endId);
+      if (sm && em) {
+        const x1 = ((sm.time - viewStart) / vDur) * W;
+        const x2 = ((em.time - viewStart) / vDur) * W;
+        const isLoop = highlightId === activeLoopId;
+        ctx.fillStyle = isLoop ? 'rgba(196,146,42,0.18)' : 'rgba(196,146,42,0.10)';
+        ctx.fillRect(x1, WAVE_TOP, x2-x1, WAVE_H);
+        if (isLoop) {
+          ctx.strokeStyle = 'rgba(196,146,42,0.5)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4,3]);
+          ctx.beginPath(); ctx.moveTo(x1,WAVE_TOP); ctx.lineTo(x1,WAVE_TOP+WAVE_H); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x2,WAVE_TOP); ctx.lineTo(x2,WAVE_TOP+WAVE_H); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+    }
+  }
+
+  // Time axis
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-faint').trim();
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillText(fmtTime(viewStart), 3, H-3);
+  ctx.textAlign = 'center';
+  ctx.fillText(fmtTime(viewStart + vDur/2), W/2, H-3);
+  ctx.textAlign = 'right';
+  ctx.fillText(fmtTime(viewEnd), W-3, H-3);
+  ctx.textAlign = 'left';
+
+  // Marker lines + labels
+  // First pass: compute x positions and detect collisions
+  const visible = markers.filter(m => m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001);
+  const positions = visible.map(m => ({
+    m,
+    x: ((m.time - viewStart) / vDur) * W
+  }));
+
+  // Draw marker lines
+  positions.forEach(({m, x}) => {
+    const color = m.type === 'D'
+      ? getComputedStyle(document.documentElement).getPropertyValue('--d-color').trim()
+      : getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = m.locked ? 0.8 : 1.5;
+    ctx.setLineDash(m.locked ? [3,3] : []);
+    ctx.beginPath();
+    ctx.moveTo(x, WAVE_TOP);
+    ctx.lineTo(x, H - 12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Triangle handle
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x-5, WAVE_TOP);
+    ctx.lineTo(x+5, WAVE_TOP);
+    ctx.lineTo(x, WAVE_TOP + 8);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Draw labels at top — with collision staggering
+  ctx.font = 'bold 9px JetBrains Mono, monospace';
+  const MIN_GAP = 22;
+  let lastX = -999;
+  let row = 0;
+  positions.forEach(({m, x}) => {
+    if (!isPlaceholder(m.label)) {
+      const color = m.type === 'D'
+        ? getComputedStyle(document.documentElement).getPropertyValue('--d-color').trim()
+        : getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+      ctx.fillStyle = color;
+      if (x - lastX < MIN_GAP) { row = (row + 1) % 2; } else { row = 0; }
+      const y = row === 0 ? 11 : 11;  // single row for now, stagger handled by offset
+      const yOff = row === 1 ? 0 : 0;
+      // Just offset label slightly above line
+      ctx.fillText(m.label, x + 3, WAVE_TOP - 3 + (row * 0));
+      lastX = x;
+    }
+  });
+
+  // Playhead
+  const ph = (((_currentAudioTime()) - viewStart) / vDur) * W;
+  if (ph >= 0 && ph <= W) {
+    ctx.strokeStyle = '#e8e4dc';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(ph, WAVE_TOP); ctx.lineTo(ph, H-12); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.setTransform(1,0,0,1,0,0);
+}
+
+// ══════════════════════════════════════════════
+// ZOOM
+// ══════════════════════════════════════════════
+const ZOOM_STEPS = [1,1.5,2,3,4,6,8,12,16,24,32];
+
+function updateZoomLabel() {
+  // zoom-val display removed; zoom level tracked internally only
+}
+
+function _applyZoom(newZoom, centerTime) {
+  zoomLevel = newZoom;
+  if (zoomLevel <= 1) { viewStart = 0; viewEnd = audioDuration; zoomLevel = 1; }
+  else {
+    const win = audioDuration / zoomLevel;
+    viewStart = Math.max(0, centerTime - win/2);
+    viewEnd   = viewStart + win;
+    if (viewEnd > audioDuration) { viewEnd = audioDuration; viewStart = Math.max(0, viewEnd - win); }
+  }
+  updateZoomLabel(); drawOverview();
+}
+
+function zoomOverview(dir) {
+  const idx = ZOOM_STEPS.findIndex(s => s >= zoomLevel - 0.01);
+  const newIdx = Math.max(0, Math.min(ZOOM_STEPS.length-1, idx+dir));
+  _applyZoom(ZOOM_STEPS[newIdx], (viewStart+viewEnd)/2);
+}
+function resetZoom() { _applyZoom(1, audioDuration/2); }
+
+// ══════════════════════════════════════════════
+// PLAYBACK (HTMLAudioElement — pitch-corrected)
+// ══════════════════════════════════════════════
+function togglePlay() {
+  if (!audioEl || !audioBuffer) return;
+  if (isPlaying) _pause(); else _startPlayback(playOffset);
+}
+
+function _startPlayback(offset, stopAfterSecs=null) {
+  if (!audioEl || !audioBuffer) return;
+  loopStart = null; loopEnd = null;
+  cancelAnimationFrame(animFrame);
+  playGen++;
+  // Apply lead-in then trimOffset for actual file position
+  const displayStart = Math.max(0, offset - leadIn);
+  const fileTime = trimOffset + displayStart;
+  audioEl.currentTime = fileTime;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.preservesPitch = true;
+  audioEl.play().catch(e => console.warn('Audio play failed:', e));
+  playOffset = displayStart; playCtxStart = performance.now() / 1000;
+  isPlaying = true; queuePoint = displayStart; playStartedAt = Date.now();
+  if (stopAfterSecs !== null) {
+    const myGen = playGen;
+    setTimeout(() => {
+      if (playGen === myGen && isPlaying) _pause();
+    }, (stopAfterSecs + leadIn) * 1000 / currentSpeed);
+  }
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('active');
+  animFrame = requestAnimationFrame(_animLoop);
+}
+
+function _pause() {
+  const elapsed = (Date.now() - playStartedAt) / 1000;
+  const snapBack = elapsed < SNAP_THRESHOLD;
+  playOffset = snapBack ? queuePoint : _currentAudioTime();
+  playGen++;
+  if (audioEl) audioEl.pause();
+  isPlaying = false;
+  loopStart = null; loopEnd = null;
+  previewingSegId = null; activeLoopId = null;
+  cancelAnimationFrame(animFrame);
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').classList.remove('active');
+  _updateDisplay(playOffset);
+  drawOverview();
+  renderLoops();
+}
+
+function _killSource() {
+  if (audioEl) { audioEl.pause(); }
+}
+
+function _currentAudioTime() {
+  if (!audioEl || !isPlaying) return playOffset;
+  return Math.min(Math.max(0, audioEl.currentTime - trimOffset), audioDuration);
+}
+
+function _updateDisplay(t) {
+  document.getElementById('player-time').textContent =
+    `${fmtTime(t)} / ${fmtTime(audioDuration)}`;
+}
+
+function _animLoop() {
+  if (!isPlaying) return;
+  const t = _currentAudioTime();
+  _updateDisplay(t);
+  _autoScroll(t);
+  drawOverview();
+  animFrame = requestAnimationFrame(_animLoop);
+}
+
+function _onTimeUpdate() {
+  // Handle loop boundary
+  if (loopStart !== null && loopEnd !== null && audioEl) {
+    if (audioEl.currentTime >= loopEnd - 0.05) {
+      audioEl.currentTime = loopStart;
+    }
+  }
+}
+
+function _onAudioEnded() {
+  if (!isPlaying) return;
+  isPlaying = false;
+  loopStart = null; loopEnd = null;
+  if (previewingSegId !== null) {
+    const seg = segments.find(s => s.id === previewingSegId);
+    const sm = seg ? markers.find(m => m.id === seg.startId) : null;
+    if (sm) playOffset = sm.time;
+    previewingSegId = null;
+  } else { playOffset = 0; }
+  cancelAnimationFrame(animFrame);
+  _updateDisplay(playOffset);
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('btn-play').classList.remove('active');
+  drawOverview();
+}
+
+function _autoScroll(t) {
+  const vDur = viewEnd - viewStart;
+  const margin = vDur * 0.10;
+  if (t > viewEnd - margin) {
+    viewStart = Math.min(audioDuration - vDur, t - margin);
+    viewEnd   = viewStart + vDur;
+  } else if (t < viewStart + margin) {
+    viewStart = Math.max(0, t - margin);
+    viewEnd   = viewStart + vDur;
+  }
+}
+
+function skipAudio(secs) {
+  const t = Math.max(0, Math.min(audioDuration, _currentAudioTime()+secs));
+  if (isPlaying) {
+    audioEl.currentTime = trimOffset + t;
+    playOffset = t; queuePoint = t;
+  } else { playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview(); }
+}
+
+function goToStart() {
+  if (isPlaying) _pause();
+  playOffset = 0; queuePoint = 0;
+  if (audioEl) audioEl.currentTime = trimOffset;
+  _updateDisplay(0);
+  const win = viewEnd - viewStart;
+  viewStart = 0; viewEnd = Math.min(audioDuration, win);
+  drawOverview();
+}
+
+function playToNextMarker() {
+  if (!audioBuffer) return;
+  const cur = _currentAudioTime();
+  const next = markers.filter(m => m.time > cur + 0.05).sort((a,b)=>a.time-b.time)[0];
+  const stopAt = next ? next.time : audioDuration;
+  const dur = stopAt - cur;
+  if (dur <= 0.05) return;
+  _startPlayback(cur, dur);
+}
+
+function onSpeedChange(v) {
+  currentSpeed = parseFloat(v);
+  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+  const snapped = STOPS.reduce((a,b) => Math.abs(b-currentSpeed)<Math.abs(a-currentSpeed)?b:a);
+  currentSpeed = snapped;
+  document.getElementById('speed-slider').value = currentSpeed;
+  document.getElementById('speed-val').textContent = `${Math.round(currentSpeed*100)}%`;
+  if (audioEl) { audioEl.playbackRate = currentSpeed; audioEl.preservesPitch = true; }
+}
+
+function stepTempo(dir) {
+  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+  const idx = STOPS.indexOf(currentSpeed);
+  const cur = idx !== -1 ? idx : STOPS.findIndex(s => s >= currentSpeed);
+  const newIdx = Math.max(0, Math.min(STOPS.length-1, (idx !== -1 ? idx : cur) + dir));
+  onSpeedChange(STOPS[newIdx]);
+}
+
+function resetSpeed() {
+  currentSpeed = 1.0;
+  document.getElementById('speed-slider').value = 1.0;
+  document.getElementById('speed-val').textContent = '100%';
+  if (audioEl) { audioEl.playbackRate = 1.0; audioEl.preservesPitch = true; }
+}
+
+// ══════════════════════════════════════════════
+// MARKERS
+// ══════════════════════════════════════════════
+function nextLabel(label) {
+  const s = String(label).trim();
+  // Dash-subsection: prefix-suffix — only increment suffix
+  // e.g. A-1 → A-2, A-2 → A-3, 3-A → 3-B, 3-B → 3-C
+  const dashM = s.match(/^(.+)-([A-Za-z]+|\d+)$/);
+  if (dashM) {
+    const prefix = dashM[1], suffix = dashM[2];
+    if (/^\d+$/.test(suffix)) return `${prefix}-${parseInt(suffix)+1}`;
+    const last = suffix[suffix.length-1];
+    const next = String.fromCharCode(last.charCodeAt(0)+1);
+    return `${prefix}-${suffix.slice(0,-1)+next}`;
+  }
+  // Alpha-only or alpha+number: A→B, A1→A2
+  const m = s.match(/^([A-Za-z]+)(\d*)$/);
+  if (m) {
+    const letters = m[1], nums = m[2];
+    if (nums) return letters + (parseInt(nums)+1);
+    const last = letters[letters.length-1];
+    const next = String.fromCharCode(last.charCodeAt(0)+1);
+    return letters.slice(0,-1) + next;
+  }
+  // Numeric: 1→2, 12→13
+  const dm = s.match(/^(\d+)(.*)$/);
+  if (dm) return (parseInt(dm[1])+1) + dm[2];
+  return s;
+}
+
+function autoNextLabel() {
+  const nonPh = markers.filter(m => !isPlaceholder(m.label));
+  if (!nonPh.length) return '1';
+  return nextLabel(nonPh[nonPh.length-1].label);
+}
+
+function _labelFamily(label) {
+  const s = String(label).trim();
+  // Dash-subsection: family is the prefix (e.g. "A" for "A-1", "3" for "3-A")
+  const dashM = s.match(/^(.+)-([A-Za-z]+|\d+)$/);
+  if (dashM) return dashM[1];
+  // Pure alpha: family is the letter(s) (e.g. "A" for "A", "B" for "B")
+  if (/^[A-Za-z]+$/.test(s)) return 'alpha';
+  // Pure numeric: family is 'numeric'
+  if (/^\d+$/.test(s)) return 'numeric';
+  return s;
+}
+
+function cascadeAfter(fromIdx, prevLabel) {
+  const family = _labelFamily(prevLabel);
+  let lbl = prevLabel;
+  for (let i = fromIdx+1; i < markers.length; i++) {
+    if (isPlaceholder(markers[i].label)) continue;
+    // Only cascade within same naming family
+    if (_labelFamily(markers[i].label) !== family) break;
+    lbl = nextLabel(lbl);
+    markers[i].label = lbl;
+  }
+}
+
+function addMarker(label, type, time) {
+  pushUndo();
+  markers.push({ id: markerIdCounter++, label: label || '.', type: type||'R', time, locked: false });
+  markers.sort((a,b)=>a.time-b.time);
+  const insertIdx = markers.findIndex(m => m.time === time && (m.label === label || m.label === '.'));
+
+  if (label) {
+    // Explicit label provided — cascade within family from insert point
+    if (!isPlaceholder(label)) cascadeAfter(insertIdx, label);
+  } else {
+    // Auto-label: only append at end gets auto-incremented label
+    // If inserting in middle, use placeholder
+    const isAtEnd = insertIdx === markers.length - 1;
+    if (isAtEnd) {
+      // Find last non-placeholder before this
+      const prevNonPh = markers.slice(0, insertIdx).filter(m => !isPlaceholder(m.label));
+      const autoLbl = prevNonPh.length ? nextLabel(prevNonPh[prevNonPh.length-1].label) : '1';
+      markers[insertIdx].label = autoLbl;
+      cascadeAfter(insertIdx, autoLbl);
+    }
+    // else: leave as placeholder '.'
+  }
+
+  renderMarkers();
+  refreshSegmentDropdowns();
+  saveSession();
+}
+
+function tapMarker(type) {
+  if (!audioBuffer) return;
+  addMarker(null, type||'R', _currentAudioTime());
+}
+
+function removeMarker(id) {
+  const m = markers.find(x=>x.id===id);
+  if (!m||m.locked) return;
+  pushUndo();
+  const idx = markers.findIndex(x=>x.id===id);
+  markers = markers.filter(x=>x.id!==id);
+  // Remove loops that referenced this marker
+  segments = segments.filter(s=>s.startId!==id && s.endId!==id);
+  // Auto-renumber within same family from deletion point
+  if (markers.length > 0) {
+    const prevIdx = Math.max(0, idx - 1);
+    const prevLabel = markers[prevIdx]?.label;
+    if (prevLabel && !isPlaceholder(prevLabel)) {
+      cascadeAfter(prevIdx, prevLabel);
+    }
+  }
+  renderMarkers(); renderLoops();
+  refreshSegmentDropdowns();
+  saveSession();
+}
+
+function toggleLock(id) {
+  const m = markers.find(x=>x.id===id);
+  if (m) { m.locked = !m.locked; saveSession(); renderMarkers(); }
+}
+
+function toggleMarkerType(id) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  m.type = m.type === 'R' ? 'D' : 'R';
+  saveSession(); renderMarkers(); drawOverview();
+}
+
+function updateMarkerLabel(id, val) {
+  pushUndo();
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  m.label = val;
+  const idx = markers.findIndex(x=>x.id===id);
+  if (!isPlaceholder(val)) cascadeAfter(idx, val);
+  renderMarkers(); renderLoops(); refreshSegmentDropdowns();
+  saveSession();
+}
+
+function updateMarkerTime(id, val) {
+  pushUndo();
+  const parts = val.split(':');
+  let t = 0;
+  if (parts.length===2) t = parseFloat(parts[0])*60 + parseFloat(parts[1]);
+  else t = parseFloat(val);
+  if (!isFinite(t)) return;
+  const m = markers.find(x=>x.id===id);
+  if (m) { m.time = Math.max(0, Math.min(audioDuration, t)); }
+  markers.sort((a,b)=>a.time-b.time);
+  renderMarkers(); drawOverview(); saveSession();
+}
+
+function updateMarkerBar(id, val) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  m.bar = val.trim();
+  saveSession();
+}
+
+function updateMarkerAnnotation(id, val) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  if (!m.annotation) m.annotation = { text:'', teacher:false, date:'' };
+  m.annotation.text = val.trim();
+  if (m.annotation.text) {
+    m.annotation.date = new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+  } else {
+    m.annotation.date = '';
+  }
+  saveSession();
+}
+
+function toggleAnnotationTeacher(id) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  if (!m.annotation) m.annotation = { text:'', teacher:false, date:'' };
+  m.annotation.teacher = !m.annotation.teacher;
+  saveSession();
+  renderMarkers();
+}
+
+function renderMarkers() {
+  const list   = document.getElementById('marker-list');
+  const header = document.getElementById('marker-col-header');
+  const countEl= document.getElementById('marker-count');
+  countEl.textContent = `${markers.length} marker${markers.length!==1?'s':''}`;
+  _updateLockAllBtn();
+
+  if (!markers.length) {
+    header.style.display = 'none';
+    list.innerHTML = `<div style="font-size:0.54rem;color:var(--text-faint);padding:0.55rem 0;text-align:center">
+      No markers yet — press M while listening</div>`;
+    drawOverview(); return;
+  }
+  header.style.display = 'grid';
+
+  list.innerHTML = markers.map((m, i) => {
+    const end = i < markers.length-1 ? markers[i+1].time : audioDuration;
+    const dur = Math.max(0, end - m.time);
+    const ph  = isPlaceholder(m.label);
+    const isActive = i === activeMarkerIdx;
+    const isQLS = m.id === quickLoopStartId; // quick loop start marker
+    const hasAnnotation = m.annotation && m.annotation.text;
+    const annotationRow = `<div class="marker-annotation-row">
+      <textarea class="marker-annotation-input" rows="1"
+        placeholder="add note…"
+        onchange="updateMarkerAnnotation(${m.id},this.value)"
+        onfocus="this.rows=2" onblur="this.rows=this.value?2:1"
+        title="Annotation for this marker">${escHtml((m.annotation&&m.annotation.text)||'')}</textarea>
+      <button class="annotation-tag${(m.annotation&&m.annotation.teacher)?' teacher':''}"
+        onclick="toggleAnnotationTeacher(${m.id})"
+        title="Toggle teacher note">T</button>
+      ${hasAnnotation&&m.annotation.date?`<span class="annotation-date">${m.annotation.date}</span>`:''}
+    </div>`;
+    return `<div class="marker-row${isActive?' active-marker':''}" id="marker-row-${m.id}">
+      <span class="marker-seq">${i+1}</span>
+      <input class="marker-label-input${ph?' is-placeholder':''}"
+        value="${escHtml(m.label)}"
+        onchange="updateMarkerLabel(${m.id},this.value)"
+        ${m.locked?'readonly style="opacity:0.5"':''}
+        title="Score label">
+      <input class="marker-bar-input"
+        value="${escHtml(m.bar||'')}"
+        placeholder="bar"
+        onchange="updateMarkerBar(${m.id},this.value)"
+        title="Bar number">
+      <input class="marker-time-input" value="${fmtTime(m.time)}"
+        onblur="updateMarkerTime(${m.id},this.value)"
+        ${m.locked?'readonly style="opacity:0.5"':''}
+        title="Start time">
+      <span class="marker-dur">${fmtTime(dur)}</span>
+      <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here (lead-in)">▶</button>
+      <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next marker">⟳</button>
+      <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Tempo training from here">T</button>
+      <button class="marker-btn lock${m.locked?' locked':''}"
+        onclick="toggleLock(${m.id})" title="${m.locked?'Unlock':'Lock'} marker">🔒</button>
+      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here (●)">●</button>
+      <button class="marker-btn delete"
+        onclick="removeMarker(${m.id})" title="Remove" ${m.locked?'disabled':''}>✕</button>
+      ${annotationRow}
+    </div>`;
+  }).join('');
+
+  drawOverview();
+}
+
+function previewFromMarker(id) {
+  const m = markers.find(x=>x.id===id);
+  if (!m) return;
+  playOffset = m.time; queuePoint = m.time;
+  _startPlayback(m.time);
+}
+
+function _updateLockAllBtn() {
+  const btn = document.getElementById('lock-all-btn');
+  if (!btn) return;
+  const allLocked = markers.length > 0 && markers.every(m => m.locked);
+  btn.textContent = allLocked ? 'Unlock all' : 'Lock all';
+}
+
+function toggleLockAll() {
+  if (!markers.length) return;
+  const allLocked = markers.every(m => m.locked);
+  pushUndo();
+  markers.forEach(m => m.locked = !allLocked);
+  saveSession(); renderMarkers();
+}
+
+function markerLoopToNext(id) {
+  const idx = markers.findIndex(m => m.id === id);
+  if (idx < 0 || idx >= markers.length - 1) return;
+  const startM = markers[idx];
+  const endM   = markers[idx + 1];
+  // Create a temporary ad-hoc loop (not saved to segments)
+  activeLoopId = null; // clear any named loop
+  _startLooping(startM.time, endM.time);
+  // Zoom waveform to show the range
+  const dur = endM.time - startM.time;
+  const pad = dur * 0.15;
+  viewStart = Math.max(0, startM.time - pad);
+  viewEnd   = Math.min(audioDuration, endM.time + pad);
+  zoomLevel = audioDuration / (viewEnd - viewStart);
+  drawOverview();
+}
+
+function openTempoTrainingFromMarker(id) {
+  const idx = markers.findIndex(m => m.id === id);
+  if (idx < 0 || idx >= markers.length - 1) return;
+  const startM = markers[idx];
+  const endM   = markers[idx + 1];
+  // Create a temporary segment for tempo training
+  const tempId = -1; // sentinel for ad-hoc
+  ttLoopId = null;
+  ttAdHocStart = startM.time;
+  ttAdHocEnd   = endM.time;
+  renderTempoTrainPanel();
+  document.getElementById('tempo-train-panel').classList.add('visible');
+  document.getElementById('tempo-train-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── Active marker navigation ──
+function setActiveMarker(idx) {
+  if (!markers.length) return;
+  activeMarkerIdx = Math.max(0, Math.min(markers.length - 1, idx));
+  const m = markers[activeMarkerIdx];
+  // Scroll marker row into view
+  const row = document.getElementById(`marker-row-${m.id}`);
+  if (row) row.scrollIntoView({behavior:'smooth', block:'nearest'});
+  // Show marker position on waveform
+  playOffset = m.time; queuePoint = m.time;
+  if (!isPlaying) _updateDisplay(m.time);
+  renderMarkers();
+  drawOverview();
+}
+
+function navMarker(dir) {
+  if (!markers.length) return;
+  const newIdx = activeMarkerIdx === -1
+    ? (dir > 0 ? 0 : markers.length - 1)
+    : activeMarkerIdx + dir;
+  setActiveMarker(newIdx);
+}
+
+// Quick loop: Enter sets start, Enter again sets end and starts loop
+function enterQuickLoop() {
+  if (!markers.length || activeMarkerIdx < 0) return;
+  const m = markers[activeMarkerIdx];
+  if (quickLoopStartId === null) {
+    // First Enter: set start
+    quickLoopStartId = m.id;
+    renderMarkers();
+  } else {
+    const startM = markers.find(x => x.id === quickLoopStartId);
+    const endM   = m;
+    if (!startM || startM.id === endM.id) { quickLoopStartId = null; renderMarkers(); return; }
+    // Ensure start < end
+    const s = startM.time < endM.time ? startM : endM;
+    const e = startM.time < endM.time ? endM   : startM;
+    quickLoopStartId = null;
+    activeLoopId = null;
+    _startLooping(s.time, e.time);
+    const dur = e.time - s.time;
+    const pad = dur * 0.15;
+    viewStart = Math.max(0, s.time - pad);
+    viewEnd   = Math.min(audioDuration, e.time + pad);
+    zoomLevel = audioDuration / (viewEnd - viewStart);
+    renderMarkers();
+    drawOverview();
+  }
+}
+
+function saveQuickLoop() {
+  // Save current ad-hoc loop (loopStart/loopEnd) to segments panel
+  if (!loopStart || !loopEnd || !audioBuffer) return;
+  const startTime = loopStart - trimOffset;
+  const endTime   = loopEnd   - trimOffset;
+  // Find closest markers
+  const sm = markers.reduce((a,b) => Math.abs(b.time-startTime)<Math.abs(a.time-startTime)?b:a, markers[0]);
+  const em = markers.reduce((a,b) => Math.abs(b.time-endTime  )<Math.abs(a.time-endTime  )?b:a, markers[0]);
+  if (!sm||!em||sm.id===em.id) return;
+  const name = prompt('Save loop as:', `${sm.label} → ${em.label}`);
+  if (!name||!name.trim()) return;
+  pushUndo();
+  segments.push({ id: segmentIdCounter++, startId: sm.id, endId: em.id, name: name.trim(), include: true });
+  renderLoops(); saveSession();
+}
+
+// ══════════════════════════════════════════════
+// SEGMENTS
+// ══════════════════════════════════════════════
+function refreshSegmentDropdowns() {
+  const startSel = document.getElementById('seg-start');
+  const endSel   = document.getElementById('seg-end');
+  const sv = startSel.value, ev = endSel.value;
+  const opts = ['<option value="">—</option>',
+    ...markers.filter(m=>!isPlaceholder(m.label)).map(m =>
+      `<option value="${m.id}">${m.label} (${fmtTime(m.time)})</option>`)
+  ].join('');
+  startSel.innerHTML = opts;
+  endSel.innerHTML   = opts;
+  if (sv) startSel.value = sv;
+  if (ev) endSel.value   = ev;
+}
+
+function addSegment() {
+  const startId = parseInt(document.getElementById('seg-start').value);
+  const endId   = parseInt(document.getElementById('seg-end').value);
+  if (isNaN(startId)||isNaN(endId)||startId===endId) return;
+  const sm = markers.find(m=>m.id===startId);
+  const em = markers.find(m=>m.id===endId);
+  if (!sm||!em||sm.time>=em.time) {
+    alert('End marker must be after start marker.'); return;
+  }
+  // Don't duplicate
+  if (segments.some(s=>s.startId===startId&&s.endId===endId)) return;
+  pushUndo();
+  segments.push({ id: segmentIdCounter++, startId, endId, include: true });
+  renderLoops(); saveSession();
+}
+
+function removeSegment(id) {
+  if (activeLoopId === id) { activeLoopId = null; if (isPlaying) _pause(); }
+  pushUndo();
+  segments = segments.filter(s=>s.id!==id);
+  renderLoops(); saveSession();
+}
+
+function previewSegment(id) {
+  const seg = segments.find(s=>s.id===id);
+  if (!seg||!audioBuffer) return;
+  const sm = markers.find(m=>m.id===seg.startId);
+  const em = markers.find(m=>m.id===seg.endId);
+  if (!sm||!em) return;
+  previewingSegId = id;
+  const segDur = em.time - sm.time;
+  const pad = segDur * 0.2;
+  viewStart = Math.max(0, sm.time - pad);
+  viewEnd   = Math.min(audioDuration, em.time + pad);
+  zoomLevel = audioDuration / (viewEnd - viewStart);
+  _startPlayback(sm.time, segDur);
+}
+
+function renderSegments() { renderLoops(); }
+
+function renderLoops() {
+  const list    = document.getElementById('seg-list');
+  const header  = document.getElementById('loop-col-header');
+  const countEl = document.getElementById('loop-count');
+  countEl.textContent = `${segments.length} loop${segments.length!==1?'s':''}`;
+
+  if (!segments.length) {
+    if (header) header.style.display = 'none';
+    list.innerHTML = `<div class="loop-empty">No loops yet — pick markers above and click Add</div>`;
+    return;
+  }
+  if (header) header.style.display = 'grid';
+
+  list.innerHTML = segments.map(seg => {
+    const sm = markers.find(m=>m.id===seg.startId);
+    const em = markers.find(m=>m.id===seg.endId);
+    if (!sm||!em) {
+      // Broken loop — marker was deleted
+      return `<div class="loop-row" style="opacity:0.4" id="seg-row-${seg.id}">
+        <span class="loop-label-input" style="font-style:italic;color:var(--red)">⚠ missing marker</span>
+        <span class="loop-span"></span>
+        <span class="loop-dur"></span>
+        <span></span><span></span><span></span>
+        <button class="loop-btn delete" onclick="removeSegment(${seg.id})" title="Remove">✕</button>
+      </div>`;
+    }
+    const dur = Math.max(0, em.time - sm.time);
+    const isActive = seg.id === activeLoopId;
+    const defaultName = `${sm.label} → ${em.label}`;
+    const displayName = seg.name || defaultName;
+    return `<div class="loop-row${isActive?' active-loop':''}" id="seg-row-${seg.id}">
+      <input class="loop-label-input" value="${escHtml(displayName)}"
+        placeholder="${escHtml(defaultName)}"
+        onchange="updateLoopName(${seg.id},this.value)"
+        title="Click to rename loop">
+      <span class="loop-span">${sm.label}→${em.label}</span>
+      <span class="loop-dur">${fmtTime(dur)}</span>
+      <button class="loop-btn" onclick="previewSegment(${seg.id})" title="Preview">▶</button>
+      <button class="loop-btn${isActive?' loop-active':''}" onclick="toggleLoop(${seg.id})" title="Loop">⟳</button>
+      <button class="loop-btn${isActive?' loop-active':''}" onclick="openTempoTraining(${seg.id})" title="Tempo training">🎯</button>
+      <button class="loop-btn record" onclick="recordSegment(${seg.id})" title="Record this segment (●)">●</button>
+      <button class="loop-btn delete" onclick="removeSegment(${seg.id})" title="Remove">✕</button>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  drawOverview();
+}
+
+function updateLoopName(id, val) {
+  const seg = segments.find(s=>s.id===id);
+  if (seg) { seg.name = val.trim(); saveSession(); }
+}
+
+function toggleLoop(id) {
+  if (activeLoopId === id) {
+    activeLoopId = null;
+    previewingSegId = null;
+    if (isPlaying) _pause();
+  } else {
+    activeLoopId = id;
+    previewingSegId = id;
+    const seg = segments.find(s=>s.id===id);
+    if (seg && audioBuffer) {
+      const sm = markers.find(m=>m.id===seg.startId);
+      const em = markers.find(m=>m.id===seg.endId);
+      if (sm && em) {
+        const segDur = em.time - sm.time;
+        const pad = segDur * 0.15;
+        viewStart = Math.max(0, sm.time - pad);
+        viewEnd   = Math.min(audioDuration, em.time + pad);
+        zoomLevel = audioDuration / (viewEnd - viewStart);
+        _startLooping(sm.time, em.time);
+      }
+    }
+  }
+  renderLoops();
+}
+
+function _startLooping(startTime, endTime) {
+  if (!audioEl || !audioBuffer) return;
+  cancelAnimationFrame(animFrame);
+  playGen++;
+  // Store loop boundary in file time (for _onTimeUpdate seamless repeat)
+  loopStart = trimOffset + startTime;
+  loopEnd   = trimOffset + endTime;
+  // Apply lead-in for initial start only
+  const displayStart = Math.max(0, startTime - leadIn);
+  audioEl.currentTime = trimOffset + displayStart;
+  audioEl.playbackRate = currentSpeed;
+  audioEl.preservesPitch = true;
+  audioEl.play().catch(e => console.warn('Loop play failed:', e));
+  playOffset = displayStart; isPlaying = true;
+  queuePoint = displayStart; playStartedAt = Date.now();
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('active');
+  animFrame = requestAnimationFrame(_animLoop);
+}
+
+// ══════════════════════════════════════════════
+// SESSION PERSISTENCE (localStorage auto-save)
+// ══════════════════════════════════════════════
+const SESSION_KEY = 'scoreSplitter_v2';
+
+function saveSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      pieceName: currentPieceName,
+      audioFileName,
+      audioDuration,
+      markers, markerIdCounter,
+      segments, segmentIdCounter,
+      notes: document.getElementById('piece-notes').value
+    }));
+    const prev = document.querySelector('.save-flash');
+    if (prev) prev.remove();
+    const el = document.createElement('div');
+    el.className = 'save-flash';
+    el.textContent = '✓ Saved';
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  } catch(e) {}
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    currentPieceName = s.pieceName || '';
+    _updatePieceTitle();
+    if (s.markers&&s.markers.length) {
+      markers = s.markers;
+      markerIdCounter = Math.max(s.markerIdCounter||0, ...markers.map(m=>m.id+1));
+    }
+    if (s.segments&&s.segments.length) {
+      segments = s.segments;
+      segmentIdCounter = Math.max(s.segmentIdCounter||0, ...segments.map(s=>s.id+1));
+    }
+    if (s.notes) document.getElementById('piece-notes').value = s.notes;
+    if (s.audioFileName) {
+      audioFileName = s.audioFileName;
+      _updateNoFileNotice();
+    }
+    renderMarkers(); renderSegments(); refreshSegmentDropdowns();
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// NAMED SESSION STORAGE (localStorage)
+// ══════════════════════════════════════════════
+const SESSIONS_STORAGE_KEY = 'mr_sessions_v4';
+
+async function loadSessionsFromStorage() {
+  try {
+    const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+async function saveSessionsToStorage(sessions) {
+  try { localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions)); } catch(e) {}
+}
+
+async function saveSessionToStorage() {
+  const def = currentPieceName || audioFileName || 'Untitled';
+  const name = prompt('Save piece as:', def);
+  if (!name||!name.trim()) return;
+  const trimmed = name.trim();
+  const sessions = await loadSessionsFromStorage();
+  sessions[trimmed] = {
+    pieceName: currentPieceName,
+    audioFileName, audioDuration, markers, markerIdCounter,
+    segments, segmentIdCounter,
+    notes: document.getElementById('piece-notes').value,
+    savedAt: Date.now()
+  };
+  // Maintain order — append if new
+  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
+  if (!order.includes(trimmed)) order.push(trimmed);
+  sessions.__order__ = order;
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+async function loadNamedSession(name) {
+  const sessions = await loadSessionsFromStorage();
+  const s = sessions[name];
+  if (!s) return;
+
+  // Stop and clear current audio
+  if (isPlaying) _pause();
+  if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+  if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
+  audioBuffer = null; audioDuration = 0; activeLoopId = null; previewingSegId = null;
+  activeMarkerIdx = -1; quickLoopStartId = null;
+  loopStart = null; loopEnd = null;
+  document.getElementById('audio-player').style.display = 'none';
+  playOffset = 0; queuePoint = 0; _updateDisplay(0);
+
+  // Load session data
+  currentPieceName = s.pieceName || name;
+  _updatePieceTitle();
+  markers = s.markers||[];
+  markerIdCounter = Math.max(s.markerIdCounter||0, ...(markers.length?markers.map(m=>m.id+1):[0]));
+  segments = s.segments||[];
+  segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length?segments.map(x=>x.id+1):[0]));
+  audioFileName = s.audioFileName||'';
+  document.getElementById('piece-notes').value = s.notes || '';
+
+  renderMarkers(); renderSegments(); refreshSegmentDropdowns();
+  renderSessionsList();
+  saveSession();
+  _renderSessionLog();
+
+  // Show no-file notice and auto-open file picker
+  _updateNoFileNotice();
+  document.getElementById('audio-input').click();
+}
+
+async function deleteNamedSession(name) {
+  if (!confirm(`Delete "${name}" from library?`)) return;
+  const sessions = await loadSessionsFromStorage();
+  if (sessions.__order__) {
+    sessions.__order__ = sessions.__order__.filter(k => k !== name);
+  }
+  delete sessions[name];
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+async function renameSession(oldName) {
+  const sessions = await loadSessionsFromStorage();
+  if (!sessions[oldName]) return;
+  const newName = prompt('Rename piece:', oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  if (sessions[trimmed]) { alert('A piece with that name already exists.'); return; }
+  sessions[trimmed] = { ...sessions[oldName] };
+  delete sessions[oldName];
+  // Update order array
+  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
+  const oi = order.indexOf(oldName);
+  if (oi !== -1) order[oi] = trimmed;
+  sessions.__order__ = order;
+  if (currentPieceName === oldName) {
+    currentPieceName = trimmed;
+    _updatePieceTitle();
+    saveSession();
+  }
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+let _dragSrcName = null;
+
+async function renderSessionsList() {
+  const sessions = await loadSessionsFromStorage();
+  const el = document.getElementById('sessions-list');
+  // Determine display order
+  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
+  const storedOrder = sessions.__order__ || [];
+  const orderedKeys = [
+    ...storedOrder.filter(k => allKeys.includes(k)),
+    ...allKeys.filter(k => !storedOrder.includes(k))
+  ];
+  if (!orderedKeys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
+  el.innerHTML = orderedKeys.map(name => {
+    const s = sessions[name];
+    const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
+    const mc = s.markers?s.markers.length:0, sc = s.segments?s.segments.length:0;
+    const safe = escHtml(name);
+    const isActive = name === currentPieceName;
+    const fileLoaded = isActive && !!audioBuffer;
+    const statusHtml = isActive
+      ? (fileLoaded
+          ? `<span class="lib-status-loaded">● loaded</span>`
+          : `<span class="lib-status-reload">○ needs file</span>`)
+      : '';
+    return `<div class="lib-row${isActive?' active':''}"
+        data-name="${safe}"
+        draggable="true"
+        onclick="loadNamedSession('${safe}')"
+        ondragstart="libDragStart(event,'${safe}')"
+        ondragover="libDragOver(event)"
+        ondrop="libDrop(event,'${safe}')"
+        ondragleave="libDragLeave(event)"
+        ondragend="libDragEnd(event)">
+      <div class="lib-row-left">
+        <span class="lib-name" ondblclick="event.stopPropagation();renameSession('${safe}')"
+          title="Double-click to rename">${safe}</span>
+        <span class="lib-meta">${mc} marker${mc!==1?'s':''} · ${sc} loop${sc!==1?'s':''} ${statusHtml}</span>
+      </div>
+      <div class="lib-row-right">
+        <span class="lib-drag-handle" title="Drag to reorder">⠿</span>
+        <span class="lib-date">${date}</span>
+        <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function libDragStart(e, name) {
+  _dragSrcName = name;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function libDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.borderTop = '2px solid var(--accent)';
+}
+function libDragLeave(e) {
+  e.currentTarget.style.borderTop = '';
+}
+function libDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  e.currentTarget.style.borderTop = '';
+  document.querySelectorAll('.lib-row').forEach(r => { r.style.borderTop = ''; });
+}
+async function libDrop(e, targetName) {
+  e.preventDefault();
+  e.currentTarget.style.borderTop = '';
+  if (!_dragSrcName || _dragSrcName === targetName) return;
+  const sessions = await loadSessionsFromStorage();
+  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
+  const storedOrder = sessions.__order__ || allKeys;
+  const order = [...storedOrder.filter(k => allKeys.includes(k)),
+                  ...allKeys.filter(k => !storedOrder.includes(k))];
+  const fromIdx = order.indexOf(_dragSrcName);
+  const toIdx   = order.indexOf(targetName);
+  if (fromIdx === -1 || toIdx === -1) return;
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, _dragSrcName);
+  sessions.__order__ = order;
+  await saveSessionsToStorage(sessions);
+  _dragSrcName = null;
+  renderSessionsList();
+}
+
+// ══════════════════════════════════════════════
+// JSON EXPORT / IMPORT (item #2)
+// ══════════════════════════════════════════════
+function exportLibraryJSON() {
+  const sessions = {};
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      const name = (s.pieceName || s.audioFileName || 'current').trim();
+      sessions[name] = { ...s, savedAt: Date.now() };
+    }
+  } catch(e) {}
+  loadSessionsFromStorage().then(async named => {
+    Object.assign(sessions, named);
+    const payload = { version: 'rs_lib_v1', exportedAt: Date.now(), sessions };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rehearsal-space-library-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    // Also write to folder root if connected
+    await _exportLibraryToFolder(payload);
+  });
+}
+
+function importLibraryJSON(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    let payload;
+    try { payload = JSON.parse(ev.target.result); }
+    catch(e) { alert('Could not parse file — make sure it is a valid JSON backup.'); return; }
+
+    if (!payload || typeof payload !== 'object') {
+      alert('Import failed: not a valid library backup.'); return;
+    }
+
+    // Normalise to sessions object (handles all backup formats)
+    let sessions;
+    if (Array.isArray(payload)) {
+      sessions = {};
+      payload.forEach(piece => {
+        if (piece && piece.name && Array.isArray(piece.markers)) {
+          sessions[piece.name] = {
+            pieceName: piece.name,
+            audioFileName: piece.fileName || '',
+            markers: piece.markers,
+            markerIdCounter: piece.markerIdCounter || 0,
+            segments: piece.segments || [],
+            segmentIdCounter: piece.segmentIdCounter || 0,
+            savedAt: piece.lastPracticed || Date.now()
+          };
+        }
+      });
+    } else {
+      const inner = payload.sessions || payload;
+      if (Array.isArray(inner)) {
+        sessions = {};
+        inner.forEach(piece => {
+          if (piece && piece.name && Array.isArray(piece.markers)) {
+            sessions[piece.name] = {
+              pieceName: piece.name,
+              audioFileName: piece.fileName || '',
+              markers: piece.markers,
+              markerIdCounter: piece.markerIdCounter || 0,
+              segments: piece.segments || [],
+              segmentIdCounter: piece.segmentIdCounter || 0,
+              savedAt: piece.lastPracticed || Date.now()
+            };
+          }
+        });
+      } else {
+        sessions = inner;
+      }
+    }
+
+    if (typeof sessions !== 'object' || Array.isArray(sessions)) {
+      alert('Import failed: unrecognised format.'); return;
+    }
+
+    const keys = Object.keys(sessions);
+    const valid = keys.filter(k => Array.isArray(sessions[k].markers));
+    if (!valid.length) { alert('Import failed: no valid sessions found.'); return; }
+
+    // Merge — only add sessions whose name doesn't already exist
+    const existing = await loadSessionsFromStorage();
+    let added = 0;
+    valid.forEach(k => {
+      if (!existing[k]) { existing[k] = sessions[k]; added++; }
+    });
+    await saveSessionsToStorage(existing);
+    await renderSessionsList();
+
+    // Show a brief inline status rather than an alert
+    const el = document.createElement('div');
+    el.style.cssText = 'font-size:0.5rem;color:var(--green);margin-top:0.35rem;padding:0.2rem 0';
+    el.textContent = `✓ ${added} piece${added!==1?'s':''} imported${added < valid.length ? ` (${valid.length-added} skipped — already exist)` : ''}`;
+    const list = document.getElementById('sessions-list');
+    list.parentNode.insertBefore(el, list);
+    setTimeout(() => el.remove(), 4000);
+  };
+  reader.readAsText(file);
+  document.getElementById('import-json-input').value = '';
+}
+
+// ══════════════════════════════════════════════
+// TEMPO TRAINING
+// ══════════════════════════════════════════════
+const TT_STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+let ttConfig    = TT_STOPS.map(s => ({ pct: s, enabled: s >= 0.8 && s <= 1.0, reps: 2 }));
+let ttState     = null; // null = idle, else { stepIdx, repsDone, paused }
+let ttLoopId    = null;
+let ttRepTimeout = null;
+
+let ttAdHocStart = null;
+let ttAdHocEnd   = null;
+
+function openTempoTraining(loopId) {
+  ttLoopId = loopId;
+  ttAdHocStart = null; ttAdHocEnd = null;
+  // Do NOT start playback — just highlight the loop
+  if (!activeLoopId || activeLoopId !== loopId) {
+    activeLoopId = loopId;
+    renderLoops();
+    drawOverview();
+  }
+  renderTempoTrainPanel();
+  document.getElementById('tempo-train-panel').classList.add('visible');
+  document.getElementById('tempo-train-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function closeTempoTraining() {
+  tempoTrainStop();
+  document.getElementById('tempo-train-panel').classList.remove('visible');
+  ttLoopId = null;
+}
+
+function renderTempoTrainPanel() {
+  const container = document.getElementById('tempo-train-stops');
+  const isRunning = ttState && !ttState.paused;
+  container.innerHTML = ttConfig.map((c, i) => {
+    const isStep = ttState && ttState.stepIdx === i;
+    return `<div class="tempo-train-row${isStep?' active-step':''}">
+      <input type="checkbox" ${c.enabled?'checked':''} style="accent-color:var(--accent)"
+        onchange="ttToggleStop(${i},this.checked)" ${isRunning?'disabled':''}>
+      <span class="tempo-train-pct">${Math.round(c.pct*100)}%</span>
+      <div></div>
+      <div class="tempo-train-reps">
+        <button class="rep-btn" onclick="ttChangeReps(${i},-1)" ${isRunning?'disabled':''}>−</button>
+        <span class="rep-count" id="tt-rep-${i}">${c.reps}×</span>
+        <button class="rep-btn" onclick="ttChangeReps(${i},1)" ${isRunning?'disabled':''}>+</button>
+        ${isStep ? `<span class="tempo-train-progress" id="tt-prog">${ttState.repsDone+1} of ${c.reps}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ttToggleStop(idx, val) {
+  ttConfig[idx].enabled = val;
+}
+
+function ttChangeReps(idx, delta) {
+  ttConfig[idx].reps = Math.max(1, Math.min(10, ttConfig[idx].reps + delta));
+  document.getElementById(`tt-rep-${idx}`).textContent = `${ttConfig[idx].reps}×`;
+}
+
+function tempoTrainStart() {
+  const seg = segments.find(s => s.id === ttLoopId);
+  if (!seg || !audioBuffer) return;
+  const enabledSteps = ttConfig.map((c,i) => ({...c, i})).filter(c => c.enabled);
+  if (!enabledSteps.length) return;
+
+  ttState = { stepIdx: enabledSteps[0].i, repsDone: 0, paused: false, enabledSteps };
+  document.getElementById('tt-start-btn').style.display = 'none';
+  document.getElementById('tt-pause-btn').style.display = '';
+  document.getElementById('tt-stop-btn').style.display = '';
+  _ttRunStep();
+}
+
+function _ttRunStep() {
+  if (!ttState || ttState.paused) return;
+  const { stepIdx, repsDone, enabledSteps } = ttState;
+  const cfg = ttConfig[stepIdx];
+
+  // Get range — named loop or ad-hoc
+  let startTime, endTime;
+  if (ttLoopId !== null) {
+    const seg = segments.find(s => s.id === ttLoopId);
+    if (!seg) { tempoTrainStop(); return; }
+    const sm = markers.find(m => m.id === seg.startId);
+    const em = markers.find(m => m.id === seg.endId);
+    if (!sm || !em) { tempoTrainStop(); return; }
+    startTime = sm.time; endTime = em.time;
+  } else if (ttAdHocStart !== null && ttAdHocEnd !== null) {
+    startTime = ttAdHocStart; endTime = ttAdHocEnd;
+  } else { tempoTrainStop(); return; }
+
+  // Set tempo
+  onSpeedChange(cfg.pct);
+
+  // Update status
+  document.getElementById('tt-status').textContent =
+    `${Math.round(cfg.pct*100)}% — rep ${repsDone+1} of ${cfg.reps}`;
+  renderTempoTrainPanel();
+
+  // Play one rep
+  const dur = (endTime - startTime) / cfg.pct;
+  if (isPlaying) { if (audioEl) audioEl.pause(); isPlaying = false; }
+  _startLooping(startTime, endTime);
+
+  // Schedule advance after this rep
+  ttRepTimeout = setTimeout(() => {
+    if (!ttState || ttState.paused) return;
+    ttState.repsDone++;
+    if (ttState.repsDone >= ttConfig[ttState.stepIdx].reps) {
+      const curEnabledIdx = enabledSteps.findIndex(s => s.i === ttState.stepIdx);
+      if (curEnabledIdx < enabledSteps.length - 1) {
+        ttState.stepIdx = enabledSteps[curEnabledIdx + 1].i;
+        ttState.repsDone = 0;
+        _ttRunStep();
+      } else {
+        // Log completed session
+        try {
+          let loopLabel = 'loop';
+          if (ttLoopId !== null) {
+            const seg = segments.find(s => s.id === ttLoopId);
+            if (seg) {
+              const sm = markers.find(m => m.id === seg.startId);
+              const em = markers.find(m => m.id === seg.endId);
+              if (sm && em) loopLabel = `${sm.label}→${em.label}`;
+            }
+          }
+          const minPct = Math.round(Math.min(...enabledSteps.map(s=>s.pct)) * 100);
+          const maxPct = Math.round(Math.max(...enabledSteps.map(s=>s.pct)) * 100);
+          const tempoRange = minPct === maxPct ? `${minPct}` : `${minPct}–${maxPct}`;
+          const totalReps = enabledSteps.reduce((sum, s) => sum + s.reps, 0);
+          _appendSessionLog(loopLabel, tempoRange, totalReps);
+        } catch(e) {}
+        tempoTrainStop();
+        document.getElementById('tt-status').textContent = '✓ Complete';
+        renderTempoTrainPanel();
+      }
+    } else {
+      _ttRunStep();
+    }
+  }, dur * 1000 + 200);
+}
+
+function tempoTrainPause() {
+  if (!ttState) return;
+  if (ttState.paused) {
+    ttState.paused = false;
+    document.getElementById('tt-pause-btn').textContent = '⏸ Pause';
+    _ttRunStep();
+  } else {
+    ttState.paused = true;
+    clearTimeout(ttRepTimeout);
+    if (audioEl) audioEl.pause();
+    isPlaying = false;
+    document.getElementById('tt-pause-btn').textContent = '▶ Resume';
+    document.getElementById('tt-status').textContent = 'Paused';
+  }
+}
+
+function tempoTrainStop() {
+  clearTimeout(ttRepTimeout);
+  ttState = null;
+  if (isPlaying) _pause();
+  resetSpeed();
+  const startBtn = document.getElementById('tt-start-btn');
+  const pauseBtn = document.getElementById('tt-pause-btn');
+  const stopBtn  = document.getElementById('tt-stop-btn');
+  if (startBtn) startBtn.style.display = '';
+  if (pauseBtn) { pauseBtn.style.display = 'none'; pauseBtn.textContent = '⏸ Pause'; }
+  if (stopBtn)  stopBtn.style.display = 'none';
+  const status = document.getElementById('tt-status');
+  if (status) status.textContent = '';
+  renderTempoTrainPanel();
+}
+
+// ══════════════════════════════════════════════
+// RECORDING — unified model (v5.2)
+// ══════════════════════════════════════════════
+let mediaRecorder    = null;
+let recChunks        = [];
+let recStartTime     = null;
+let recStartOffset   = null;
+let recTimerInterval = null;
+let recClips         = [];
+let recClipCounter   = 0;
+let isRecording      = false;
+let latencyOffset    = 0;
+let blendValue       = 50;
+
+// Take counters per passage label
+let takeCounts = {};
+
+// Load persisted latency offset
+(function(){
+  const v = parseInt(localStorage.getItem('mr_latency_offset')||'0');
+  latencyOffset = isFinite(v) ? Math.max(-200,Math.min(200,v)) : 0;
+  _updateLatencyDisplay();
+})();
+
+function _updateLatencyDisplay() {
+  const el = document.getElementById('latency-val');
+  if (el) el.textContent = (latencyOffset >= 0 ? '+' : '') + latencyOffset + 'ms';
+}
+
+function stepLatency(delta) {
+  latencyOffset = Math.max(-200, Math.min(200, latencyOffset + delta));
+  localStorage.setItem('mr_latency_offset', latencyOffset);
+  _updateLatencyDisplay();
+}
+
+// ── Core: start a timed recording pass ──
+// startTime, endTime in display seconds (trimOffset already handled)
+// passLabel: human name for the passage e.g. "A→B" or "bar 23→bar 31"
+// withRef: true if reference track is playing
+async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
+  if (isRecording) _stopRecording();
+
+  // Stop any active loop cleanly
+  if (activeLoopId !== null) {
+    activeLoopId = null;
+    previewingSegId = null;
+    loopStart = null; loopEnd = null;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: false, sampleRate: 44100 }
+    });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+
+    recChunks = [];
+    const duration = endTime - startTime;
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    mediaRecorder.onstop = () => _onRecordingStop(passLabel, withRef, duration);
+    mediaRecorder.start(100);
+    isRecording = true;
+    recStartTime = Date.now();
+    recStartOffset = startTime;
+
+    // Start reference playback from lead-in point
+    if (audioEl && audioBuffer) {
+      const displayStart = Math.max(0, startTime - leadIn);
+      audioEl.currentTime = trimOffset + displayStart;
+      audioEl.playbackRate = currentSpeed;
+      audioEl.preservesPitch = true;
+      // Only audible if withRef — but always sync position
+      audioEl.volume = withRef ? 1 : 0;
+      audioEl.play().catch(() => {});
+      playOffset = displayStart; isPlaying = true;
+      queuePoint = displayStart; playStartedAt = Date.now();
+      loopStart = null; loopEnd = null;
+      document.getElementById('btn-play').textContent = '⏸ Pause';
+      document.getElementById('btn-play').classList.add('active');
+      animFrame = requestAnimationFrame(_animLoop);
+    }
+
+    // Update UI
+    document.getElementById('rec-indicator').classList.add('visible');
+    document.getElementById('btn-rec').textContent = '⏹ Stop';
+    document.getElementById('btn-rec').classList.add('recording');
+    document.getElementById('rec-scope').textContent = passLabel;
+    recTimerInterval = setInterval(() => {
+      const elapsed = (Date.now() - recStartTime) / 1000;
+      const m = Math.floor(elapsed / 60);
+      const s = Math.floor(elapsed % 60);
+      document.getElementById('rec-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }, 500);
+
+    // Auto-stop at end of passage
+    if (endTime > startTime) {
+      const stopDelay = ((duration + leadIn) / currentSpeed) * 1000 + 200;
+      setTimeout(() => { if (isRecording) _stopRecording(); }, stopDelay);
+    }
+
+  } catch(err) {
+    alert('Microphone access denied or unavailable.\n\n' + err.message);
+  }
+}
+
+// ── Free recording (no passage bounds) ──
+async function _startFreeRecording() {
+  if (isRecording) { _stopRecording(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: false, sampleRate: 44100 }
+    });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+    recChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    mediaRecorder.onstop = () => _onRecordingStop('free', false, null);
+    mediaRecorder.start(100);
+    isRecording = true;
+    recStartTime = Date.now();
+    recStartOffset = _currentAudioTime();
+    document.getElementById('rec-indicator').classList.add('visible');
+    document.getElementById('btn-rec').textContent = '⏹ Stop';
+    document.getElementById('btn-rec').classList.add('recording');
+    document.getElementById('rec-scope').textContent = 'free';
+    recTimerInterval = setInterval(() => {
+      const elapsed = (Date.now() - recStartTime) / 1000;
+      const m = Math.floor(elapsed / 60);
+      const s = Math.floor(elapsed % 60);
+      document.getElementById('rec-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    }, 500);
+  } catch(err) {
+    alert('Microphone access denied or unavailable.\n\n' + err.message);
+  }
+}
+
+function _stopRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  isRecording = false;
+  clearInterval(recTimerInterval);
+  // Restore audio volume and pause
+  if (audioEl) { audioEl.volume = 1; }
+  if (isPlaying) _pause();
+  document.getElementById('rec-indicator').classList.remove('visible');
+  document.getElementById('btn-rec').textContent = '⏺ Record';
+  document.getElementById('btn-rec').classList.remove('recording');
+  document.getElementById('rec-scope').textContent = '';
+  document.getElementById('rec-timer').textContent = '0:00';
+}
+
+// ── R key / panel button: context-aware dispatch ──
+async function toggleRecording() {
+  if (isRecording) { _stopRecording(); return; }
+  // Segment selected?
+  if (activeLoopId !== null) {
+    const seg = segments.find(s => s.id === activeLoopId);
+    if (seg) { await recordSegment(seg.id); return; }
+  }
+  // Active marker navigated?
+  if (activeMarkerIdx >= 0 && activeMarkerIdx < markers.length - 1) {
+    await recordFromMarker(markers[activeMarkerIdx].id); return;
+  }
+  // Free recording
+  await _startFreeRecording();
+}
+
+// ── Record from a marker row ● button ──
+async function recordFromMarker(markerId) {
+  const idx = markers.findIndex(m => m.id === markerId);
+  if (idx < 0 || idx >= markers.length - 1) { await _startFreeRecording(); return; }
+  const sm = markers[idx];
+  const em = markers[idx + 1];
+  const passLabel = sm.label + '→' + em.label;
+  const withRef = !!audioBuffer;
+  await _startRecordingPass(sm.time, em.time, passLabel, withRef);
+}
+
+// ── Record from a segment ● button ──
+async function recordSegment(segId) {
+  const seg = segments.find(s => s.id === segId);
+  if (!seg) return;
+  const sm = markers.find(m => m.id === seg.startId);
+  const em = markers.find(m => m.id === seg.endId);
+  if (!sm || !em) return;
+  const passLabel = seg.name || `${sm.label}→${em.label}`;
+  const withRef = !!audioBuffer;
+  await _startRecordingPass(sm.time, em.time, passLabel, withRef);
+}
+
+// ── Trim silence from live recording ──
+function _trimAudioBuffer(audioCtx, buffer) {
+  const LIVE_THRESHOLD = 0.01;
+  const d = buffer.getChannelData(0);
+  const n = d.length;
+  let head = 0, tail = n - 1;
+  while (head < n && Math.abs(d[head]) < LIVE_THRESHOLD) head++;
+  while (tail > head && Math.abs(d[tail]) < LIVE_THRESHOLD) tail--;
+  const PAD = Math.floor(buffer.sampleRate * 0.02);
+  head = Math.max(0, head - PAD);
+  tail = Math.min(n - 1, tail + PAD);
+  const len = tail - head + 1;
+  if (len <= 0 || len === n) return buffer;
+  const out = audioCtx.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    out.getChannelData(c).set(buffer.getChannelData(c).subarray(head, tail + 1));
+  }
+  return out;
+}
+
+async function _onRecordingStop(passLabel, withRef, nominalDuration) {
+  const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'audio/webm';
+  const rawBlob = new Blob(recChunks, { type: mimeType });
+  let finalBlob = rawBlob;
+
+  // Trim silence
+  try {
+    const trimCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuf = await rawBlob.arrayBuffer();
+    const decoded  = await trimCtx.decodeAudioData(arrayBuf);
+    _trimAudioBuffer(trimCtx, decoded); // trim in place for analysis
+    trimCtx.close();
+    finalBlob = rawBlob; // use raw for download (trim affects waveform analysis only)
+  } catch(e) {}
+
+  const duration = (Date.now() - recStartTime) / 1000;
+  const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+  const url = URL.createObjectURL(finalBlob);
+
+  // Take numbering per passage
+  if (!takeCounts[passLabel]) takeCounts[passLabel] = 0;
+  takeCounts[passLabel]++;
+  const takeNum = takeCounts[passLabel];
+  const takeLabel = takeNum > 1 ? `${passLabel} take ${takeNum}` : passLabel;
+
+  const piecePart = (currentPieceName||'clip').replace(/\s+/g,'_').replace(/[^\w-]/g,'').slice(0,20);
+  const safeLabel = passLabel.replace(/[^\w-]/g,'_');
+  const filename  = `${piecePart}_${safeLabel}_${new Date().toISOString().slice(0,10)}.${ext}`;
+
+  const clip = {
+    id: recClipCounter++,
+    label: takeLabel,
+    filename,
+    blob: finalBlob, url,
+    duration, withRef,
+    passLabel, takeNum,
+    startOffset: recStartOffset,
+    ext, keep: false,
+    blendActive: false
+  };
+  recClips.push(clip);
+  renderRecClips();
+}
+
+// ── Per-clip waveform peaks cache ──
+const clipPeaks = {}; // clipId -> Float32Array of peaks
+const clipAudioEls = {}; // clipId -> HTMLAudioElement
+
+function renderRecClips() {
+  const el = document.getElementById('rec-clip-list');
+  const blendRow = document.getElementById('blend-row');
+  const dlRow = document.getElementById('rec-download-row');
+  if (!recClips.length) {
+    el.innerHTML = '<div class="rec-no-clips">No clips yet — press ● or R to record</div>';
+    if (blendRow) blendRow.style.display = 'none';
+    if (dlRow) dlRow.style.display = 'none';
+    return;
+  }
+  const hasWithRef = recClips.some(c => c.withRef);
+  if (blendRow) blendRow.style.display = hasWithRef ? 'flex' : 'none';
+  if (dlRow) dlRow.style.display = 'flex';
+
+  el.innerHTML = recClips.map(clip => {
+    const durStr = _fmtClipDur(clip.duration);
+    return `<div class="rec-clip-row" id="rec-clip-${clip.id}">
+      <div class="rec-clip-top">
+        <input type="checkbox" class="review-clip-check" id="chk-${clip.id}"
+          onchange="toggleKeep(${clip.id},this.checked)" style="accent-color:var(--accent)">
+        <span style="font-size:0.5rem;color:var(--text);font-weight:500;flex:1;min-width:0;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(clip.label)}</span>
+        ${clip.withRef ? `<button class="blend-toggle${clip.blendActive?' active':''}"
+          id="blend-toggle-${clip.id}" onclick="toggleClipBlend(${clip.id})"
+          title="Blend with reference">blend</button>` : ''}
+        <button class="rec-clip-btn delete" onclick="deleteClip(${clip.id})" title="Discard">✕</button>
+      </div>
+      <input class="review-label-input" value="${escHtml(clip.label)}"
+        placeholder="add label…" onchange="updateClipLabel(${clip.id},this.value)"
+        style="width:100%;margin:0.15rem 0">
+      ${clip.withRef ? `<div class="review-format-row">
+        <label><input type="radio" name="fmt-${clip.id}" value="solo" checked> instrument only</label>
+        <label><input type="radio" name="fmt-${clip.id}" value="blend"> with blend</label>
+      </div>` : ''}
+      <div class="clip-player" id="clip-player-${clip.id}">
+        <div class="clip-player-controls">
+          <button class="clip-play-btn" id="clip-btn-${clip.id}"
+            onclick="toggleClipPlay(${clip.id})">▶</button>
+          <canvas class="clip-waveform-canvas" id="clip-wave-${clip.id}"
+            onclick="seekClip(${clip.id}, event)"
+            title="Click to seek"></canvas>
+          <span class="clip-time" id="clip-time-${clip.id}">0:00 / ${durStr}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Decode waveforms and set up audio elements for each clip
+  recClips.forEach(clip => _initClipPlayer(clip));
+}
+
+function _fmtClipDur(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+async function _initClipPlayer(clip) {
+  // Create or reuse audio element
+  if (!clipAudioEls[clip.id]) {
+    const a = new Audio();
+    a.src = clip.url;
+    a.preload = 'auto';
+    clipAudioEls[clip.id] = a;
+
+    a.addEventListener('timeupdate', () => _updateClipPlayhead(clip.id));
+    a.addEventListener('ended', () => {
+      const btn = document.getElementById(`clip-btn-${clip.id}`);
+      if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+      _stopBlendRef(clip);
+      _drawClipWaveform(clip.id, 0);
+    });
+  }
+
+  // Decode peaks if not cached
+  if (!clipPeaks[clip.id]) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const arrayBuf = await clip.blob.arrayBuffer();
+      const decoded = await ctx.decodeAudioData(arrayBuf);
+      ctx.close();
+      const BUCKETS = 200;
+      const data = decoded.getChannelData(0);
+      const n = data.length;
+      const peaks = new Float32Array(BUCKETS);
+      const step = n / BUCKETS;
+      for (let i = 0; i < BUCKETS; i++) {
+        const s = Math.floor(i * step), e = Math.floor((i + 1) * step);
+        let peak = 0;
+        for (let j = s; j < e; j++) { const v = Math.abs(data[j]); if (v > peak) peak = v; }
+        peaks[i] = peak;
+      }
+      // Normalise to 95th percentile
+      const sorted = peaks.slice().sort((a, b) => a - b);
+      const p95 = sorted[Math.floor(sorted.length * 0.95)] || 1;
+      for (let i = 0; i < BUCKETS; i++) peaks[i] = Math.min(1, peaks[i] / p95);
+      clipPeaks[clip.id] = peaks;
+    } catch(e) {
+      clipPeaks[clip.id] = new Float32Array(200).fill(0.3);
+    }
+  }
+  _drawClipWaveform(clip.id, 0);
+}
+
+function _drawClipWaveform(clipId, progress) {
+  // progress: 0.0–1.0 playhead position
+  const canvas = document.getElementById(`clip-wave-${clipId}`);
+  if (!canvas) return;
+  const peaks = clipPeaks[clipId];
+  if (!peaks) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 200;
+  const H = canvas.clientHeight || 36;
+  if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W * dpr, H * dpr);
+  ctx.scale(dpr, dpr);
+
+  const playX = Math.floor(progress * W);
+  const BUCKETS = peaks.length;
+
+  for (let px = 0; px < W; px++) {
+    const b = Math.floor((px / W) * BUCKETS);
+    const peak = peaks[Math.min(b, BUCKETS - 1)];
+    const h = Math.max(2, peak * H * 0.88);
+    const y = (H - h) / 2;
+    ctx.fillStyle = px < playX ? '#c4922a' : '#2d2a26';
+    ctx.fillRect(px, y, 1, h);
+  }
+  // Playhead
+  if (progress > 0 && progress < 1) {
+    ctx.fillStyle = 'rgba(232,228,220,0.8)';
+    ctx.fillRect(playX, 0, 1, H);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function _updateClipPlayhead(clipId) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  if (!a || !clip) return;
+  const progress = clip.duration > 0 ? a.currentTime / clip.duration : 0;
+  _drawClipWaveform(clipId, progress);
+  const timeEl = document.getElementById(`clip-time-${clipId}`);
+  if (timeEl) {
+    timeEl.textContent = `${_fmtClipDur(a.currentTime)} / ${_fmtClipDur(clip.duration)}`;
+  }
+}
+
+function toggleClipPlay(clipId) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  const btn = document.getElementById(`clip-btn-${clipId}`);
+  if (!a || !clip || !btn) return;
+
+  // Pause all other clips first
+  recClips.forEach(c => {
+    if (c.id !== clipId && clipAudioEls[c.id] && !clipAudioEls[c.id].paused) {
+      clipAudioEls[c.id].pause();
+      const b = document.getElementById(`clip-btn-${c.id}`);
+      if (b) { b.textContent = '▶'; b.classList.remove('playing'); }
+      _stopBlendRef(c);
+    }
+  });
+
+  if (a.paused) {
+    a.play().then(() => {
+      btn.textContent = '⏸';
+      btn.classList.add('playing');
+      if (clip.blendActive) _startBlendRef(clip, a.currentTime);
+    }).catch(() => {});
+  } else {
+    a.pause();
+    btn.textContent = '▶';
+    btn.classList.remove('playing');
+    _stopBlendRef(clip);
+  }
+}
+
+function seekClip(clipId, event) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  const canvas = document.getElementById(`clip-wave-${clipId}`);
+  if (!a || !clip || !canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const progress = Math.max(0, Math.min(1, x / rect.width));
+  a.currentTime = progress * clip.duration;
+  _drawClipWaveform(clipId, progress);
+  if (clip.blendActive) _startBlendRef(clip, a.currentTime);
+}
+
+// ── Blend reference playback — fixed ──
+function _startBlendRef(clip, clipCurrentTime) {
+  if (!audioBuffer || !audioEl) return;
+  // Calculate where in the reference track this point corresponds
+  const refPos = (clip.startOffset || 0) + clipCurrentTime + (latencyOffset / 1000);
+  const clampedRef = Math.max(0, Math.min(audioDuration, refPos));
+  audioEl.currentTime = trimOffset + clampedRef;
+  audioEl.volume = Math.max(0, Math.min(1, (100 - blendValue) / 100));
+  audioEl.preservesPitch = true;
+  audioEl.playbackRate = 1.0; // always 1:1 during blend monitoring
+  audioEl.play().catch(() => {});
+}
+
+function _stopBlendRef(clip) {
+  if (!audioEl) return;
+  audioEl.pause();
+  audioEl.volume = 1;
+}
+
+function toggleClipBlend(clipId) {
+  const clip = recClips.find(c => c.id === clipId);
+  if (!clip) return;
+  clip.blendActive = !clip.blendActive;
+  const btn = document.getElementById(`blend-toggle-${clipId}`);
+  if (btn) btn.classList.toggle('active', clip.blendActive);
+  const a = clipAudioEls[clipId];
+  if (clip.blendActive && a && !a.paused) {
+    _startBlendRef(clip, a.currentTime);
+  } else {
+    _stopBlendRef(clip);
+  }
+}
+
+function toggleKeep(id, val) {
+  const clip = recClips.find(c => c.id === id);
+  if (clip) clip.keep = val;
+}
+
+function updateClipLabel(id, val) {
+  const clip = recClips.find(c => c.id === id);
+  if (clip) clip.label = val.trim() || clip.label;
+}
+
+function deleteClip(id) {
+  const clip = recClips.find(c => c.id === id);
+  if (clip) {
+    URL.revokeObjectURL(clip.url);
+    _stopBlendRef(clip);
+  }
+  // Clean up audio element and peaks cache
+  if (clipAudioEls[id]) {
+    clipAudioEls[id].pause();
+    clipAudioEls[id].src = '';
+    delete clipAudioEls[id];
+  }
+  delete clipPeaks[id];
+  recClips = recClips.filter(c => c.id !== id);
+  renderRecClips();
+}
+
+function killLastClip() {
+  if (!recClips.length) return;
+  deleteClip(recClips[recClips.length - 1].id);
+}
+
+async function downloadSelected() {
+  const selected = recClips.filter(c => c.keep);
+  if (!selected.length) {
+    document.getElementById('review-status').textContent = 'No clips checked.';
+    return;
+  }
+  const blendPct = blendValue / 100;
+  let downloaded = 0;
+  for (const clip of selected) {
+    const fmt = document.querySelector(`input[name="fmt-${clip.id}"]:checked`);
+    const useBlend = fmt && fmt.value === 'blend' && clip.withRef && audioEl;
+    if (useBlend) {
+      await _downloadBlendClip(clip, blendPct);
+    } else {
+      const saved = await _saveClipToFolder(clip);
+      if (!saved) {
+        const a = document.createElement('a');
+        a.href = clip.url;
+        a.download = clip.filename || (clip.label + '.' + clip.ext);
+        a.click();
+      }
+    }
+    downloaded++;
+    await new Promise(r => setTimeout(r, 300));
+  }
+  document.getElementById('review-status').textContent =
+    `✓ ${downloaded} clip${downloaded!==1?'s':''} saved`;
+  selected.forEach(clip => {
+    URL.revokeObjectURL(clip.url);
+    if (clipAudioEls[clip.id]) {
+      clipAudioEls[clip.id].pause();
+      clipAudioEls[clip.id].src = '';
+      delete clipAudioEls[clip.id];
+    }
+    delete clipPeaks[clip.id];
+    recClips = recClips.filter(c => c.id !== clip.id);
+  });
+  renderRecClips();
+}
+
+async function _downloadBlendClip(clip, blendPct) {
+  // blendPct: 0=ref only, 1=clip only
+  try {
+    const clipCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuf = await clip.blob.arrayBuffer();
+    const clipBuffer = await clipCtx.decodeAudioData(arrayBuf);
+    clipCtx.close();
+    const sampleRate = clipBuffer.sampleRate;
+    const numCh = clipBuffer.numberOfChannels;
+    const dur = clipBuffer.duration;
+    const frameCount = Math.ceil(dur * sampleRate);
+    const offCtx = new OfflineAudioContext(numCh, frameCount, sampleRate);
+    // Clip source
+    const clipSrc = offCtx.createBufferSource();
+    clipSrc.buffer = clipBuffer;
+    const clipGain = offCtx.createGain();
+    clipGain.gain.value = blendPct;
+    clipSrc.connect(clipGain);
+    clipGain.connect(offCtx.destination);
+    clipSrc.start(0);
+    // Reference source
+    if (audioBuffer && clip.startOffset !== null) {
+      const startSample = Math.floor(
+        Math.max(0, (clip.startOffset + latencyOffset / 1000)) * audioBuffer.sampleRate
+      );
+      const endSample = Math.min(audioBuffer.length, startSample + frameCount);
+      const refBuf = offCtx.createBuffer(numCh, frameCount, sampleRate);
+      for (let c = 0; c < numCh; c++) {
+        const src = audioBuffer.getChannelData(Math.min(c, audioBuffer.numberOfChannels - 1));
+        refBuf.getChannelData(c).set(src.subarray(startSample, endSample));
+      }
+      const refSrc = offCtx.createBufferSource();
+      refSrc.buffer = refBuf;
+      const refGain = offCtx.createGain();
+      refGain.gain.value = 1 - blendPct;
+      refSrc.connect(refGain);
+      refGain.connect(offCtx.destination);
+      refSrc.start(0);
+    }
+    const rendered = await offCtx.startRendering();
+    const wavBlob = _audioBufferToWav(rendered);
+    const wavUrl = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = wavUrl;
+    a.download = (clip.filename || clip.label).replace(/\.\w+$/, '') + '_blend.wav';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(wavUrl), 5000);
+  } catch(e) {
+    // Fallback to clip-only
+    const a = document.createElement('a');
+    a.href = clip.url;
+    a.download = clip.filename || (clip.label + '.' + clip.ext);
+    a.click();
+  }
+}
+
+function _audioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const len = buffer.length;
+  const bps = 2;
+  const blockAlign = numCh * bps;
+  const byteRate = sr * blockAlign;
+  const dataSize = len * blockAlign;
+  const ab = new ArrayBuffer(44 + dataSize);
+  const v = new DataView(ab);
+  const w = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4, 36 + dataSize, true); w(8,'WAVE');
+  w(12,'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, numCh, true); v.setUint32(24, sr, true);
+  v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
+  v.setUint16(34, bps * 8, true); w(36,'data'); v.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
+      v.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return new Blob([ab], { type: 'audio/wav' });
+}
+
+
+  blendValue = parseInt(val);
+  const refPct = 100 - blendValue, clipPct = blendValue;
+  document.getElementById('blend-val').textContent =
+    blendValue === 50 ? '50/50' : `${refPct}/${clipPct}`;
+}
+
+function openReviewPanel() {}
+function closeReviewPanel() {}
+
+// ── Session log ──
+const SESSION_LOG_KEY = 'mr_session_log_v1';
+
+function _appendSessionLog(loopLabel, tempoRange, reps) {
+  try {
+    const allLogs = JSON.parse(localStorage.getItem(SESSION_LOG_KEY) || '{}');
+    const pieceKey = currentPieceName || audioFileName || 'unknown';
+    if (!allLogs[pieceKey]) allLogs[pieceKey] = [];
+    allLogs[pieceKey].push({
+      date: new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}),
+      loop: loopLabel, tempoRange, reps
+    });
+    // Keep last 50 entries per piece
+    if (allLogs[pieceKey].length > 50) allLogs[pieceKey] = allLogs[pieceKey].slice(-50);
+    localStorage.setItem(SESSION_LOG_KEY, JSON.stringify(allLogs));
+    _renderSessionLog();
+  } catch(e) {}
+}
+
+function _renderSessionLog() {
+  const panel = document.getElementById('session-log-panel');
+  const content = document.getElementById('session-log-content');
+  if (!panel || !content) return;
+  try {
+    const allLogs = JSON.parse(localStorage.getItem(SESSION_LOG_KEY) || '{}');
+    const pieceKey = currentPieceName || audioFileName || 'unknown';
+    const entries = allLogs[pieceKey] || [];
+    if (!entries.length) { panel.style.display = 'none'; return; }
+    // Group by date — show last session only
+    const lastDate = entries[entries.length - 1].date;
+    const lastSession = entries.filter(e => e.date === lastDate);
+    panel.style.display = '';
+    content.innerHTML = `<div class="session-log-entry"><span class="session-log-date">${lastDate}</span>Drilled: ` +
+      lastSession.map(e => `${e.loop} at ${e.tempoRange}%, ${e.reps} rep${e.reps!==1?'s':''}`).join(' · ') +
+      '</div>';
+  } catch(e) { panel.style.display = 'none'; }
+}
+
+// ══════════════════════════════════════════════
+// FOLDER ARCHITECTURE (File System Access API)
+// ══════════════════════════════════════════════
+let rsRootHandle  = null;  // FileSystemDirectoryHandle — root Rehearsal Space folder
+let rsFolderName  = null;  // stored folder name for display
+const RS_FOLDER_KEY = 'rs_folder_name_v1';
+const FS_SUPPORTED  = ('showDirectoryPicker' in window);
+
+// ── Init on load ──
+async function _initFolderAccess() {
+  if (!FS_SUPPORTED) { _showFolderBanner('unsupported'); return; }
+  rsFolderName = localStorage.getItem(RS_FOLDER_KEY);
+  if (rsFolderName) {
+    // We've connected before — show reconnect banner
+    _showFolderBanner('needs-reconnect');
+  } else {
+    // First time — invite connection
+    _showFolderBanner('unconnected');
+  }
+}
+
+function _showFolderBanner(state) {
+  const banner  = document.getElementById('folder-banner');
+  const msg     = document.getElementById('folder-banner-msg');
+  const btn     = document.getElementById('folder-banner-btn');
+  const chgBtn  = document.getElementById('folder-change-btn');
+  if (!banner) return;
+  banner.style.display = '';
+  banner.className = 'folder-banner';
+  chgBtn.style.display = 'none';
+  if (state === 'unconnected') {
+    msg.innerHTML = 'Connect a <strong>Rehearsal Space</strong> folder to enable organised saving';
+    btn.textContent = 'Connect folder';
+    btn.style.display = '';
+  } else if (state === 'needs-reconnect') {
+    banner.classList.add('needs-reconnect');
+    msg.innerHTML = `Reconnect <strong>${escHtml(rsFolderName||'Rehearsal Space')}</strong> to resume file saving`;
+    btn.textContent = 'Reconnect';
+    btn.style.display = '';
+    chgBtn.style.display = '';
+  } else if (state === 'connected') {
+    banner.classList.add('connected');
+    msg.innerHTML = `<strong>✓ ${escHtml(rsFolderName||'Rehearsal Space')}</strong> connected`;
+    btn.style.display = 'none';
+    chgBtn.style.display = '';
+  } else if (state === 'unsupported') {
+    msg.innerHTML = 'Folder saving requires Chrome or Edge. Using browser downloads.';
+    btn.style.display = 'none';
+  }
+}
+
+async function folderBannerAction() {
+  if (rsRootHandle) {
+    // Already have handle — just reconnect permission
+    await _reconnectFolder();
+  } else {
+    await _connectFolder();
+  }
+}
+
+async function _connectFolder() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'desktop' });
+    rsRootHandle = handle;
+    rsFolderName = handle.name;
+    localStorage.setItem(RS_FOLDER_KEY, rsFolderName);
+    _showFolderBanner('connected');
+    await _migrateFromLocalStorage();
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Folder connect failed:', e);
+  }
+}
+
+async function _reconnectFolder() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'desktop' });
+    rsRootHandle = handle;
+    rsFolderName = handle.name;
+    localStorage.setItem(RS_FOLDER_KEY, rsFolderName);
+    _showFolderBanner('connected');
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Folder reconnect failed:', e);
+  }
+}
+
+async function changeFolder() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'desktop' });
+    rsRootHandle = handle;
+    rsFolderName = handle.name;
+    localStorage.setItem(RS_FOLDER_KEY, rsFolderName);
+    _showFolderBanner('connected');
+    // Offer to migrate existing data into the new folder
+    await _migrateFromLocalStorage();
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Change folder failed:', e);
+  }
+}
+
+// ── Get or create a piece subfolder ──
+async function _getPieceFolder(pieceName) {
+  if (!rsRootHandle) return null;
+  const safe = pieceName.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Untitled';
+  try {
+    const dir = await rsRootHandle.getDirectoryHandle(safe, { create: true });
+    return dir;
+  } catch(e) { return null; }
+}
+
+// ── Write text file into a folder handle ──
+async function _writeFile(dirHandle, filename, content) {
+  try {
+    const fh = await dirHandle.getFileHandle(filename, { create: true });
+    const w  = await fh.createWritable();
+    await w.write(content);
+    await w.close();
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Save current session to folder ──
+async function _saveSessionToFolder(pieceName, sessionData, notes) {
+  if (!rsRootHandle) return false;
+  const pieceDir = await _getPieceFolder(pieceName);
+  if (!pieceDir) return false;
+  // Write session.json
+  const sessionJson = JSON.stringify(sessionData, null, 2);
+  await _writeFile(pieceDir, 'session.json', sessionJson);
+  // Write notes.txt if notes provided
+  if (notes !== undefined && notes !== null) {
+    await _writeFile(pieceDir, 'notes.txt', notes);
+  }
+  // Create recordings subfolder
+  try { await pieceDir.getDirectoryHandle('recordings', { create: true }); } catch(e) {}
+  return true;
+}
+
+// ── Save a recording clip to the piece's recordings folder ──
+async function _saveClipToFolder(clip) {
+  if (!rsRootHandle) return false;
+  const pieceName = currentPieceName || audioFileName || 'Untitled';
+  const pieceDir = await _getPieceFolder(pieceName);
+  if (!pieceDir) return false;
+  try {
+    const recDir = await pieceDir.getDirectoryHandle('recordings', { create: true });
+    const date = new Date().toISOString().slice(0, 10);
+    const tempoPart = `${Math.round(currentSpeed * 100)}pct`;
+    const safeName = (clip.label || 'clip').replace(/[\\/:*?"<>|]/g, '-');
+    const filename = `${safeName}_${date}_${tempoPart}.${clip.ext}`;
+    const fh = await recDir.getFileHandle(filename, { create: true });
+    const w  = await fh.createWritable();
+    await w.write(clip.blob);
+    await w.close();
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Migration: read all localStorage sessions, write to folder ──
+async function _migrateFromLocalStorage() {
+  if (!rsRootHandle) return;
+  const statusPanel = document.getElementById('migrate-status-panel');
+  const statusContent = document.getElementById('migrate-status-content');
+  if (statusPanel) statusPanel.style.display = '';
+
+  const sessions = await loadSessionsFromStorage();
+  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
+  if (!allKeys.length) {
+    if (statusContent) statusContent.innerHTML =
+      '<span style="color:var(--text-faint)">No localStorage sessions found.</span>';
+    return;
+  }
+
+  let html = '';
+  let allDone = true;
+  for (const name of allKeys) {
+    const s = sessions[name];
+    const notes = s.notes || '';
+    const sessionData = {
+      piece: name,
+      audio: s.audioFileName || '',
+      version: 'rs_v1',
+      savedAt: s.savedAt || Date.now(),
+      markers: (s.markers || []).map(m => ({
+        id: m.id, label: m.label, bar: m.bar || '',
+        time: m.time, locked: m.locked || false,
+        type: m.type || 'R',
+        annotation: m.annotation || null
+      })),
+      loops: (s.segments || []).map(seg => {
+        const sm = (s.markers||[]).find(m => m.id === seg.startId);
+        const em = (s.markers||[]).find(m => m.id === seg.endId);
+        return {
+          id: seg.id, label: seg.name || '',
+          startId: seg.startId, endId: seg.endId,
+          fromLabel: sm ? sm.label : '', toLabel: em ? em.label : ''
+        };
+      }),
+      markerIdCounter: s.markerIdCounter || 0,
+      segmentIdCounter: s.segmentIdCounter || 0
+    };
+    const ok = await _saveSessionToFolder(name, sessionData, notes);
+    if (ok) {
+      html += `<div class="migrate-row"><span class="migrate-check">✓</span> <span>${escHtml(name)}</span></div>`;
+    } else {
+      html += `<div class="migrate-row"><span class="migrate-pending">✗</span> <span>${escHtml(name)} — failed</span></div>`;
+      allDone = false;
+    }
+  }
+  if (statusContent) statusContent.innerHTML = html;
+  // Show clear button only when all migrated successfully
+  const clearRow = document.getElementById('clear-ls-row');
+  if (clearRow && allDone) clearRow.style.display = '';
+}
+
+async function clearLocalStorageBackup() {
+  if (!confirm('Remove localStorage backup? Your data is now in the Rehearsal Space folder.')) return;
+  localStorage.removeItem(SESSIONS_STORAGE_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById('migrate-status-panel').style.display = 'none';
+  renderSessionsList();
+}
+
+// ── Override saveSession to also write to folder ──
+const _origSaveSession = saveSession;
+function saveSession() {
+  _origSaveSession && _origSaveSession();
+  // Also write to folder if connected
+  if (rsRootHandle && currentPieceName) {
+    const notes = document.getElementById('piece-notes')
+      ? document.getElementById('piece-notes').value : '';
+    const sessionData = {
+      piece: currentPieceName, audio: audioFileName,
+      version: 'rs_v1', savedAt: Date.now(),
+      markers: markers.map(m => ({...m})),
+      loops: segments.map(s => ({...s})),
+      markerIdCounter, segmentIdCounter
+    };
+    _saveSessionToFolder(currentPieceName, sessionData, notes).catch(() => {});
+  }
+}
+
+// ── Export library JSON — also write copy to folder root ──
+async function _exportLibraryToFolder(payload) {
+  if (!rsRootHandle) return;
+  try {
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `library-backup-${date}.json`;
+    await _writeFile(rsRootHandle, filename, JSON.stringify(payload, null, 2));
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// UNDO
+// ══════════════════════════════════════════════
+function pushUndo() {
+  undoStack.push(JSON.stringify({
+    markers: markers.map(m=>({...m})),
+    markerIdCounter,
+    segments: segments.map(s=>({...s})),
+    segmentIdCounter
+  }));
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  document.getElementById('btn-undo').disabled = false;
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  const state = JSON.parse(undoStack.pop());
+  markers = state.markers; markerIdCounter = state.markerIdCounter;
+  segments = state.segments; segmentIdCounter = state.segmentIdCounter;
+  if (!undoStack.length) document.getElementById('btn-undo').disabled = true;
+  renderMarkers(); renderSegments(); refreshSegmentDropdowns();
+  drawOverview(); saveSession();
+}
+
+// ══════════════════════════════════════════════
+// PIECE NAME
+// ══════════════════════════════════════════════
+function _loadLeadIn() {
+  const stored = parseFloat(localStorage.getItem('mr_leadIn') || '0.5');
+  leadIn = isFinite(stored) ? Math.max(0, Math.min(2, stored)) : 0.5;
+  _updateLeadInDisplay();
+}
+
+function _saveLeadIn() {
+  localStorage.setItem('mr_leadIn', leadIn);
+}
+
+function _updateLeadInDisplay() {
+  const el = document.getElementById('lead-in-val');
+  if (el) el.textContent = leadIn.toFixed(2).replace(/\.?0+$/, '') + 's';
+}
+
+function stepLeadIn(dir) {
+  const STEPS = [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+  const idx = STEPS.findIndex(s => Math.abs(s - leadIn) < 0.01);
+  const cur = idx !== -1 ? idx : STEPS.findIndex(s => s >= leadIn);
+  const newIdx = Math.max(0, Math.min(STEPS.length-1, (idx !== -1 ? idx : cur) + dir));
+  leadIn = STEPS[newIdx];
+  _updateLeadInDisplay();
+  _saveLeadIn();
+}
+
+function onNotesInput() {
+  saveSession();
+}
+
+// ══════════════════════════════════════════════
+// WAVEFORM INTERACTION
+// ══════════════════════════════════════════════
+function _timeFromOverviewX(e) {
+  const canvas = document.getElementById('overview-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  return viewStart + (x / rect.width) * (viewEnd - viewStart);
+}
+
+function _hitTestMarker(mouseX, canvasWidth) {
+  if (!audioDuration) return null;
+  const vDur = viewEnd - viewStart;
+  for (const m of markers) {
+    if (m.time < viewStart || m.time > viewEnd) continue;
+    const x = ((m.time - viewStart) / vDur) * canvasWidth;
+    if (Math.abs(mouseX - x) <= GRAB_PX) return m;
+  }
+  return null;
+}
+
+(function(){
+  const canvas = document.getElementById('overview-canvas');
+
+  canvas.addEventListener('mousedown', e => {
+    if (!audioBuffer) return;
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const hit = _hitTestMarker(mouseX, rect.width);
+    if (hit) {
+      pushUndo();
+      dragMarkerState = { id:hit.id, snapTime:hit.time, mousedownX:e.clientX, didDrag:false, locked:!!hit.locked };
+      canvas.classList.add('marker-drag');
+      if (isPlaying) _pause();
+    } else {
+      dragMarkerState = null;
+      isDragging = false; isPanning = false;
+      dragStartX = e.clientX; lastDragX = e.clientX;
+      dragStartTime = _timeFromOverviewX(e);
+      dragWasPlaying = isPlaying;
+      if (isPlaying) _pause();
+      // Immediately seek on mousedown (works at any zoom)
+      const t = Math.max(0, Math.min(audioDuration, dragStartTime));
+      playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
+      // We'll decide pan vs seek in mousemove based on distance
+      canvas.classList.add('dragging');
+    }
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!audioBuffer) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const tooltip = document.getElementById('drag-tooltip');
+
+    if (dragMarkerState) {
+      e.preventDefault();
+      if (!dragMarkerState.didDrag && !dragMarkerState.locked &&
+          Math.abs(e.clientX - dragMarkerState.mousedownX) > GRAB_PX) {
+        dragMarkerState.didDrag = true;
+      }
+      if (dragMarkerState.didDrag) {
+        const vDur = viewEnd - viewStart;
+        const newTime = Math.max(0, Math.min(audioDuration, viewStart+(mouseX/rect.width)*vDur));
+        const m = markers.find(x=>x.id===dragMarkerState.id);
+        if (m) {
+          m.time = newTime;
+          markers.sort((a,b)=>a.time-b.time);
+          const ti = document.querySelector(`#marker-row-${dragMarkerState.id} .marker-time-input`);
+          if (ti) ti.value = fmtTime(newTime);
+          markers.forEach((mk,i)=>{
+            const durEl = document.querySelector(`#marker-row-${mk.id} .marker-dur`);
+            if (durEl) { const end2=i<markers.length-1?markers[i+1].time:audioDuration; durEl.textContent=fmtTime(Math.max(0,end2-mk.time)); }
+          });
+          drawOverview();
+          // #11 show tooltip while dragging marker
+          tooltip.textContent = fmtTime(newTime);
+          tooltip.style.display = 'block';
+          tooltip.style.left = e.clientX + 'px';
+          tooltip.style.top  = (rect.top + window.scrollY - 4) + 'px';
+        }
+      }
+    } else if (isPanning) {
+      e.preventDefault();
+      const vDur = viewEnd - viewStart;
+      const dx = e.clientX - panStartX;
+      const dt = dx * (vDur / rect.width);
+      let newStart = panStartViewStart - dt;
+      newStart = Math.max(0, Math.min(audioDuration - vDur, newStart));
+      viewStart = newStart;
+      viewEnd   = newStart + vDur;
+      tooltip.style.display = 'none';
+      drawOverview();
+    } else if (isDragging) {
+      e.preventDefault();
+      lastDragX = e.clientX;
+      const vDur = viewEnd - viewStart;
+      const dx = e.clientX - dragStartX;
+      const newTime = Math.max(0, Math.min(audioDuration, dragStartTime + dx*(vDur/rect.width)));
+      playOffset = newTime; _updateDisplay(newTime); drawOverview();
+      tooltip.textContent = fmtTime(newTime);
+      tooltip.style.display = 'block';
+      tooltip.style.left = e.clientX + 'px';
+      tooltip.style.top  = (rect.top + window.scrollY - 4) + 'px';
+    } else if (!dragMarkerState && !isPanning && !isDragging) {
+      // Not yet committed — check if we've moved enough to start pan or seek
+      const moved = Math.abs(e.clientX - dragStartX);
+      if (moved > 4 && canvas.classList.contains('dragging')) {
+        if (zoomLevel > 1) {
+          // Start pan
+          isPanning = true;
+          panStartX = e.clientX;
+          panStartViewStart = viewStart;
+          canvas.style.cursor = 'grab';
+        } else {
+          isDragging = true;
+        }
+      }
+      tooltip.style.display = 'none';
+      const hit = _hitTestMarker(mouseX, rect.width);
+      canvas.style.cursor = hit ? (hit.locked?'pointer':'ew-resize') : (zoomLevel>1?'grab':'crosshair');
+      // Marker hover tooltip
+      const mtt = document.getElementById('marker-tooltip');
+      if (hit && mouseX >= 0 && mouseX <= rect.width) {
+        let lines = [];
+        const labelPart = hit.label + (hit.bar ? ` · bar ${hit.bar}` : '');
+        lines.push(`<span class="mtt-label">${escHtml(labelPart)}</span>`);
+        lines.push(`<span class="mtt-time">${fmtTime(hit.time)}</span>`);
+        if (hit.annotation && hit.annotation.text) {
+          lines.push(`<span class="mtt-annotation">${escHtml(hit.annotation.text)}</span>`);
+        }
+        mtt.innerHTML = lines.join('\n');
+        mtt.style.display = 'block';
+        const ttX = Math.min(e.clientX + 12, window.innerWidth - 240);
+        const ttY = e.clientY - 60;
+        mtt.style.left = ttX + 'px';
+        mtt.style.top  = ttY + 'px';
+      } else {
+        mtt.style.display = 'none';
+      }
+      if (mouseX >= 0 && mouseX <= rect.width) {
+        const hoverTime = Math.max(0, Math.min(audioDuration, viewStart + (mouseX/rect.width)*(viewEnd-viewStart)));
+        if (!isPlaying) _updateDisplay(hoverTime);
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', e => {
+    document.getElementById('drag-tooltip').style.display = 'none';
+    document.getElementById('marker-tooltip').style.display = 'none';
+    if (dragMarkerState) {
+      const wasDrag = dragMarkerState.didDrag;
+      const snapTime = dragMarkerState.snapTime;
+      dragMarkerState = null;
+      canvas.classList.remove('marker-drag');
+      canvas.style.cursor = 'crosshair';
+      if (wasDrag) { saveSession(); renderMarkers(); }
+      else {
+        undoStack.pop();
+        if (!undoStack.length) document.getElementById('btn-undo').disabled = true;
+        playOffset = snapTime; queuePoint = snapTime;
+        _updateDisplay(snapTime); drawOverview();
+      }
+    } else if (isPanning) {
+      isPanning = false;
+      canvas.classList.remove('dragging');
+      canvas.style.cursor = 'crosshair';
+    } else if (isDragging) {
+      isDragging = false;
+      canvas.classList.remove('dragging');
+      if (dragWasPlaying && Math.abs(lastDragX-dragStartX)>4) _startPlayback(playOffset);
+    } else if (canvas.classList.contains('dragging')) {
+      // Click with no drag — seek already happened on mousedown, just clean up
+      canvas.classList.remove('dragging');
+      canvas.style.cursor = zoomLevel > 1 ? 'grab' : 'crosshair';
+    }
+  });
+
+  canvas.addEventListener('wheel', e => {
+    if (!audioBuffer) return;
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? -1 : 1;
+    const ct  = _timeFromOverviewX(e);
+    const idx = ZOOM_STEPS.findIndex(s=>s>=zoomLevel-0.01);
+    const newIdx = Math.max(0, Math.min(ZOOM_STEPS.length-1, idx+dir));
+    _applyZoom(ZOOM_STEPS[newIdx], ct);
+  }, {passive:false});
+
+  canvas.addEventListener('dblclick', e => {
+    if (!audioBuffer) return;
+    e.preventDefault();
+    const t = Math.max(0, Math.min(audioDuration, _timeFromOverviewX(e)));
+    _startPlayback(t);
+  });
+})();
+
+// ══════════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName;
+  if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  if (e.code==='Space') { e.preventDefault(); togglePlay(); }
+  if (e.code==='KeyM' && audioBuffer) { tapMarker('R'); }
+  if (e.code==='KeyP' && audioBuffer) { e.preventDefault(); playToNextMarker(); }
+  if (e.code==='Home') { e.preventDefault(); goToStart(); }
+  if (e.code==='ArrowLeft'  && audioBuffer) { e.preventDefault(); skipAudio(-5); }
+  if (e.code==='ArrowRight' && audioBuffer) { e.preventDefault(); skipAudio(10); }
+  if (e.code==='ArrowUp'    && audioBuffer) { e.preventDefault(); navMarker(-1); }
+  if (e.code==='ArrowDown'  && audioBuffer) { e.preventDefault(); navMarker(1); }
+  if (e.code==='Enter'      && audioBuffer) { e.preventDefault(); enterQuickLoop(); }
+  if (e.code==='Escape') {
+    e.preventDefault();
+    quickLoopStartId = null;
+    if (activeLoopId !== null) { toggleLoop(activeLoopId); }
+    else if (isPlaying) { _pause(); }
+    renderMarkers();
+  }
+  if (e.code==='KeyL' && audioBuffer) {
+    e.preventDefault();
+    if (activeLoopId !== null) { toggleLoop(activeLoopId); }
+    else if (segments.length) { toggleLoop(segments[segments.length-1].id); }
+  }
+  if (e.code==='KeyT' && audioBuffer) {
+    e.preventDefault();
+    if (activeLoopId !== null) { openTempoTraining(activeLoopId); }
+    else if (activeMarkerIdx >= 0 && activeMarkerIdx < markers.length - 1) {
+      openTempoTrainingFromMarker(markers[activeMarkerIdx].id);
+    }
+  }
+  if (e.code==='KeyS' && audioBuffer) { e.preventDefault(); saveQuickLoop(); }
+  if (e.code==='KeyR' && audioBuffer) { e.preventDefault(); toggleRecording(); }
+  if (e.code==='KeyK') { e.preventDefault(); killLastClip(); }
+  if (e.code==='BracketLeft')  { e.preventDefault(); stepTempo(-1); }
+  if (e.code==='BracketRight') { e.preventDefault(); stepTempo(1); }
+  if (e.code==='Comma')  { e.preventDefault(); stepLeadIn(-1); }
+  if (e.code==='Period') { e.preventDefault(); stepLeadIn(1); }
+  if (e.code==='KeyZ' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); undo(); }
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadSession();
+renderSessionsList();
+_updatePieceTitle();
+_loadLeadIn();
+_renderSessionLog();
+_initFolderAccess();
+window.addEventListener('resize', drawOverview);
+
+// Warn before closing if unsaved clips exist
+window.addEventListener('beforeunload', e => {
+  if (recClips.length > 0) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
