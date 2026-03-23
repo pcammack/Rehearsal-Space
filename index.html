@@ -541,7 +541,7 @@ input[type=file]{display:none}
           </div>
         </div>
         <div class="rec-controls">
-          <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">⏺ Record</button>
+          <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">● Record</button>
         </div>
         <!-- Clip list with inline players, labels, format choice, download -->
         <div id="rec-clip-list" class="rec-clip-list">
@@ -556,8 +556,7 @@ input[type=file]{display:none}
           <span style="font-size:0.42rem;color:var(--text-faint);margin-left:0.3rem" id="blend-val">50/50</span>
         </div>
         <!-- Download selected -->
-        <div id="rec-download-row" style="display:none;margin-top:0.5rem;
-          display:none;align-items:center;gap:0.5rem;flex-wrap:wrap">
+        <div id="rec-download-row" style="display:none;margin-top:0.5rem;align-items:center;gap:0.5rem;flex-wrap:wrap">
           <button class="btn-sm primary" onclick="downloadSelected()">⬇ Download selected</button>
           <span id="review-status" style="font-size:0.44rem;color:var(--text-faint)"></span>
         </div>
@@ -1767,6 +1766,19 @@ function saveSession() {
     document.body.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
   } catch(e) {}
+  // Also write to folder if connected
+  if (rsRootHandle && currentPieceName) {
+    const notes = document.getElementById('piece-notes')
+      ? document.getElementById('piece-notes').value : '';
+    const sessionData = {
+      piece: currentPieceName, audio: audioFileName,
+      version: 'rs_v1', savedAt: Date.now(),
+      markers: markers.map(m => ({...m})),
+      loops: segments.map(s => ({...s})),
+      markerIdCounter, segmentIdCounter
+    };
+    _saveSessionToFolder(currentPieceName, sessionData, notes).catch(() => {});
+  }
 }
 
 function loadSession() {
@@ -2342,11 +2354,19 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
       audioEl.currentTime = trimOffset + displayStart;
       audioEl.playbackRate = currentSpeed;
       audioEl.preservesPitch = true;
-      // Only audible if withRef — but always sync position
-      audioEl.volume = withRef ? 1 : 0;
-      audioEl.play().catch(() => {});
-      playOffset = displayStart; isPlaying = true;
-      queuePoint = displayStart; playStartedAt = Date.now();
+      if (withRef) {
+        // Play reference audibly — musician is monitoring through headphones
+        audioEl.volume = 1;
+        audioEl.play().catch(() => {});
+        isPlaying = true;
+      } else {
+        // Solo recording — reference plays silently for timing only, paused
+        audioEl.volume = 0;
+        audioEl.play().catch(() => {});
+        isPlaying = true;
+      }
+      playOffset = Math.max(0, startTime - leadIn);
+      queuePoint = playOffset; playStartedAt = Date.now();
       loopStart = null; loopEnd = null;
       document.getElementById('btn-play').textContent = '⏸ Pause';
       document.getElementById('btn-play').classList.add('active');
@@ -2421,7 +2441,7 @@ function _stopRecording() {
   if (audioEl) { audioEl.volume = 1; }
   if (isPlaying) _pause();
   document.getElementById('rec-indicator').classList.remove('visible');
-  document.getElementById('btn-rec').textContent = '⏺ Record';
+  document.getElementById('btn-rec').textContent = '● Record';
   document.getElementById('btn-rec').classList.remove('recording');
   document.getElementById('rec-scope').textContent = '';
   document.getElementById('rec-timer').textContent = '0:00';
@@ -2450,8 +2470,8 @@ async function recordFromMarker(markerId) {
   const sm = markers[idx];
   const em = markers[idx + 1];
   const passLabel = sm.label + '→' + em.label;
-  const withRef = !!audioBuffer;
-  await _startRecordingPass(sm.time, em.time, passLabel, withRef);
+  // withRef=false: microphone records instrument only; blend is a playback option
+  await _startRecordingPass(sm.time, em.time, passLabel, false);
 }
 
 // ── Record from a segment ● button ──
@@ -2462,8 +2482,7 @@ async function recordSegment(segId) {
   const em = markers.find(m => m.id === seg.endId);
   if (!sm || !em) return;
   const passLabel = seg.name || `${sm.label}→${em.label}`;
-  const withRef = !!audioBuffer;
-  await _startRecordingPass(sm.time, em.time, passLabel, withRef);
+  await _startRecordingPass(sm.time, em.time, passLabel, false);
 }
 
 // ── Trim silence from live recording ──
@@ -2655,6 +2674,87 @@ async function downloadSelected() {
     recClips = recClips.filter(c => c.id !== clip.id);
   });
   renderRecClips();
+}
+
+async function _downloadBlendClip(clip, blendPct) {
+  try {
+    const clipCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuf = await clip.blob.arrayBuffer();
+    const clipBuffer = await clipCtx.decodeAudioData(arrayBuf);
+    clipCtx.close();
+    const sampleRate = clipBuffer.sampleRate;
+    const numCh = clipBuffer.numberOfChannels;
+    const dur = clipBuffer.duration;
+    const frameCount = Math.ceil(dur * sampleRate);
+    const offCtx = new OfflineAudioContext(numCh, frameCount, sampleRate);
+    // Clip source
+    const clipSrc = offCtx.createBufferSource();
+    clipSrc.buffer = clipBuffer;
+    const clipGain = offCtx.createGain();
+    clipGain.gain.value = blendPct;
+    clipSrc.connect(clipGain);
+    clipGain.connect(offCtx.destination);
+    clipSrc.start(0);
+    // Reference source — slice from recording start position
+    if (audioBuffer && clip.startOffset !== null) {
+      const startSample = Math.floor(
+        Math.max(0, (clip.startOffset + latencyOffset / 1000)) * audioBuffer.sampleRate
+      );
+      const refBuf = offCtx.createBuffer(numCh, frameCount, sampleRate);
+      for (let c = 0; c < numCh; c++) {
+        const src = audioBuffer.getChannelData(Math.min(c, audioBuffer.numberOfChannels - 1));
+        const endSample = Math.min(src.length, startSample + frameCount);
+        refBuf.getChannelData(c).set(src.subarray(startSample, endSample));
+      }
+      const refSrc = offCtx.createBufferSource();
+      refSrc.buffer = refBuf;
+      const refGain = offCtx.createGain();
+      refGain.gain.value = 1 - blendPct;
+      refSrc.connect(refGain);
+      refGain.connect(offCtx.destination);
+      refSrc.start(0);
+    }
+    const rendered = await offCtx.startRendering();
+    const wavBlob = _audioBufferToWav(rendered);
+    const wavUrl = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = wavUrl;
+    a.download = (clip.filename || clip.label).replace(/\.\w+$/, '') + '_blend.wav';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(wavUrl), 5000);
+  } catch(e) {
+    // Fallback: download clip only
+    const a = document.createElement('a');
+    a.href = clip.url;
+    a.download = clip.filename || (clip.label + '.' + (clip.ext||'webm'));
+    a.click();
+  }
+}
+
+function _audioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const len = buffer.length;
+  const bps = 2;
+  const blockAlign = numCh * bps;
+  const dataSize = len * blockAlign;
+  const ab = new ArrayBuffer(44 + dataSize);
+  const v = new DataView(ab);
+  const w = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off+i, str.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4, 36+dataSize, true); w(8,'WAVE');
+  w(12,'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, numCh, true); v.setUint32(24, sr, true);
+  v.setUint32(28, sr*blockAlign, true); v.setUint16(32, blockAlign, true);
+  v.setUint16(34, bps*8, true); w(36,'data'); v.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(c)[i]));
+      v.setInt16(offset, s < 0 ? s*0x8000 : s*0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return new Blob([ab], { type: 'audio/wav' });
 }
 
 function onBlendSlider(val) {
@@ -2925,25 +3025,6 @@ async function clearLocalStorageBackup() {
   localStorage.removeItem(SESSION_KEY);
   document.getElementById('migrate-status-panel').style.display = 'none';
   renderSessionsList();
-}
-
-// ── Override saveSession to also write to folder ──
-const _origSaveSession = saveSession;
-function saveSession() {
-  _origSaveSession && _origSaveSession();
-  // Also write to folder if connected
-  if (rsRootHandle && currentPieceName) {
-    const notes = document.getElementById('piece-notes')
-      ? document.getElementById('piece-notes').value : '';
-    const sessionData = {
-      piece: currentPieceName, audio: audioFileName,
-      version: 'rs_v1', savedAt: Date.now(),
-      markers: markers.map(m => ({...m})),
-      loops: segments.map(s => ({...s})),
-      markerIdCounter, segmentIdCounter
-    };
-    _saveSessionToFolder(currentPieceName, sessionData, notes).catch(() => {});
-  }
 }
 
 // ── Export library JSON — also write copy to folder root ──
