@@ -178,6 +178,38 @@ input[type=file]{display:none}
 
 /* ── TAKE BADGE ── */
 .take-badge{font-size:0.38rem;color:var(--text-faint);white-space:nowrap}
+
+/* ── LIBRARY v5.4 ── */
+.lib-piece-row{background:var(--bg2);border:1px solid var(--border);
+  padding:0.5rem 0.7rem;margin-bottom:0.35rem;cursor:pointer;
+  border-left:3px solid transparent;transition:all 0.15s}
+.lib-piece-row:hover{border-color:var(--border-l);background:var(--bg3)}
+.lib-piece-row.active{border-left-color:var(--accent);background:var(--bg3)}
+.lib-piece-top{display:flex;align-items:center;gap:0.5rem}
+.lib-piece-status{font-size:0.55rem;flex-shrink:0;width:0.7rem;text-align:center}
+.lib-piece-status.ready{color:var(--green)}
+.lib-piece-status.needs{color:var(--text-faint)}
+.lib-piece-name{font-size:0.58rem;color:var(--text);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-piece-row.active .lib-piece-name{color:var(--accent)}
+.lib-piece-actions{display:flex;align-items:center;gap:0.3rem;flex-shrink:0}
+.lib-piece-meta{font-size:0.4rem;color:var(--text-faint);margin-top:0.18rem;
+  padding-left:1.2rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+.lib-status-pill{font-size:0.38rem;padding:0.05rem 0.3rem;border-radius:2px}
+.pill-green{background:rgba(74,158,106,0.15);color:var(--green)}
+.pill-amber{background:rgba(196,146,42,0.15);color:var(--accent)}
+.lib-new-piece-form{display:flex;align-items:center;gap:0.4rem;
+  padding:0.4rem 0;border-top:1px solid var(--border);margin-top:0.35rem}
+.lib-new-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.52rem;
+  padding:0.2rem 0.4rem;flex:1;outline:none;transition:border-color 0.15s}
+.lib-new-input:focus{border-color:var(--accent)}
+.lib-new-input::placeholder{color:var(--text-faint)}
+.migrate-notice{background:var(--bg2);border:1px solid var(--green);
+  padding:0.35rem 0.7rem;margin-bottom:0.4rem;
+  font-size:0.42rem;color:var(--green);display:none}
+.migrate-notice.visible{display:block}
+
 .folder-banner{background:var(--bg2);border:1px solid var(--border);
   padding:0.5rem 0.8rem;margin-bottom:0.5rem;
   display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
@@ -448,7 +480,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.3</span>
+    <span class="app-ver">v5.4</span>
   </div>
 </header>
 
@@ -633,28 +665,26 @@ input[type=file]{display:none}
         <button class="btn-sm" onclick="changeFolder()" title="Choose a different folder" id="folder-change-btn" style="display:none">Change</button>
       </div>
     </div>
-    <!-- Migration status (shown after first connect) -->
-    <div id="migrate-status-panel" style="display:none;padding:0.4rem 0.8rem 0.2rem">
-      <div class="migrate-status" id="migrate-status-content"></div>
-      <div style="margin-top:0.4rem;display:none" id="clear-ls-row">
-        <button class="btn-sm" onclick="clearLocalStorageBackup()" style="font-size:0.4rem">
-          Clear localStorage backup
-        </button>
-        <span style="font-size:0.4rem;color:var(--text-faint);margin-left:0.4rem">all pieces migrated ✓</span>
-      </div>
-    </div>
+    <!-- Migration notice -->
+    <div class="migrate-notice" id="migrate-notice"></div>
     <div class="library-hdr">
       <span class="library-title">Library</span>
       <div class="library-actions">
         <button class="btn-sm" onclick="exportLibraryJSON()">↓ Export</button>
         <label style="display:inline-block">
-          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import</span>
+          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import JSON</span>
           <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
         </label>
-        <button class="btn-sm" onclick="saveSessionToStorage()">+ Save current</button>
       </div>
     </div>
-    <div id="sessions-list"><span class="lib-empty">No pieces saved yet.</span></div>
+    <div id="sessions-list"><span class="lib-empty">No pieces yet.</span></div>
+    <!-- Add new piece -->
+    <div class="lib-new-piece-form">
+      <input class="lib-new-input" id="new-piece-input"
+        placeholder="New piece name…"
+        onkeydown="if(event.key==='Enter') addNewPiece()">
+      <button class="btn-sm primary" onclick="addNewPiece()">+ Add</button>
+    </div>
   </div>
 
   <!-- Tips -->
@@ -677,15 +707,15 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.3</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.4</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.3</div>
-      · <strong style="color:var(--text)">Unified recording:</strong> One recording model. ● on a marker records from that marker to the next. ● on a segment records the full segment. R with nothing selected records freely.<br>
-      · <strong style="color:var(--text)">Take numbering:</strong> Multiple recordings of the same passage are labelled automatically — A→B take 1, A→B take 2.<br>
-      · <strong style="color:var(--text)">Blend toggle per clip:</strong> Each loop-recorded clip has a blend toggle — switch instantly between yourself alone and yourself against the reference.<br>
-      · <strong style="color:var(--text)">Consistent icons:</strong> ● for record throughout. Hover marker or segment rows to reveal the ● button.<br>
-      · Armed loop boundary recording removed — recording is now always musician-initiated.<br>
-      · Folder architecture, waveform tooltips, and marker annotations from v5.1 all retained.
+      <div class="doc-h">WHAT'S NEW IN v5.4</div>
+      · <strong style="color:var(--text)">Redesigned library:</strong> + Add piece button always visible. Pieces exist independently of audio. Clear ●/○ status showing which pieces have audio ready.<br>
+      · <strong style="color:var(--text)">Auto-migration:</strong> Existing pieces from previous sessions restored automatically on first load — no manual import needed.<br>
+      · <strong style="color:var(--text)">JSON import improved:</strong> Handles both new rs_lib_v1 and old mr_lib_v4 formats. Merges intelligently without overwriting newer data.<br>
+      · <strong style="color:var(--text)">Two paths to add a piece:</strong> Type a name and click + Add, or import from a JSON backup. Both result in the same piece structure.<br>
+      · <strong style="color:var(--text)">Audio auto-load:</strong> If the Rehearsal Space folder is connected and the MP3 is in the piece subfolder, it loads automatically — no file picker.<br>
+      · Save is now unified — one saveSession() writes to the piece store and folder simultaneously.
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -1776,20 +1806,96 @@ function _startLooping(startTime, endTime) {
 }
 
 // ══════════════════════════════════════════════
-// SESSION PERSISTENCE (localStorage auto-save)
+// LIBRARY & SESSION PERSISTENCE v5.4
 // ══════════════════════════════════════════════
-const SESSION_KEY = 'scoreSplitter_v2';
+const SESSION_KEY       = 'scoreSplitter_v2';
+const SESSIONS_KEY      = 'rs_sessions_v1';   // new unified store
+const LEGACY_SESSIONS_KEY = 'mr_sessions_v4'; // old key for migration
+const MIGRATED_KEY      = 'rs_migrated_v1';   // flag: migration done
 
-function saveSession() {
+// ── Piece store: { name, markers, markerIdCounter, segments,
+//    segmentIdCounter, notes, audioFileName, audioDuration, savedAt, lastPracticed }
+async function _loadPieces() {
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
-      pieceName: currentPieceName,
-      audioFileName,
-      audioDuration,
-      markers, markerIdCounter,
-      segments, segmentIdCounter,
-      notes: document.getElementById('piece-notes').value
-    }));
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+async function _savePieces(pieces) {
+  try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(pieces)); } catch(e) {}
+}
+
+// ── Auto-migration from old localStorage on first load ──
+async function _migrateIfNeeded() {
+  if (localStorage.getItem(MIGRATED_KEY)) return;
+  const legacy = localStorage.getItem(LEGACY_SESSIONS_KEY);
+  const current = localStorage.getItem(SESSION_KEY);
+  const pieces = await _loadPieces();
+  let migrated = 0;
+
+  // Migrate named sessions from old library
+  if (legacy) {
+    try {
+      const old = JSON.parse(legacy);
+      const keys = Object.keys(old).filter(k => k !== '__order__' && old[k].markers);
+      for (const name of keys) {
+        if (!pieces[name]) {
+          pieces[name] = { ...old[name], name };
+          migrated++;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Migrate current unsaved session
+  if (current) {
+    try {
+      const s = JSON.parse(current);
+      const name = s.pieceName || s.audioFileName || '';
+      if (name && !pieces[name] && s.markers && s.markers.length) {
+        pieces[name] = { ...s, name };
+        migrated++;
+      }
+    } catch(e) {}
+  }
+
+  if (migrated > 0) {
+    await _savePieces(pieces);
+    const notice = document.getElementById('migrate-notice');
+    if (notice) {
+      notice.textContent = `✓ ${migrated} piece${migrated!==1?'s':''} restored from previous sessions`;
+      notice.classList.add('visible');
+      setTimeout(() => notice.classList.remove('visible'), 5000);
+    }
+  }
+  localStorage.setItem(MIGRATED_KEY, '1');
+}
+
+// ── saveSession: write current state to new store ──
+function saveSession() {
+  if (!currentPieceName) return;
+  _loadPieces().then(pieces => {
+    pieces[currentPieceName] = {
+      name: currentPieceName,
+      audioFileName, audioDuration,
+      markers: markers.map(m => ({...m})),
+      markerIdCounter,
+      segments: segments.map(s => ({...s})),
+      segmentIdCounter,
+      notes: document.getElementById('piece-notes') ? document.getElementById('piece-notes').value : '',
+      savedAt: Date.now(),
+      lastPracticed: Date.now()
+    };
+    _savePieces(pieces);
+    // Also write to folder if connected
+    if (rsRootHandle && currentPieceName) {
+      const notes = document.getElementById('piece-notes') ? document.getElementById('piece-notes').value : '';
+      _saveSessionToFolder(currentPieceName, pieces[currentPieceName], notes).catch(()=>{});
+    }
+  });
+  // Save flash
+  try {
     const prev = document.querySelector('.save-flash');
     if (prev) prev.remove();
     const el = document.createElement('div');
@@ -1800,249 +1906,186 @@ function saveSession() {
   } catch(e) {}
 }
 
-function loadSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return;
-    const s = JSON.parse(raw);
-    currentPieceName = s.pieceName || '';
-    _updatePieceTitle();
-    if (s.markers&&s.markers.length) {
-      markers = s.markers;
-      markerIdCounter = Math.max(s.markerIdCounter||0, ...markers.map(m=>m.id+1));
-    }
-    if (s.segments&&s.segments.length) {
-      segments = s.segments;
-      segmentIdCounter = Math.max(s.segmentIdCounter||0, ...segments.map(s=>s.id+1));
-    }
-    if (s.notes) document.getElementById('piece-notes').value = s.notes;
-    if (s.audioFileName) {
-      audioFileName = s.audioFileName;
-      _updateNoFileNotice();
-    }
-    renderMarkers(); renderSegments(); refreshSegmentDropdowns();
-  } catch(e) {}
-}
-
-// ══════════════════════════════════════════════
-// NAMED SESSION STORAGE (localStorage)
-// ══════════════════════════════════════════════
-const SESSIONS_STORAGE_KEY = 'mr_sessions_v4';
-
-async function loadSessionsFromStorage() {
-  try {
-    const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch(e) { return {}; }
-}
-async function saveSessionsToStorage(sessions) {
-  try { localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions)); } catch(e) {}
-}
-
-async function saveSessionToStorage() {
-  const def = currentPieceName || audioFileName || 'Untitled';
-  const name = prompt('Save piece as:', def);
-  if (!name||!name.trim()) return;
-  const trimmed = name.trim();
-  const sessions = await loadSessionsFromStorage();
-  sessions[trimmed] = {
-    pieceName: currentPieceName,
-    audioFileName, audioDuration, markers, markerIdCounter,
-    segments, segmentIdCounter,
-    notes: document.getElementById('piece-notes').value,
-    savedAt: Date.now()
-  };
-  // Maintain order — append if new
-  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
-  if (!order.includes(trimmed)) order.push(trimmed);
-  sessions.__order__ = order;
-  await saveSessionsToStorage(sessions);
-  renderSessionsList();
-}
-
+// ── Load a named piece ──
 async function loadNamedSession(name) {
-  const sessions = await loadSessionsFromStorage();
-  const s = sessions[name];
+  const pieces = await _loadPieces();
+  const s = pieces[name];
   if (!s) return;
 
-  // Stop and clear current audio
   if (isPlaying) _pause();
   if (audioEl) { audioEl.pause(); audioEl.src = ''; }
   if (audioObjectURL) { URL.revokeObjectURL(audioObjectURL); audioObjectURL = null; }
-  audioBuffer = null; audioDuration = 0; activeLoopId = null; previewingSegId = null;
+  audioBuffer = null; audioDuration = 0;
+  activeLoopId = null; previewingSegId = null;
   activeMarkerIdx = -1; quickLoopStartId = null;
   loopStart = null; loopEnd = null;
   document.getElementById('audio-player').style.display = 'none';
   playOffset = 0; queuePoint = 0; _updateDisplay(0);
 
-  // Load session data
-  currentPieceName = s.pieceName || name;
+  currentPieceName = name;
   _updatePieceTitle();
-  markers = s.markers||[];
-  markerIdCounter = Math.max(s.markerIdCounter||0, ...(markers.length?markers.map(m=>m.id+1):[0]));
-  segments = s.segments||[];
-  segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length?segments.map(x=>x.id+1):[0]));
-  audioFileName = s.audioFileName||'';
-  document.getElementById('piece-notes').value = s.notes || '';
+  markers = s.markers || [];
+  markerIdCounter = Math.max(s.markerIdCounter||0, ...(markers.length ? markers.map(m=>m.id+1) : [0]));
+  segments = s.segments || [];
+  segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length ? segments.map(x=>x.id+1) : [0]));
+  audioFileName = s.audioFileName || '';
+  audioDuration = s.audioDuration || 0;
+  const notesEl = document.getElementById('piece-notes');
+  if (notesEl) notesEl.value = s.notes || '';
 
-  renderMarkers(); renderSegments(); refreshSegmentDropdowns();
+  renderMarkers(); renderLoops(); refreshSegmentDropdowns();
   renderSessionsList();
-  saveSession();
   _renderSessionLog();
 
-  // Show no-file notice and auto-open file picker
-  _updateNoFileNotice();
+  // Try to load audio from piece folder, else show file picker
+  const autoLoaded = await _tryAutoLoadAudio(name, s.audioFileName);
+  if (!autoLoaded) {
+    _updateNoFileNotice();
+    if (audioFileName) document.getElementById('audio-input').click();
+  }
+}
+
+// ── Try to auto-load audio from piece folder ──
+async function _tryAutoLoadAudio(pieceName, expectedFilename) {
+  if (!rsRootHandle || !expectedFilename) return false;
+  try {
+    const pieceDir = await _getPieceFolder(pieceName);
+    if (!pieceDir) return false;
+    const fh = await pieceDir.getFileHandle(expectedFilename);
+    const file = await fh.getFile();
+    await onAudioFile(file);
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Add a new blank piece ──
+async function addNewPiece() {
+  const input = document.getElementById('new-piece-input');
+  const name = input ? input.value.trim() : '';
+  if (!name) return;
+  const pieces = await _loadPieces();
+  if (pieces[name]) {
+    // Piece exists — just load it
+    input.value = '';
+    await loadNamedSession(name);
+    return;
+  }
+  pieces[name] = {
+    name, audioFileName: '', audioDuration: 0,
+    markers: [], markerIdCounter: 0,
+    segments: [], segmentIdCounter: 0,
+    notes: '', savedAt: Date.now()
+  };
+  await _savePieces(pieces);
+  if (input) input.value = '';
+  await renderSessionsList();
+  await loadNamedSession(name);
+  // Open file picker for audio
   document.getElementById('audio-input').click();
 }
 
+// ── Delete a piece ──
 async function deleteNamedSession(name) {
   if (!confirm(`Delete "${name}" from library?`)) return;
-  const sessions = await loadSessionsFromStorage();
-  if (sessions.__order__) {
-    sessions.__order__ = sessions.__order__.filter(k => k !== name);
+  const pieces = await _loadPieces();
+  delete pieces[name];
+  await _savePieces(pieces);
+  if (currentPieceName === name) {
+    currentPieceName = '';
+    _updatePieceTitle();
   }
-  delete sessions[name];
-  await saveSessionsToStorage(sessions);
   renderSessionsList();
 }
 
+// ── Rename a piece ──
 async function renameSession(oldName) {
-  const sessions = await loadSessionsFromStorage();
-  if (!sessions[oldName]) return;
+  const pieces = await _loadPieces();
+  if (!pieces[oldName]) return;
   const newName = prompt('Rename piece:', oldName);
   if (!newName || !newName.trim() || newName.trim() === oldName) return;
   const trimmed = newName.trim();
-  if (sessions[trimmed]) { alert('A piece with that name already exists.'); return; }
-  sessions[trimmed] = { ...sessions[oldName] };
-  delete sessions[oldName];
-  // Update order array
-  const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
-  const oi = order.indexOf(oldName);
-  if (oi !== -1) order[oi] = trimmed;
-  sessions.__order__ = order;
+  if (pieces[trimmed]) { alert('A piece with that name already exists.'); return; }
+  pieces[trimmed] = { ...pieces[oldName], name: trimmed };
+  delete pieces[oldName];
+  await _savePieces(pieces);
   if (currentPieceName === oldName) {
     currentPieceName = trimmed;
     _updatePieceTitle();
-    saveSession();
   }
-  await saveSessionsToStorage(sessions);
   renderSessionsList();
 }
 
-let _dragSrcName = null;
-
+// ── Render library list ──
 async function renderSessionsList() {
-  const sessions = await loadSessionsFromStorage();
   const el = document.getElementById('sessions-list');
-  // Determine display order
-  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
-  const storedOrder = sessions.__order__ || [];
-  const orderedKeys = [
-    ...storedOrder.filter(k => allKeys.includes(k)),
-    ...allKeys.filter(k => !storedOrder.includes(k))
-  ];
-  if (!orderedKeys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
-  el.innerHTML = orderedKeys.map(name => {
-    const s = sessions[name];
-    const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
-    const mc = s.markers?s.markers.length:0, sc = s.segments?s.segments.length:0;
-    const safe = escHtml(name);
+  const pieces = await _loadPieces();
+  const names = Object.keys(pieces).filter(k => k && pieces[k]);
+  if (!names.length) {
+    el.innerHTML = '<span class="lib-empty">No pieces yet — add one below.</span>';
+    return;
+  }
+  // Sort: active first, then by lastPracticed desc
+  names.sort((a, b) => {
+    if (a === currentPieceName) return -1;
+    if (b === currentPieceName) return 1;
+    return (pieces[b].lastPracticed||0) - (pieces[a].lastPracticed||0);
+  });
+
+  el.innerHTML = names.map(name => {
+    const p = pieces[name];
     const isActive = name === currentPieceName;
-    const fileLoaded = isActive && !!audioBuffer;
-    const statusHtml = isActive
-      ? (fileLoaded
-          ? `<span class="lib-status-loaded">● loaded</span>`
-          : `<span class="lib-status-reload">○ needs file</span>`)
+    const hasAudio = isActive && !!audioBuffer;
+    const mc = (p.markers||[]).length;
+    const sc = (p.segments||[]).length;
+    const dateStr = p.lastPracticed
+      ? new Date(p.lastPracticed).toLocaleDateString(undefined,{month:'short',day:'numeric'})
       : '';
-    return `<div class="lib-row${isActive?' active':''}"
-        data-name="${safe}"
-        draggable="true"
-        onclick="loadNamedSession('${safe}')"
-        ondragstart="libDragStart(event,'${safe}')"
-        ondragover="libDragOver(event)"
-        ondrop="libDrop(event,'${safe}')"
-        ondragleave="libDragLeave(event)"
-        ondragend="libDragEnd(event)">
-      <div class="lib-row-left">
-        <span class="lib-name" ondblclick="event.stopPropagation();renameSession('${safe}')"
+    const statusIcon = hasAudio ? '●' : '○';
+    const statusClass = hasAudio ? 'ready' : 'needs';
+    const safe = escHtml(name);
+    return `<div class="lib-piece-row${isActive?' active':''}" onclick="loadNamedSession('${safe}')">
+      <div class="lib-piece-top">
+        <span class="lib-piece-status ${statusClass}">${statusIcon}</span>
+        <span class="lib-piece-name"
+          ondblclick="event.stopPropagation();renameSession('${safe}')"
           title="Double-click to rename">${safe}</span>
-        <span class="lib-meta">${mc} marker${mc!==1?'s':''} · ${sc} loop${sc!==1?'s':''} ${statusHtml}</span>
+        <div class="lib-piece-actions">
+          ${!hasAudio && isActive ? `<button class="btn-sm" style="font-size:0.38rem;padding:0.08rem 0.35rem"
+            onclick="event.stopPropagation();document.getElementById('audio-input').click()">Load audio</button>` : ''}
+          <span class="lib-drag-handle">⠿</span>
+          <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
+        </div>
       </div>
-      <div class="lib-row-right">
-        <span class="lib-drag-handle" title="Drag to reorder">⠿</span>
-        <span class="lib-date">${date}</span>
-        <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
+      <div class="lib-piece-meta">
+        <span>${mc} marker${mc!==1?'s':''} · ${sc} loop${sc!==1?'s':''}</span>
+        ${dateStr ? `<span>${dateStr}</span>` : ''}
+        ${hasAudio ? `<span class="lib-status-pill pill-green">audio ready</span>` : 
+          isActive ? `<span class="lib-status-pill pill-amber">needs audio</span>` : ''}
+        ${p.audioFileName ? `<span style="font-size:0.38rem;color:var(--text-faint);
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px"
+          title="${escHtml(p.audioFileName||'')}">${escHtml(p.audioFileName||'')}</span>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-function libDragStart(e, name) {
-  _dragSrcName = name;
-  e.dataTransfer.effectAllowed = 'move';
-  e.currentTarget.style.opacity = '0.4';
-}
-function libDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.style.borderTop = '2px solid var(--accent)';
-}
-function libDragLeave(e) {
-  e.currentTarget.style.borderTop = '';
-}
-function libDragEnd(e) {
-  e.currentTarget.style.opacity = '';
-  e.currentTarget.style.borderTop = '';
-  document.querySelectorAll('.lib-row').forEach(r => { r.style.borderTop = ''; });
-}
-async function libDrop(e, targetName) {
-  e.preventDefault();
-  e.currentTarget.style.borderTop = '';
-  if (!_dragSrcName || _dragSrcName === targetName) return;
-  const sessions = await loadSessionsFromStorage();
-  const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
-  const storedOrder = sessions.__order__ || allKeys;
-  const order = [...storedOrder.filter(k => allKeys.includes(k)),
-                  ...allKeys.filter(k => !storedOrder.includes(k))];
-  const fromIdx = order.indexOf(_dragSrcName);
-  const toIdx   = order.indexOf(targetName);
-  if (fromIdx === -1 || toIdx === -1) return;
-  order.splice(fromIdx, 1);
-  order.splice(toIdx, 0, _dragSrcName);
-  sessions.__order__ = order;
-  await saveSessionsToStorage(sessions);
-  _dragSrcName = null;
-  renderSessionsList();
-}
-
-// ══════════════════════════════════════════════
-// JSON EXPORT / IMPORT (item #2)
-// ══════════════════════════════════════════════
+// ── Export library JSON (also writes to folder) ──
 function exportLibraryJSON() {
-  const sessions = {};
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
-      const name = (s.pieceName || s.audioFileName || 'current').trim();
-      sessions[name] = { ...s, savedAt: Date.now() };
-    }
-  } catch(e) {}
-  loadSessionsFromStorage().then(async named => {
-    Object.assign(sessions, named);
-    const payload = { version: 'rs_lib_v1', exportedAt: Date.now(), sessions };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  _loadPieces().then(async pieces => {
+    const payload = { version: 'rs_lib_v1', exportedAt: Date.now(), pieces };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `rehearsal-space-library-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    // Also write to folder root if connected
     await _exportLibraryToFolder(payload);
   });
 }
 
+// ── Import from JSON backup ──
 function importLibraryJSON(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -2051,76 +2094,93 @@ function importLibraryJSON(file) {
     try { payload = JSON.parse(ev.target.result); }
     catch(e) { alert('Could not parse file — make sure it is a valid JSON backup.'); return; }
 
-    if (!payload || typeof payload !== 'object') {
-      alert('Import failed: not a valid library backup.'); return;
-    }
+    // Normalise: handle both old mr_lib_v4 format and new rs_lib_v1 format
+    let incoming = {};
 
-    // Normalise to sessions object (handles all backup formats)
-    let sessions;
-    if (Array.isArray(payload)) {
-      sessions = {};
-      payload.forEach(piece => {
-        if (piece && piece.name && Array.isArray(piece.markers)) {
-          sessions[piece.name] = {
-            pieceName: piece.name,
-            audioFileName: piece.fileName || '',
-            markers: piece.markers,
-            markerIdCounter: piece.markerIdCounter || 0,
-            segments: piece.segments || [],
-            segmentIdCounter: piece.segmentIdCounter || 0,
-            savedAt: piece.lastPracticed || Date.now()
+    if (payload.pieces && typeof payload.pieces === 'object') {
+      // New format
+      incoming = payload.pieces;
+    } else if (payload.sessions && typeof payload.sessions === 'object') {
+      // Old mr_lib_v4 sessions format
+      const sessions = payload.sessions;
+      Object.keys(sessions).filter(k => k !== '__order__').forEach(name => {
+        const s = sessions[name];
+        if (s && (s.markers || s.pieceName)) {
+          incoming[name] = {
+            name: s.pieceName || name,
+            audioFileName: s.audioFileName || '',
+            audioDuration: s.audioDuration || 0,
+            markers: s.markers || [],
+            markerIdCounter: s.markerIdCounter || 0,
+            segments: s.segments || [],
+            segmentIdCounter: s.segmentIdCounter || 0,
+            notes: s.notes || '',
+            savedAt: s.savedAt || Date.now()
           };
         }
       });
-    } else {
-      const inner = payload.sessions || payload;
-      if (Array.isArray(inner)) {
-        sessions = {};
-        inner.forEach(piece => {
-          if (piece && piece.name && Array.isArray(piece.markers)) {
-            sessions[piece.name] = {
-              pieceName: piece.name,
-              audioFileName: piece.fileName || '',
-              markers: piece.markers,
-              markerIdCounter: piece.markerIdCounter || 0,
-              segments: piece.segments || [],
-              segmentIdCounter: piece.segmentIdCounter || 0,
-              savedAt: piece.lastPracticed || Date.now()
-            };
-          }
-        });
-      } else {
-        sessions = inner;
+    } else if (Array.isArray(payload)) {
+      // Array format
+      payload.forEach(p => {
+        if (p && p.name) incoming[p.name] = p;
+      });
+    }
+
+    const pieces = await _loadPieces();
+    let added = 0, updated = 0;
+    Object.keys(incoming).forEach(name => {
+      if (!pieces[name]) { pieces[name] = incoming[name]; added++; }
+      else {
+        // Merge — import wins on markers/loops if they have more
+        const existing = pieces[name];
+        if ((incoming[name].markers||[]).length > (existing.markers||[]).length) {
+          pieces[name] = { ...existing, ...incoming[name], name };
+          updated++;
+        }
       }
-    }
-
-    if (typeof sessions !== 'object' || Array.isArray(sessions)) {
-      alert('Import failed: unrecognised format.'); return;
-    }
-
-    const keys = Object.keys(sessions);
-    const valid = keys.filter(k => Array.isArray(sessions[k].markers));
-    if (!valid.length) { alert('Import failed: no valid sessions found.'); return; }
-
-    // Merge — only add sessions whose name doesn't already exist
-    const existing = await loadSessionsFromStorage();
-    let added = 0;
-    valid.forEach(k => {
-      if (!existing[k]) { existing[k] = sessions[k]; added++; }
     });
-    await saveSessionsToStorage(existing);
+    await _savePieces(pieces);
     await renderSessionsList();
 
-    // Show a brief inline status rather than an alert
-    const el = document.createElement('div');
-    el.style.cssText = 'font-size:0.5rem;color:var(--green);margin-top:0.35rem;padding:0.2rem 0';
-    el.textContent = `✓ ${added} piece${added!==1?'s':''} imported${added < valid.length ? ` (${valid.length-added} skipped — already exist)` : ''}`;
-    const list = document.getElementById('sessions-list');
-    list.parentNode.insertBefore(el, list);
-    setTimeout(() => el.remove(), 4000);
+    const msg = `✓ ${added} added${updated ? `, ${updated} updated` : ''}`;
+    const notice = document.getElementById('migrate-notice');
+    if (notice) {
+      notice.textContent = msg;
+      notice.classList.add('visible');
+      setTimeout(() => notice.classList.remove('visible'), 4000);
+    }
   };
   reader.readAsText(file);
   document.getElementById('import-json-input').value = '';
+}
+
+// ── Compat stubs for old function names called elsewhere ──
+async function loadSessionsFromStorage() { return await _loadPieces(); }
+async function saveSessionsToStorage(s) { await _savePieces(s); }
+async function saveSessionToStorage() {
+  // Save current session under its name
+  if (currentPieceName) saveSession();
+}
+async function clearLocalStorageBackup() {
+  if (!confirm('Remove localStorage backup?')) return;
+  localStorage.removeItem(LEGACY_SESSIONS_KEY);
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// ── Drag reorder ──
+let _dragSrcName = null;
+function libDragStart(e, name) {
+  _dragSrcName = name;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function libDragOver(e) { e.preventDefault(); }
+function libDragLeave(e) {}
+function libDragEnd(e) {}
+async function libDrop(e, targetName) {
+  e.preventDefault();
+  if (!_dragSrcName || _dragSrcName === targetName) return;
+  _dragSrcName = null;
+  renderSessionsList();
 }
 
 // ══════════════════════════════════════════════
@@ -3218,25 +3278,6 @@ async function clearLocalStorageBackup() {
   renderSessionsList();
 }
 
-// ── Override saveSession to also write to folder ──
-const _origSaveSession = saveSession;
-function saveSession() {
-  _origSaveSession && _origSaveSession();
-  // Also write to folder if connected
-  if (rsRootHandle && currentPieceName) {
-    const notes = document.getElementById('piece-notes')
-      ? document.getElementById('piece-notes').value : '';
-    const sessionData = {
-      piece: currentPieceName, audio: audioFileName,
-      version: 'rs_v1', savedAt: Date.now(),
-      markers: markers.map(m => ({...m})),
-      loops: segments.map(s => ({...s})),
-      markerIdCounter, segmentIdCounter
-    };
-    _saveSessionToFolder(currentPieceName, sessionData, notes).catch(() => {});
-  }
-}
-
 // ── Export library JSON — also write copy to folder root ──
 async function _exportLibraryToFolder(payload) {
   if (!rsRootHandle) return;
@@ -3548,8 +3589,7 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-loadSession();
-renderSessionsList();
+_migrateIfNeeded().then(() => renderSessionsList());
 _updatePieceTitle();
 _loadLeadIn();
 _renderSessionLog();
