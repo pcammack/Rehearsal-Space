@@ -351,6 +351,31 @@ input[type=file]{display:none}
 .lib-del:hover{color:var(--red)}
 .lib-empty{font-size:0.5rem;color:var(--text-faint);padding:0.4rem 0;text-align:center}
 
+/* ── NEW PIECE FORM ── */
+.lib-new-piece-form{display:flex;align-items:center;gap:0.4rem;
+  padding-top:0.4rem;border-top:1px solid var(--border);margin-top:0.3rem}
+.lib-new-input{background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.52rem;
+  padding:0.2rem 0.4rem;flex:1;outline:none;transition:border-color 0.15s}
+.lib-new-input:focus{border-color:var(--accent)}
+.lib-new-input::placeholder{color:var(--text-faint)}
+
+/* ── MINI CLIP WAVEFORM PLAYER ── */
+.clip-player{margin-top:0.3rem;border-top:1px solid var(--border);padding-top:0.3rem}
+.clip-player-controls{display:flex;align-items:center;gap:0.4rem}
+.clip-play-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-size:0.48rem;padding:0.12rem 0.38rem;cursor:pointer;transition:all 0.15s;
+  font-family:'JetBrains Mono',monospace;flex-shrink:0;white-space:nowrap}
+.clip-play-btn:hover{border-color:var(--border-l);color:var(--text)}
+.clip-play-btn.playing{border-color:var(--accent);color:var(--accent)}
+.clip-waveform-canvas{flex:1;height:32px;cursor:pointer;display:block;
+  background:var(--bg3);border:1px solid var(--border)}
+.clip-waveform-canvas:hover{border-color:var(--border-l)}
+.clip-time{font-size:0.4rem;color:var(--text-faint);min-width:4.5rem;
+  text-align:right;white-space:nowrap;flex-shrink:0}
+.import-notice{font-size:0.44rem;color:var(--green);padding:0.3rem 0;display:none}
+.import-notice.visible{display:block}
+
 /* ── TEMPO TRAINING ── */
 .tempo-train-panel{background:var(--bg2);border:1px solid var(--border);
   padding:0.65rem 0.8rem;margin-top:0.75rem;display:none}
@@ -417,7 +442,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.2</span>
+    <span class="app-ver">v5.3</span>
   </div>
 </header>
 
@@ -601,28 +626,29 @@ input[type=file]{display:none}
         <button class="btn-sm" onclick="changeFolder()" title="Choose a different folder" id="folder-change-btn" style="display:none">Change</button>
       </div>
     </div>
-    <!-- Migration status (shown after first connect) -->
-    <div id="migrate-status-panel" style="display:none;padding:0.4rem 0.8rem 0.2rem">
-      <div class="migrate-status" id="migrate-status-content"></div>
-      <div style="margin-top:0.4rem;display:none" id="clear-ls-row">
-        <button class="btn-sm" onclick="clearLocalStorageBackup()" style="font-size:0.4rem">
-          Clear localStorage backup
-        </button>
-        <span style="font-size:0.4rem;color:var(--text-faint);margin-left:0.4rem">all pieces migrated ✓</span>
-      </div>
-    </div>
     <div class="library-hdr">
       <span class="library-title">Library</span>
       <div class="library-actions">
         <button class="btn-sm" onclick="exportLibraryJSON()">↓ Export</button>
         <label style="display:inline-block">
-          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import</span>
+          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import JSON</span>
           <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
         </label>
-        <button class="btn-sm" onclick="saveSessionToStorage()">+ Save current</button>
+        <button class="btn-sm" onclick="saveSessionToStorage()">↓ Save current</button>
       </div>
     </div>
+    <!-- Import feedback -->
+    <div class="import-notice" id="import-notice"></div>
     <div id="sessions-list"><span class="lib-empty">No pieces saved yet.</span></div>
+    <!-- Add new piece -->
+    <div class="lib-new-piece-form">
+      <input class="lib-new-input" id="new-piece-input"
+        placeholder="New piece name…"
+        onkeydown="if(event.key==='Enter')addNewPiece()">
+      <input type="file" id="new-piece-audio" accept=".mp3,.m4a,.wav,.aiff,.aif,.flac,audio/*"
+        style="display:none" onchange="onNewPieceAudio(this.files[0])">
+      <button class="btn-sm primary" onclick="addNewPiece()">+ Add</button>
+    </div>
   </div>
 
   <!-- Tips -->
@@ -645,14 +671,14 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.2</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.3</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.2</div>
-      · <strong style="color:var(--text)">Unified recording:</strong> One recording model. ● on a marker records from that marker to the next. ● on a segment records the full segment. R with nothing selected records freely.<br>
-      · <strong style="color:var(--text)">Take numbering:</strong> Multiple recordings of the same passage are labelled automatically — A→B take 1, A→B take 2.<br>
-      · <strong style="color:var(--text)">Blend toggle per clip:</strong> Each loop-recorded clip has a blend toggle — switch instantly between yourself alone and yourself against the reference.<br>
-      · <strong style="color:var(--text)">Consistent icons:</strong> ● for record throughout. Hover marker or segment rows to reveal the ● button.<br>
-      · Armed loop boundary recording removed — recording is now always musician-initiated.<br>
+      <div class="doc-h">WHAT'S NEW IN v5.3</div>
+      · <strong style="color:var(--text)">+ Add piece:</strong> New piece name field at the bottom of the library. Type a name, press Enter or click + Add — file picker opens for audio immediately.<br>
+      · <strong style="color:var(--text)">JSON import fixed:</strong> Handles all backup formats including mr_lib_v4. Merges without overwriting existing pieces.<br>
+      · <strong style="color:var(--text)">Mini waveform player:</strong> Each recorded clip has a clickable waveform — click to seek, playhead tracks position. No more browser audio controls.<br>
+      · <strong style="color:var(--text)">Blend fixed:</strong> Blend toggle syncs reference to correct position. _downloadBlendClip and WAV export now present and working.<br>
+      · <strong style="color:var(--text)">Solo recording corrected:</strong> Recording from marker/segment no longer plays reference audibly — instrument only.<br>
       · Folder architecture, waveform tooltips, and marker annotations from v5.1 all retained.
 
       <div class="doc-h">WORKFLOW</div>
@@ -1833,12 +1859,64 @@ async function saveSessionToStorage() {
     notes: document.getElementById('piece-notes').value,
     savedAt: Date.now()
   };
-  // Maintain order — append if new
   const order = sessions.__order__ || Object.keys(sessions).filter(k=>k!=='__order__');
   if (!order.includes(trimmed)) order.push(trimmed);
   sessions.__order__ = order;
   await saveSessionsToStorage(sessions);
   renderSessionsList();
+}
+
+// ── Add a new piece ──
+let _pendingNewPieceName = null;
+
+async function addNewPiece() {
+  const input = document.getElementById('new-piece-input');
+  const name = input ? input.value.trim() : '';
+  if (!name) { if (input) input.focus(); return; }
+
+  // Check if piece already exists
+  const sessions = await loadSessionsFromStorage();
+  if (sessions[name]) {
+    // Already exists — just load it
+    if (input) input.value = '';
+    await loadNamedSession(name);
+    return;
+  }
+
+  // Create blank piece entry
+  sessions[name] = {
+    pieceName: name, audioFileName: '', audioDuration: 0,
+    markers: [], markerIdCounter: 0,
+    segments: [], segmentIdCounter: 0,
+    notes: '', savedAt: Date.now()
+  };
+  const order = sessions.__order__ || [];
+  if (!order.includes(name)) order.push(name);
+  sessions.__order__ = order;
+  await saveSessionsToStorage(sessions);
+  if (input) input.value = '';
+
+  // Set as current piece
+  currentPieceName = name;
+  markers = []; markerIdCounter = 0;
+  segments = []; segmentIdCounter = 0;
+  audioFileName = ''; audioDuration = 0;
+  document.getElementById('piece-notes').value = '';
+  _updatePieceTitle();
+  renderMarkers(); renderLoops(); refreshSegmentDropdowns();
+  renderSessionsList();
+  _renderSessionLog();
+
+  // Open file picker for audio
+  _pendingNewPieceName = name;
+  document.getElementById('new-piece-audio').click();
+}
+
+function onNewPieceAudio(file) {
+  if (!file) return;
+  // Load the audio file for the new piece
+  onAudioFile(file);
+  _pendingNewPieceName = null;
 }
 
 async function loadNamedSession(name) {
@@ -1871,9 +1949,12 @@ async function loadNamedSession(name) {
   saveSession();
   _renderSessionLog();
 
-  // Show no-file notice and auto-open file picker
+  // Show no-file notice — user clicks "Load audio file" button if needed
   _updateNoFileNotice();
-  document.getElementById('audio-input').click();
+  if (audioFileName) {
+    // Auto-open file picker only if piece has an expected audio file
+    document.getElementById('audio-input').click();
+  }
 }
 
 async function deleteNamedSession(name) {
@@ -2036,69 +2117,75 @@ function importLibraryJSON(file) {
       alert('Import failed: not a valid library backup.'); return;
     }
 
-    // Normalise to sessions object (handles all backup formats)
-    let sessions;
-    if (Array.isArray(payload)) {
-      sessions = {};
-      payload.forEach(piece => {
-        if (piece && piece.name && Array.isArray(piece.markers)) {
-          sessions[piece.name] = {
-            pieceName: piece.name,
-            audioFileName: piece.fileName || '',
-            markers: piece.markers,
-            markerIdCounter: piece.markerIdCounter || 0,
-            segments: piece.segments || [],
-            segmentIdCounter: piece.segmentIdCounter || 0,
-            savedAt: piece.lastPracticed || Date.now()
-          };
-        }
-      });
+    // Normalise to a flat { name -> sessionObj } map
+    // Handles: mr_lib_v4 {sessions:{...}}, rs_lib_v1 {sessions:{...}},
+    //          raw sessions object, and array formats
+    let raw = {};
+    if (payload.sessions && typeof payload.sessions === 'object' && !Array.isArray(payload.sessions)) {
+      raw = payload.sessions;
+    } else if (payload.sessions && Array.isArray(payload.sessions)) {
+      payload.sessions.forEach(p => { if (p && p.name) raw[p.name] = p; });
+    } else if (Array.isArray(payload)) {
+      payload.forEach(p => { if (p && p.name) raw[p.name] = p; });
     } else {
-      const inner = payload.sessions || payload;
-      if (Array.isArray(inner)) {
-        sessions = {};
-        inner.forEach(piece => {
-          if (piece && piece.name && Array.isArray(piece.markers)) {
-            sessions[piece.name] = {
-              pieceName: piece.name,
-              audioFileName: piece.fileName || '',
-              markers: piece.markers,
-              markerIdCounter: piece.markerIdCounter || 0,
-              segments: piece.segments || [],
-              segmentIdCounter: piece.segmentIdCounter || 0,
-              savedAt: piece.lastPracticed || Date.now()
-            };
-          }
-        });
-      } else {
-        sessions = inner;
-      }
+      // Payload itself might be the sessions object
+      raw = payload;
     }
 
-    if (typeof sessions !== 'object' || Array.isArray(sessions)) {
-      alert('Import failed: unrecognised format.'); return;
-    }
-
-    const keys = Object.keys(sessions);
-    const valid = keys.filter(k => Array.isArray(sessions[k].markers));
-    if (!valid.length) { alert('Import failed: no valid sessions found.'); return; }
-
-    // Merge — only add sessions whose name doesn't already exist
-    const existing = await loadSessionsFromStorage();
-    let added = 0;
-    valid.forEach(k => {
-      if (!existing[k]) { existing[k] = sessions[k]; added++; }
+    // Normalise each entry to the internal session format
+    const normalised = {};
+    Object.keys(raw).filter(k => k !== '__order__').forEach(k => {
+      const s = raw[k];
+      if (!s || typeof s !== 'object') return;
+      // Accept entries that have markers array OR pieceName
+      if (!Array.isArray(s.markers) && !s.pieceName) return;
+      const name = s.pieceName || k;
+      normalised[name] = {
+        pieceName: name,
+        audioFileName: s.audioFileName || s.fileName || '',
+        audioDuration: s.audioDuration || 0,
+        markers: (s.markers || []).map(m => ({
+          id: m.id ?? 0, label: m.label || '.', type: m.type || 'R',
+          time: m.time || 0, locked: m.locked || false,
+          bar: m.bar || '', annotation: m.annotation || null
+        })),
+        markerIdCounter: s.markerIdCounter || 0,
+        segments: (s.segments || []).map(seg => ({
+          id: seg.id ?? 0, startId: seg.startId, endId: seg.endId,
+          name: seg.name || '', include: seg.include !== false
+        })),
+        segmentIdCounter: s.segmentIdCounter || 0,
+        notes: s.notes || '',
+        savedAt: s.savedAt || Date.now()
+      };
     });
+
+    const names = Object.keys(normalised);
+    if (!names.length) { alert('Import failed: no valid pieces found in this file.'); return; }
+
+    // Merge into existing — add new, skip existing (don't overwrite)
+    const existing = await loadSessionsFromStorage();
+    let added = 0, skipped = 0;
+    names.forEach(name => {
+      if (!existing[name]) {
+        existing[name] = normalised[name];
+        const order = existing.__order__ || [];
+        if (!order.includes(name)) order.push(name);
+        existing.__order__ = order;
+        added++;
+      } else { skipped++; }
+    });
+
     await saveSessionsToStorage(existing);
     await renderSessionsList();
 
-    // Show a brief inline status rather than an alert
-    const el = document.createElement('div');
-    el.style.cssText = 'font-size:0.5rem;color:var(--green);margin-top:0.35rem;padding:0.2rem 0';
-    el.textContent = `✓ ${added} piece${added!==1?'s':''} imported${added < valid.length ? ` (${valid.length-added} skipped — already exist)` : ''}`;
-    const list = document.getElementById('sessions-list');
-    list.parentNode.insertBefore(el, list);
-    setTimeout(() => el.remove(), 4000);
+    // Show feedback in the import-notice element
+    const notice = document.getElementById('import-notice');
+    if (notice) {
+      notice.textContent = `✓ ${added} piece${added!==1?'s':''} imported${skipped ? ` · ${skipped} already existed` : ''}`;
+      notice.classList.add('visible');
+      setTimeout(() => notice.classList.remove('visible'), 5000);
+    }
   };
   reader.readAsText(file);
   document.getElementById('import-json-input').value = '';
@@ -2549,6 +2636,16 @@ async function _onRecordingStop(passLabel, withRef, nominalDuration) {
   renderRecClips();
 }
 
+// ── Per-clip waveform peaks cache and audio elements ──
+const clipPeaks   = {}; // clipId -> Float32Array
+const clipAudioEls = {}; // clipId -> HTMLAudioElement
+
+function _fmtClipDur(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
 function renderRecClips() {
   const el = document.getElementById('rec-clip-list');
   const blendRow = document.getElementById('blend-row');
@@ -2564,59 +2661,188 @@ function renderRecClips() {
   if (dlRow) dlRow.style.display = 'flex';
 
   el.innerHTML = recClips.map(clip => {
-    const mins = Math.floor(clip.duration / 60);
-    const secs = Math.floor(clip.duration % 60);
-    const durStr = `${mins}:${secs.toString().padStart(2,'0')}`;
+    const durStr = _fmtClipDur(clip.duration);
     return `<div class="rec-clip-row" id="rec-clip-${clip.id}">
-      <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.2rem">
+      <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.15rem">
         <input type="checkbox" class="review-clip-check" id="chk-${clip.id}"
           onchange="toggleKeep(${clip.id},this.checked)" style="accent-color:var(--accent)">
-        <span style="font-size:0.5rem;color:var(--text);font-weight:500">${escHtml(clip.label)}</span>
-        <span class="rec-clip-dur">${durStr}</span>
+        <span style="font-size:0.5rem;color:var(--text);font-weight:500;flex:1;min-width:0;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(clip.label)}</span>
         ${clip.withRef ? `<button class="blend-toggle${clip.blendActive?' active':''}"
-          id="blend-toggle-${clip.id}"
-          onclick="toggleClipBlend(${clip.id})"
-          title="Toggle blend with reference">blend</button>` : ''}
+          id="blend-toggle-${clip.id}" onclick="toggleClipBlend(${clip.id})"
+          title="Blend with reference">blend</button>` : ''}
         <button class="rec-clip-btn delete" onclick="deleteClip(${clip.id})" title="Discard">✕</button>
       </div>
       <input class="review-label-input" value="${escHtml(clip.label)}"
-        placeholder="add label…"
-        onchange="updateClipLabel(${clip.id},this.value)"
-        style="margin-bottom:0.2rem;width:100%">
-      ${clip.withRef ? `<div class="review-format-row">
+        placeholder="add label…" onchange="updateClipLabel(${clip.id},this.value)"
+        style="width:100%;margin-bottom:0.15rem">
+      ${clip.withRef ? `<div class="review-format-row" style="margin-bottom:0.15rem">
         <label><input type="radio" name="fmt-${clip.id}" value="solo" checked> instrument only</label>
         <label><input type="radio" name="fmt-${clip.id}" value="blend"> with blend</label>
       </div>` : ''}
-      <audio class="rec-clip-audio" id="audio-${clip.id}" src="${clip.url}" controls preload="none"></audio>
+      <div class="clip-player" id="clip-player-${clip.id}">
+        <div class="clip-player-controls">
+          <button class="clip-play-btn" id="clip-btn-${clip.id}"
+            onclick="toggleClipPlay(${clip.id})">▶</button>
+          <canvas class="clip-waveform-canvas" id="clip-wave-${clip.id}"
+            onclick="seekClip(${clip.id},event)" title="Click to seek"></canvas>
+          <span class="clip-time" id="clip-time-${clip.id}">0:00 / ${durStr}</span>
+        </div>
+      </div>
     </div>`;
   }).join('');
+
+  // Init players after DOM update
+  recClips.forEach(clip => _initClipPlayer(clip));
 }
 
-// ── Blend toggle: play clip with reference underneath ──
+async function _initClipPlayer(clip) {
+  // Create audio element if needed
+  if (!clipAudioEls[clip.id]) {
+    const a = new Audio();
+    a.src = clip.url;
+    a.preload = 'auto';
+    clipAudioEls[clip.id] = a;
+    a.addEventListener('timeupdate', () => _updateClipPlayhead(clip.id));
+    a.addEventListener('ended', () => {
+      const btn = document.getElementById(`clip-btn-${clip.id}`);
+      if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+      _stopBlendRef(clip);
+      _drawClipWaveform(clip.id, 0);
+    });
+  }
+  // Decode peaks lazily
+  if (!clipPeaks[clip.id]) {
+    try {
+      const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = await clip.blob.arrayBuffer();
+      const decoded = await ctx2.decodeAudioData(buf);
+      ctx2.close();
+      const BUCKETS = 200;
+      const data = decoded.getChannelData(0);
+      const n = data.length;
+      const peaks = new Float32Array(BUCKETS);
+      const step = n / BUCKETS;
+      for (let i = 0; i < BUCKETS; i++) {
+        const s = Math.floor(i*step), e = Math.floor((i+1)*step);
+        let peak = 0;
+        for (let j = s; j < e; j++) { const v = Math.abs(data[j]); if (v > peak) peak = v; }
+        peaks[i] = peak;
+      }
+      const sorted = peaks.slice().sort((a,b)=>a-b);
+      const p95 = sorted[Math.floor(sorted.length*0.95)] || 1;
+      for (let i = 0; i < BUCKETS; i++) peaks[i] = Math.min(1, peaks[i]/p95);
+      clipPeaks[clip.id] = peaks;
+    } catch(e) {
+      clipPeaks[clip.id] = new Float32Array(200).fill(0.3);
+    }
+  }
+  _drawClipWaveform(clip.id, 0);
+}
+
+function _drawClipWaveform(clipId, progress) {
+  const canvas = document.getElementById(`clip-wave-${clipId}`);
+  if (!canvas) return;
+  const peaks = clipPeaks[clipId];
+  if (!peaks) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 180;
+  const H = canvas.clientHeight || 32;
+  if (canvas.width !== W*dpr || canvas.height !== H*dpr) {
+    canvas.width = W*dpr; canvas.height = H*dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W*dpr,H*dpr);
+  ctx.scale(dpr,dpr);
+  const playX = Math.floor(progress * W);
+  for (let px = 0; px < W; px++) {
+    const b = Math.min(Math.floor((px/W)*peaks.length), peaks.length-1);
+    const h = Math.max(2, peaks[b] * H * 0.88);
+    const y = (H-h)/2;
+    ctx.fillStyle = px < playX ? '#c4922a' : '#2d2a26';
+    ctx.fillRect(px, y, 1, h);
+  }
+  if (progress > 0 && progress < 1) {
+    ctx.fillStyle = 'rgba(232,228,220,0.8)';
+    ctx.fillRect(playX, 0, 1, H);
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+
+function _updateClipPlayhead(clipId) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  if (!a || !clip) return;
+  const progress = clip.duration > 0 ? a.currentTime / clip.duration : 0;
+  _drawClipWaveform(clipId, progress);
+  const timeEl = document.getElementById(`clip-time-${clipId}`);
+  if (timeEl) timeEl.textContent = `${_fmtClipDur(a.currentTime)} / ${_fmtClipDur(clip.duration)}`;
+}
+
+function toggleClipPlay(clipId) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  const btn = document.getElementById(`clip-btn-${clipId}`);
+  if (!a || !clip || !btn) return;
+  // Pause all other clips
+  recClips.forEach(c => {
+    if (c.id !== clipId && clipAudioEls[c.id] && !clipAudioEls[c.id].paused) {
+      clipAudioEls[c.id].pause();
+      const b = document.getElementById(`clip-btn-${c.id}`);
+      if (b) { b.textContent = '▶'; b.classList.remove('playing'); }
+      _stopBlendRef(c);
+    }
+  });
+  if (a.paused) {
+    a.play().then(() => {
+      btn.textContent = '⏸'; btn.classList.add('playing');
+      if (clip.blendActive) _startBlendRef(clip, a.currentTime);
+    }).catch(()=>{});
+  } else {
+    a.pause(); btn.textContent = '▶'; btn.classList.remove('playing');
+    _stopBlendRef(clip);
+  }
+}
+
+function seekClip(clipId, event) {
+  const a = clipAudioEls[clipId];
+  const clip = recClips.find(c => c.id === clipId);
+  const canvas = document.getElementById(`clip-wave-${clipId}`);
+  if (!a || !clip || !canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const progress = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+  a.currentTime = progress * clip.duration;
+  _drawClipWaveform(clipId, progress);
+  if (clip.blendActive) _startBlendRef(clip, a.currentTime);
+}
+
+function _startBlendRef(clip, clipCurrentTime) {
+  if (!audioBuffer || !audioEl) return;
+  const refPos = (clip.startOffset || 0) + clipCurrentTime + (latencyOffset / 1000);
+  audioEl.currentTime = trimOffset + Math.max(0, Math.min(audioDuration, refPos));
+  audioEl.volume = Math.max(0, Math.min(1, (100 - blendValue) / 100));
+  audioEl.preservesPitch = true;
+  audioEl.playbackRate = 1.0;
+  audioEl.play().catch(()=>{});
+}
+
+function _stopBlendRef(clip) {
+  if (!audioEl) return;
+  audioEl.pause(); audioEl.volume = 1;
+}
+
+// ── Blend toggle ──
 function toggleClipBlend(clipId) {
   const clip = recClips.find(c => c.id === clipId);
   if (!clip) return;
   clip.blendActive = !clip.blendActive;
   const btn = document.getElementById(`blend-toggle-${clipId}`);
   if (btn) btn.classList.toggle('active', clip.blendActive);
-  const audioEl2 = document.getElementById(`audio-${clipId}`);
-  if (!audioEl2) return;
-  if (clip.blendActive && audioBuffer && audioEl) {
-    // When this clip plays, also play reference at blend ratio from startOffset
-    audioEl2.onplay = () => {
-      const refStart = Math.max(0, (clip.startOffset||0) + latencyOffset/1000);
-      audioEl.currentTime = trimOffset + refStart;
-      audioEl.volume = (100 - blendValue) / 100;
-      audioEl.play().catch(()=>{});
-    };
-    audioEl2.onpause = () => { audioEl.pause(); audioEl.volume = 1; };
-    audioEl2.onended = () => { audioEl.pause(); audioEl.volume = 1; };
+  const a = clipAudioEls[clipId];
+  if (clip.blendActive && a && !a.paused) {
+    _startBlendRef(clip, a.currentTime);
   } else {
-    audioEl2.onplay = null;
-    audioEl2.onpause = null;
-    audioEl2.onended = null;
-    audioEl.pause();
-    audioEl.volume = 1;
+    _stopBlendRef(clip);
   }
 }
 
@@ -2632,7 +2858,13 @@ function updateClipLabel(id, val) {
 
 function deleteClip(id) {
   const clip = recClips.find(c => c.id === id);
-  if (clip) URL.revokeObjectURL(clip.url);
+  if (clip) { URL.revokeObjectURL(clip.url); _stopBlendRef(clip); }
+  if (clipAudioEls[id]) {
+    clipAudioEls[id].pause();
+    clipAudioEls[id].src = '';
+    delete clipAudioEls[id];
+  }
+  delete clipPeaks[id];
   recClips = recClips.filter(c => c.id !== id);
   renderRecClips();
 }
@@ -2671,6 +2903,13 @@ async function downloadSelected() {
     `✓ ${downloaded} clip${downloaded!==1?'s':''} saved`;
   selected.forEach(clip => {
     URL.revokeObjectURL(clip.url);
+    _stopBlendRef(clip);
+    if (clipAudioEls[clip.id]) {
+      clipAudioEls[clip.id].pause();
+      clipAudioEls[clip.id].src = '';
+      delete clipAudioEls[clip.id];
+    }
+    delete clipPeaks[clip.id];
     recClips = recClips.filter(c => c.id !== clip.id);
   });
   renderRecClips();
