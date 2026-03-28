@@ -42,6 +42,27 @@ header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);
   background:var(--bg2);border:1px solid var(--border);padding:0.6rem 0.8rem}
 .overview-wrap{position:relative;margin-bottom:0.5rem}
 #overview-canvas{width:100%;height:128px;display:block;cursor:crosshair;background:var(--bg3)}
+#overview-canvas.mode-structural{cursor:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><line x1="10" y1="0" x2="10" y2="20" stroke="%23c4922a" stroke-width="1.5"/><line x1="0" y1="10" x2="20" y2="10" stroke="%23c4922a" stroke-width="1.5"/></svg>') 10 10, crosshair}
+#overview-canvas.mode-performance{cursor:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><line x1="10" y1="0" x2="10" y2="20" stroke="%234a7ec4" stroke-width="1.5"/><line x1="0" y1="10" x2="20" y2="10" stroke="%234a7ec4" stroke-width="1.5"/></svg>') 10 10, crosshair}
+
+/* ── MODE TOGGLE ── */
+.mode-toggle{display:flex;align-items:center;gap:0;border:1px solid var(--border);overflow:hidden}
+.mode-btn{background:none;border:none;font-family:'JetBrains Mono',monospace;
+  font-size:0.38rem;letter-spacing:0.06em;padding:0.12rem 0.45rem;cursor:pointer;
+  color:var(--text-faint);transition:all 0.15s;white-space:nowrap}
+.mode-btn.active-structural{background:var(--accent);color:var(--bg)}
+.mode-btn.active-performance{background:var(--blue);color:#fff}
+.mode-btn:not(.active-structural):not(.active-performance):hover{color:var(--text)}
+
+/* ── PASSAGE NOTES ── */
+.passage-note-input{background:none;border:none;border-top:1px solid var(--border);
+  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.43rem;
+  padding:0.2rem 0;width:100%;outline:none;resize:none;overflow:hidden;
+  line-height:1.6;transition:color 0.15s;display:none}
+.passage-note-input.has-note{display:block}
+.loop-row:hover .passage-note-input{display:block}
+.passage-note-input:focus{color:var(--text);display:block}
+.passage-note-input::placeholder{color:var(--text-faint);font-style:italic}
 .transport{display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
 .player-left,.player-right{display:flex;align-items:center;gap:0.4rem}
 .btn-player{background:var(--bg3);border:1px solid var(--border);color:var(--text-mid);
@@ -294,6 +315,7 @@ input[type=file]{display:none}
   display:grid;
   grid-template-columns:1fr 70px 46px 22px 22px 22px 22px 22px;
   gap:0.3rem;align-items:center}
+.passage-note-input{grid-column:1/-1}
 .loop-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
   text-transform:uppercase;padding-bottom:0.3rem;border-bottom:1px solid var(--border);
   margin-bottom:0.2rem;display:none}
@@ -459,7 +481,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.4</span>
+    <span class="app-ver">v5.5</span>
   </div>
 </header>
 
@@ -550,8 +572,13 @@ input[type=file]{display:none}
       <div class="marker-panel">
         <div class="section-divider">
           <span>Rehearsal marks</span>
-          <div style="display:flex;align-items:center;gap:0.4rem">
-            <button class="btn-sm" id="lock-all-btn" onclick="toggleLockAll()" style="font-size:0.38rem;padding:0.1rem 0.4rem">Lock all</button>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <div class="mode-toggle" id="mark-mode-toggle">
+              <button class="mode-btn active-structural" id="btn-mode-structural"
+                onclick="setMarkMode('structural')" title="Drop composer rehearsal marks (gold)">Structural</button>
+              <button class="mode-btn" id="btn-mode-performance"
+                onclick="setMarkMode('performance')" title="Drop personal practice marks (blue)">Performance</button>
+            </div>
             <span id="marker-count" style="color:var(--accent)">0 marks</span>
           </div>
         </div>
@@ -616,22 +643,13 @@ input[type=file]{display:none}
           <button class="btn-sm primary" onclick="downloadSelected()">⬇ Download selected</button>
           <span id="review-status" style="font-size:0.44rem;color:var(--text-faint)"></span>
         </div>
-        <div class="rec-warning" style="font-size:0.4rem" title="Clips are not saved between sessions">Session clips only — download to keep</div>
-      </div>
-
-      <!-- Settings (collapsible) -->
-      <div class="right-panel" style="padding:0">
-        <button class="collapsible-hdr" style="padding:0.45rem 0.8rem" onclick="toggleSection('settings')">
-          <span>Settings</span><span id="settings-arrow">▸</span>
-        </button>
-        <div class="collapsible-body" id="settings-body" style="padding:0.4rem 0.8rem">
-          <div class="settings-row">
-            <span class="settings-label">Blend sync offset</span>
-            <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.1rem 0.4rem">−</button>
-            <span class="settings-val" id="latency-val">0ms</span>
-            <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.1rem 0.4rem">+</button>
-          </div>
+        <div class="latency-row" style="margin-top:0.3rem">
+          <span class="latency-label">Blend sync offset</span>
+          <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.1rem 0.4rem">−</button>
+          <span class="latency-val" id="latency-val">0ms</span>
+          <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.1rem 0.4rem">+</button>
         </div>
+        <div class="rec-warning" style="font-size:0.4rem" title="Clips are not saved between sessions">Session clips only — download to keep</div>
       </div>
 
       <!-- Keyboard reference (collapsible) -->
@@ -642,7 +660,7 @@ input[type=file]{display:none}
         <div class="collapsible-body" id="kbd-body" style="padding:0.4rem 0.8rem">
           <div class="kbd-ref">
             <strong>SPACE</strong> play/pause ·
-            <strong>M</strong> drop rehearsal mark ·
+            <strong>M</strong> drop mark (Structural or Performance per mode) ·
             <strong>P</strong> play to next mark ·
             <strong>← →</strong> −5s / +10s ·
             <strong>↑ ↓</strong> prev/next mark ·
@@ -705,15 +723,16 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.4</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.5</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.4</div>
-      · <strong style="color:var(--text)">Recording fixed:</strong> Reference audio plays audibly through headphones during every recording pass. Blend toggle appears on all clips when a reference is loaded.<br>
-      · <strong style="color:var(--text)">Takes redesigned:</strong> Full-width waveform per clip, compact transport row, per-clip save button.<br>
-      · <strong style="color:var(--text)">New names:</strong> Passages · Rehearsal marks · Takes · Woodshed · Repertoire.<br>
-      · <strong style="color:var(--text)">Reordered:</strong> Passages above Rehearsal marks (left). Notes above Takes (right).<br>
-      · <strong style="color:var(--text)">Decluttered:</strong> Shortcut bar removed (see Keyboard shortcuts panel). Lock column removed. Dur column removed. Tips section removed. Latency offset moved to Settings.<br>
-      · <strong style="color:var(--text)">Keyboard reference:</strong> Collapsible panel on right side.
+      <div class="doc-h">WHAT'S NEW IN v5.5</div>
+      · <strong style="color:var(--text)">Structural / Performance modes:</strong> Toggle in the Rehearsal marks header. M drops a gold structural mark or a blue performance mark depending on mode. Waveform cursor changes colour to show current mode.<br>
+      · <strong style="color:var(--text)">Structural mark protection:</strong> Deleting a structural mark triggers a confirmation prompt. Performance marks delete silently.<br>
+      · <strong style="color:var(--text)">Passage notes:</strong> Each passage row has an expandable notes field — appears on hover, saves with the session.<br>
+      · <strong style="color:var(--text)">Recording quality fixed:</strong> Echo cancellation and auto gain control both disabled. Instrument recordings should sound natural.<br>
+      · <strong style="color:var(--text)">Blend fixed:</strong> Reference track plays in sync with your clip when blend is active. Blend listeners wired correctly to play/pause/seek.<br>
+      · <strong style="color:var(--text)">Lead-in defaults to 0.0s.</strong> Starts exactly at the mark. Adjust with , . keys as needed.<br>
+      · Settings panel removed — blend sync offset moved back into Takes panel. Lock All removed.
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -770,7 +789,7 @@ let activeMarkerIdx = -1;   // for ↑/↓ navigation and Enter quick-loop
 let quickLoopStartId = null; // first Enter press sets this
 let currentSpeed    = 1.0;
 let trimOffset      = 0;
-let leadIn          = 0.5;
+let leadIn          = 0.0;
 let loopStart       = null;
 let loopEnd         = null;
 
@@ -784,6 +803,7 @@ let playStartedAt = 0;
 // Markers: { id, label, type:'R'|'D', time, locked }
 let markers         = [];
 let markerIdCounter = 0;
+let markMode        = 'structural'; // 'structural' | 'performance'
 
 // Segments: { id, startId, endId, name, include }
 let segments         = [];
@@ -1373,16 +1393,39 @@ function addMarker(label, type, time) {
 
 function tapMarker(type) {
   if (!audioBuffer) return;
-  addMarker(null, type||'R', _currentAudioTime());
+  // Use current mark mode to determine type if not explicitly specified
+  const resolvedType = type || (markMode === 'structural' ? 'R' : 'D');
+  addMarker(null, resolvedType, _currentAudioTime());
+}
+
+function setMarkMode(mode) {
+  markMode = mode;
+  // Update toggle button styles
+  const btnS = document.getElementById('btn-mode-structural');
+  const btnP = document.getElementById('btn-mode-performance');
+  if (btnS && btnP) {
+    btnS.className = 'mode-btn' + (mode === 'structural' ? ' active-structural' : '');
+    btnP.className = 'mode-btn' + (mode === 'performance' ? ' active-performance' : '');
+  }
+  // Update waveform cursor color
+  const canvas = document.getElementById('overview-canvas');
+  if (canvas) {
+    canvas.classList.toggle('mode-structural', mode === 'structural');
+    canvas.classList.toggle('mode-performance', mode === 'performance');
+  }
 }
 
 function removeMarker(id) {
   const m = markers.find(x=>x.id===id);
-  if (!m||m.locked) return;
+  if (!m) return;
+  // Structural marks require confirmation
+  if (m.type === 'R') {
+    if (!confirm(`Remove structural mark "${m.label}"?`)) return;
+  }
   pushUndo();
   const idx = markers.findIndex(x=>x.id===id);
   markers = markers.filter(x=>x.id!==id);
-  // Remove loops that referenced this marker
+  // Remove passages that referenced this marker
   segments = segments.filter(s=>s.startId!==id && s.endId!==id);
   // Auto-renumber within same family from deletion point
   if (markers.length > 0) {
@@ -1466,8 +1509,7 @@ function renderMarkers() {
   const list   = document.getElementById('marker-list');
   const header = document.getElementById('marker-col-header');
   const countEl= document.getElementById('marker-count');
-  countEl.textContent = `${markers.length} marker${markers.length!==1?'s':''}`;
-  _updateLockAllBtn();
+  countEl.textContent = `${markers.length} mark${markers.length!==1?'s':''}`;
 
   if (!markers.length) {
     header.style.display = 'none';
@@ -1531,20 +1573,7 @@ function previewFromMarker(id) {
   _startPlayback(m.time);
 }
 
-function _updateLockAllBtn() {
-  const btn = document.getElementById('lock-all-btn');
-  if (!btn) return;
-  const allLocked = markers.length > 0 && markers.every(m => m.locked);
-  btn.textContent = allLocked ? 'Unlock all' : 'Lock all';
-}
 
-function toggleLockAll() {
-  if (!markers.length) return;
-  const allLocked = markers.every(m => m.locked);
-  pushUndo();
-  markers.forEach(m => m.locked = !allLocked);
-  saveSession(); renderMarkers();
-}
 
 function markerLoopToNext(id) {
   const idx = markers.findIndex(m => m.id === id);
@@ -1732,18 +1761,25 @@ function renderLoops() {
     const isActive = seg.id === activeLoopId;
     const defaultName = `${sm.label} → ${em.label}`;
     const displayName = seg.name || defaultName;
+    const hasNote = seg.note && seg.note.trim();
     return `<div class="loop-row${isActive?' active-loop':''}" id="seg-row-${seg.id}">
       <input class="loop-label-input" value="${escHtml(displayName)}"
         placeholder="${escHtml(defaultName)}"
         onchange="updateLoopName(${seg.id},this.value)"
-        title="Click to rename loop">
+        title="Click to rename passage">
       <span class="loop-span">${sm.label}→${em.label}</span>
       <span class="loop-dur">${fmtTime(dur)}</span>
       <button class="loop-btn" onclick="previewSegment(${seg.id})" title="Preview">▶</button>
-      <button class="loop-btn${isActive?' loop-active':''}" onclick="toggleLoop(${seg.id})" title="Loop">⟳</button>
-      <button class="loop-btn${isActive?' loop-active':''}" onclick="openTempoTraining(${seg.id})" title="Tempo training">🎯</button>
-      <button class="loop-btn record" onclick="recordSegment(${seg.id})" title="Record this segment (●)">●</button>
+      <button class="loop-btn${isActive?' loop-active':''}" onclick="toggleLoop(${seg.id})" title="Loop passage">⟳</button>
+      <button class="loop-btn${isActive?' loop-active':''}" onclick="openTempoTraining(${seg.id})" title="Open Woodshed">T</button>
+      <button class="loop-btn record" onclick="recordSegment(${seg.id})" title="Record this passage (●)">●</button>
       <button class="loop-btn delete" onclick="removeSegment(${seg.id})" title="Remove">✕</button>
+      <textarea class="passage-note-input${hasNote?' has-note':''}"
+        id="passage-note-${seg.id}"
+        placeholder="notes on this passage…"
+        rows="1"
+        onchange="updatePassageNote(${seg.id},this.value)"
+        oninput="this.rows=this.value?2:1">${escHtml(seg.note||'')}</textarea>
     </div>`;
   }).filter(Boolean).join('');
 
@@ -1753,6 +1789,11 @@ function renderLoops() {
 function updateLoopName(id, val) {
   const seg = segments.find(s=>s.id===id);
   if (seg) { seg.name = val.trim(); saveSession(); }
+}
+
+function updatePassageNote(id, val) {
+  const seg = segments.find(s=>s.id===id);
+  if (seg) { seg.note = val.trim(); saveSession(); }
 }
 
 function toggleLoop(id) {
@@ -2448,7 +2489,7 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: false, sampleRate: 44100 }
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 }
     });
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
@@ -2512,7 +2553,7 @@ async function _startFreeRecording() {
   if (isRecording) { _stopRecording(); return; }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: false, sampleRate: 44100 }
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 }
     });
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
@@ -2834,22 +2875,28 @@ function seekClip(clipId, event) {
   const progress = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   a.currentTime = progress * clip.duration;
   _drawClipWaveform(clipId, progress);
+  // If blend is active, reposition reference to match
   if (clip.blendActive) _startBlendRef(clip, a.currentTime);
 }
 
 function _startBlendRef(clip, clipCurrentTime) {
   if (!audioBuffer || !audioEl) return;
+  // Position reference at where the clip was recorded from, offset by clip's current position
   const refPos = (clip.startOffset || 0) + clipCurrentTime + (latencyOffset / 1000);
-  audioEl.currentTime = trimOffset + Math.max(0, Math.min(audioDuration, refPos));
+  const clampedPos = Math.max(0, Math.min(audioDuration, refPos));
+  // Stop any current main playback first
+  if (isPlaying) _pause();
+  audioEl.currentTime = trimOffset + clampedPos;
   audioEl.volume = Math.max(0, Math.min(1, (100 - blendValue) / 100));
   audioEl.preservesPitch = true;
   audioEl.playbackRate = 1.0;
-  audioEl.play().catch(()=>{});
+  audioEl.play().catch(() => {});
 }
 
 function _stopBlendRef(clip) {
   if (!audioEl) return;
-  audioEl.pause(); audioEl.volume = 1;
+  audioEl.pause();
+  audioEl.volume = 1;
 }
 
 // ── Blend toggle ──
@@ -2860,9 +2907,23 @@ function toggleClipBlend(clipId) {
   const btn = document.getElementById(`blend-toggle-${clipId}`);
   if (btn) btn.classList.toggle('active', clip.blendActive);
   const a = clipAudioEls[clipId];
-  if (clip.blendActive && a && !a.paused) {
-    _startBlendRef(clip, a.currentTime);
+  if (!a) return;
+  if (clip.blendActive) {
+    // If clip is already playing, start reference in sync now
+    if (!a.paused) _startBlendRef(clip, a.currentTime);
+    // Wire up future play events
+    a._blendOnPlay = () => _startBlendRef(clip, a.currentTime);
+    a._blendOnPause = () => _stopBlendRef(clip);
+    a._blendOnEnded = () => _stopBlendRef(clip);
+    a.addEventListener('play',  a._blendOnPlay);
+    a.addEventListener('pause', a._blendOnPause);
+    a.addEventListener('ended', a._blendOnEnded);
   } else {
+    // Remove listeners and stop reference
+    if (a._blendOnPlay)  a.removeEventListener('play',  a._blendOnPlay);
+    if (a._blendOnPause) a.removeEventListener('pause', a._blendOnPause);
+    if (a._blendOnEnded) a.removeEventListener('ended', a._blendOnEnded);
+    a._blendOnPlay = a._blendOnPause = a._blendOnEnded = null;
     _stopBlendRef(clip);
   }
 }
@@ -2881,8 +2942,11 @@ function deleteClip(id) {
   const clip = recClips.find(c => c.id === id);
   if (clip) { URL.revokeObjectURL(clip.url); _stopBlendRef(clip); }
   if (clipAudioEls[id]) {
-    clipAudioEls[id].pause();
-    clipAudioEls[id].src = '';
+    const a = clipAudioEls[id];
+    if (a._blendOnPlay)  a.removeEventListener('play',  a._blendOnPlay);
+    if (a._blendOnPause) a.removeEventListener('pause', a._blendOnPause);
+    if (a._blendOnEnded) a.removeEventListener('ended', a._blendOnEnded);
+    a.pause(); a.src = '';
     delete clipAudioEls[id];
   }
   delete clipPeaks[id];
@@ -3626,6 +3690,7 @@ _updatePieceTitle();
 _loadLeadIn();
 _renderSessionLog();
 _initFolderAccess();
+setMarkMode('structural'); // start in structural mode, gold cursor
 window.addEventListener('resize', drawOverview);
 
 // Warn before closing if unsaved clips exist
