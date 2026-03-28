@@ -242,10 +242,19 @@ input[type=file]{display:none}
 /* ── SCRATCHPAD ── */
 .scratchpad-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
   color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.48rem;
-  padding:0.35rem 0.5rem;resize:none;height:120px;overflow-y:auto;
+  padding:0.35rem 0.5rem;resize:none;height:90px;overflow-y:auto;
   outline:none;transition:border-color 0.15s;line-height:1.7}
 .scratchpad-textarea:focus{border-color:var(--accent)}
 .scratchpad-textarea::placeholder{color:var(--text-faint)}
+.notes-divider{font-size:0.38rem;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--text-faint);padding:0.4rem 0 0.25rem;border-top:1px solid var(--border);
+  margin-top:0.4rem}
+.universal-notes-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.44rem;
+  padding:0.3rem 0.5rem;resize:none;height:70px;overflow-y:auto;
+  outline:none;transition:border-color 0.15s;line-height:1.7}
+.universal-notes-textarea:focus{border-color:var(--accent);color:var(--text)}
+.universal-notes-textarea::placeholder{color:var(--text-faint)}
 
 /* ── END-OF-SESSION REVIEW ── */
 .review-panel{background:var(--bg2);border:1px solid var(--border);
@@ -481,7 +490,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.5</span>
+    <span class="app-ver">v5.6</span>
   </div>
 </header>
 
@@ -603,6 +612,10 @@ input[type=file]{display:none}
         <textarea class="scratchpad-textarea" id="piece-notes"
           placeholder="Musical intentions, teacher feedback, phrasing ideas…"
           oninput="onNotesInput()"></textarea>
+        <div class="notes-divider">Practice journal</div>
+        <textarea class="universal-notes-textarea" id="universal-notes"
+          placeholder="Observations that apply across all pieces…"
+          oninput="onUniversalNotesInput()"></textarea>
       </div>
 
       <!-- Session log (auto-generated) -->
@@ -624,15 +637,7 @@ input[type=file]{display:none}
             <span class="rec-scope" id="rec-scope"></span>
           </div>
         </div>
-        <!-- Blend slider — sits at top of Takes panel, always visible when clips exist -->
-        <div class="blend-row" id="blend-row" style="display:none">
-          <span class="rec-blend-label">Blend:</span>
-          <span class="blend-ends" style="font-size:0.4rem">Ref</span>
-          <input type="range" class="blend-slider" id="blend-slider" min="0" max="100" value="50"
-            oninput="onBlendSlider(this.value)">
-          <span class="blend-ends" style="font-size:0.4rem">You</span>
-          <span style="font-size:0.4rem;color:var(--text-faint);min-width:2.5rem;text-align:right" id="blend-val">50/50</span>
-        </div>
+        <!-- Blend slider removed — see future features -->
         <div class="rec-controls" style="margin:0.3rem 0">
           <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">● Record</button>
         </div>
@@ -723,16 +728,23 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.5</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.6</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.5</div>
-      · <strong style="color:var(--text)">Structural / Performance modes:</strong> Toggle in the Rehearsal marks header. M drops a gold structural mark or a blue performance mark depending on mode. Waveform cursor changes colour to show current mode.<br>
-      · <strong style="color:var(--text)">Structural mark protection:</strong> Deleting a structural mark triggers a confirmation prompt. Performance marks delete silently.<br>
-      · <strong style="color:var(--text)">Passage notes:</strong> Each passage row has an expandable notes field — appears on hover, saves with the session.<br>
-      · <strong style="color:var(--text)">Recording quality fixed:</strong> Echo cancellation and auto gain control both disabled. Instrument recordings should sound natural.<br>
-      · <strong style="color:var(--text)">Blend fixed:</strong> Reference track plays in sync with your clip when blend is active. Blend listeners wired correctly to play/pause/seek.<br>
-      · <strong style="color:var(--text)">Lead-in defaults to 0.0s.</strong> Starts exactly at the mark. Adjust with , . keys as needed.<br>
-      · Settings panel removed — blend sync offset moved back into Takes panel. Lock All removed.
+      <div class="doc-h">WHAT'S NEW IN v5.6</div>
+      · <strong style="color:var(--text)">Universal notes:</strong> Practice journal below piece notes — persists across all pieces in this browser.<br>
+      · <strong style="color:var(--text)">Mark deletion logic:</strong> Placeholder marks (unlabelled) delete silently. Labelled marks require confirmation.<br>
+      · <strong style="color:var(--text)">Takes plays reference in sync:</strong> Pressing play on a clip now plays the reference track alongside it automatically, positioned at the recording start point. Main player and clip player are mutually exclusive.<br>
+      · <strong style="color:var(--text)">Edit marks while looping:</strong> Drag marks on the waveform without stopping the loop. Loop boundaries update in real time if you move a boundary marker.<br>
+      · Blend bar removed from Takes panel (see Future Features).<br>
+      · Lead-in defaults to 0.0s.
+
+      <div class="doc-h">FUTURE FEATURES</div>
+      · Blend playback (reference + clip mix with crossfade slider)<br>
+      · Spool — practice playlist of non-contiguous passages at stepped tempos<br>
+      · Record segment without looping (single pass)<br>
+      · Folder architecture (piece subfolders, auto-save, audio auto-detection)<br>
+      · Progress log and recordings history<br>
+      · Score-to-marker workflow (tap-to-place from rehearsal mark list)
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -1144,7 +1156,23 @@ function resetZoom() { _applyZoom(1, audioDuration/2); }
 // ══════════════════════════════════════════════
 function togglePlay() {
   if (!audioEl || !audioBuffer) return;
-  if (isPlaying) _pause(); else _startPlayback(playOffset);
+  if (isPlaying) { _pause(); return; }
+  // Stop any playing clips before starting main playback
+  _stopAllClips();
+  _startPlayback(playOffset);
+}
+
+function _stopAllClips() {
+  recClips.forEach(c => {
+    const a = clipAudioEls[c.id];
+    if (a && !a.paused) {
+      a.pause();
+      const btn = document.getElementById(`clip-btn-${c.id}`);
+      if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+    }
+  });
+  // Restore reference volume
+  if (audioEl) audioEl.volume = 1;
 }
 
 function _startPlayback(offset, stopAfterSecs=null) {
@@ -1418,9 +1446,10 @@ function setMarkMode(mode) {
 function removeMarker(id) {
   const m = markers.find(x=>x.id===id);
   if (!m) return;
-  // Structural marks require confirmation
-  if (m.type === 'R') {
-    if (!confirm(`Remove structural mark "${m.label}"?`)) return;
+  // Placeholder marks (unlabelled) delete silently
+  // Labelled marks require confirmation
+  if (!isPlaceholder(m.label)) {
+    if (!confirm(`Remove mark "${m.label}"?`)) return;
   }
   pushUndo();
   const idx = markers.findIndex(x=>x.id===id);
@@ -2714,17 +2743,12 @@ function _fmtClipDur(secs) {
 
 function renderRecClips() {
   const el = document.getElementById('rec-clip-list');
-  const blendRow = document.getElementById('blend-row');
   const dlRow = document.getElementById('rec-download-row');
   if (!recClips.length) {
     el.innerHTML = '<div class="rec-no-clips">No clips yet — press ● or R to record</div>';
-    if (blendRow) blendRow.style.display = 'none';
     if (dlRow) dlRow.style.display = 'none';
     return;
   }
-  // Show blend slider if any clip has a reference track
-  const hasWithRef = recClips.some(c => c.withRef);
-  if (blendRow) blendRow.style.display = hasWithRef ? 'flex' : 'none';
   if (dlRow) dlRow.style.display = 'flex';
 
   el.innerHTML = recClips.map(clip => {
@@ -2846,6 +2870,7 @@ function toggleClipPlay(clipId) {
   const clip = recClips.find(c => c.id === clipId);
   const btn = document.getElementById(`clip-btn-${clipId}`);
   if (!a || !clip || !btn) return;
+
   // Pause all other clips
   recClips.forEach(c => {
     if (c.id !== clipId && clipAudioEls[c.id] && !clipAudioEls[c.id].paused) {
@@ -2855,14 +2880,29 @@ function toggleClipPlay(clipId) {
       _stopBlendRef(c);
     }
   });
+
   if (a.paused) {
+    // Pause main player before starting clip
+    if (isPlaying) _pause();
+
     a.play().then(() => {
       btn.textContent = '⏸'; btn.classList.add('playing');
-      if (clip.blendActive) _startBlendRef(clip, a.currentTime);
-    }).catch(()=>{});
+      // Always play reference alongside clip — positioned at recording start offset
+      if (audioBuffer && audioEl) {
+        const refPos = (clip.startOffset || 0) + a.currentTime + (latencyOffset / 1000);
+        const clampedPos = Math.max(0, Math.min(audioDuration, refPos));
+        audioEl.currentTime = trimOffset + clampedPos;
+        audioEl.volume = 1;
+        audioEl.preservesPitch = true;
+        audioEl.playbackRate = 1.0;
+        audioEl.play().catch(() => {});
+      }
+    }).catch(() => {});
   } else {
-    a.pause(); btn.textContent = '▶'; btn.classList.remove('playing');
-    _stopBlendRef(clip);
+    a.pause();
+    btn.textContent = '▶'; btn.classList.remove('playing');
+    // Stop reference too
+    if (audioEl) { audioEl.pause(); audioEl.volume = 1; }
   }
 }
 
@@ -2875,8 +2915,11 @@ function seekClip(clipId, event) {
   const progress = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   a.currentTime = progress * clip.duration;
   _drawClipWaveform(clipId, progress);
-  // If blend is active, reposition reference to match
-  if (clip.blendActive) _startBlendRef(clip, a.currentTime);
+  // Reposition reference to match new clip position
+  if (audioBuffer && audioEl && !a.paused) {
+    const refPos = (clip.startOffset || 0) + a.currentTime + (latencyOffset / 1000);
+    audioEl.currentTime = trimOffset + Math.max(0, Math.min(audioDuration, refPos));
+  }
 }
 
 function _startBlendRef(clip, clipCurrentTime) {
@@ -3441,6 +3484,24 @@ function onNotesInput() {
   saveSession();
 }
 
+const UNIVERSAL_NOTES_KEY = 'rs_universal_notes_v1';
+
+function onUniversalNotesInput() {
+  const el = document.getElementById('universal-notes');
+  if (el) {
+    try { localStorage.setItem(UNIVERSAL_NOTES_KEY, el.value); } catch(e) {}
+  }
+}
+
+function _loadUniversalNotes() {
+  const el = document.getElementById('universal-notes');
+  if (!el) return;
+  try {
+    const stored = localStorage.getItem(UNIVERSAL_NOTES_KEY);
+    if (stored !== null) el.value = stored;
+  } catch(e) {}
+}
+
 // ══════════════════════════════════════════════
 // WAVEFORM INTERACTION
 // ══════════════════════════════════════════════
@@ -3475,7 +3536,8 @@ function _hitTestMarker(mouseX, canvasWidth) {
       pushUndo();
       dragMarkerState = { id:hit.id, snapTime:hit.time, mousedownX:e.clientX, didDrag:false, locked:!!hit.locked };
       canvas.classList.add('marker-drag');
-      if (isPlaying) _pause();
+      // Only pause if not looping — allow marker edits during loop playback
+      if (isPlaying && loopStart === null) _pause();
     } else {
       dragMarkerState = null;
       isDragging = false; isPanning = false;
@@ -3513,10 +3575,20 @@ function _hitTestMarker(mouseX, canvasWidth) {
           markers.sort((a,b)=>a.time-b.time);
           const ti = document.querySelector(`#marker-row-${dragMarkerState.id} .marker-time-input`);
           if (ti) ti.value = fmtTime(newTime);
-          markers.forEach((mk,i)=>{
-          });
+          markers.forEach((mk,i)=>{});
+          // Update loop boundaries in real time if this marker is a loop endpoint
+          if (loopStart !== null && loopEnd !== null && activeLoopId !== null) {
+            const seg = segments.find(s => s.id === activeLoopId);
+            if (seg) {
+              const sm = markers.find(mk => mk.id === seg.startId);
+              const em = markers.find(mk => mk.id === seg.endId);
+              if (sm && em && sm.time < em.time) {
+                loopStart = trimOffset + sm.time;
+                loopEnd   = trimOffset + em.time;
+              }
+            }
+          }
           drawOverview();
-          // #11 show tooltip while dragging marker
           tooltip.textContent = fmtTime(newTime);
           tooltip.style.display = 'block';
           tooltip.style.left = e.clientX + 'px';
@@ -3596,13 +3668,18 @@ function _hitTestMarker(mouseX, canvasWidth) {
       const snapTime = dragMarkerState.snapTime;
       dragMarkerState = null;
       canvas.classList.remove('marker-drag');
-      canvas.style.cursor = 'crosshair';
-      if (wasDrag) { saveSession(); renderMarkers(); }
-      else {
+      // Restore cursor to current mode colour
+      canvas.style.cursor = '';
+      if (wasDrag) {
+        saveSession(); renderMarkers();
+        // If looping, keep the loop running — don't seek
+      } else {
         undoStack.pop();
         if (!undoStack.length) document.getElementById('btn-undo').disabled = true;
-        playOffset = snapTime; queuePoint = snapTime;
-        _updateDisplay(snapTime); drawOverview();
+        if (!isPlaying) {
+          playOffset = snapTime; queuePoint = snapTime;
+          _updateDisplay(snapTime); drawOverview();
+        }
       }
     } else if (isPanning) {
       isPanning = false;
@@ -3690,7 +3767,8 @@ _updatePieceTitle();
 _loadLeadIn();
 _renderSessionLog();
 _initFolderAccess();
-setMarkMode('structural'); // start in structural mode, gold cursor
+setMarkMode('structural');
+_loadUniversalNotes();
 window.addEventListener('resize', drawOverview);
 
 // Warn before closing if unsaved clips exist
