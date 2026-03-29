@@ -46,13 +46,32 @@ header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);
 #overview-canvas.mode-performance{cursor:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><line x1="10" y1="0" x2="10" y2="20" stroke="%234a7ec4" stroke-width="1.5"/><line x1="0" y1="10" x2="20" y2="10" stroke="%234a7ec4" stroke-width="1.5"/></svg>') 10 10, crosshair}
 
 /* ── MODE TOGGLE ── */
+.mode-toggle-bar{display:flex;align-items:center;gap:0.5rem;
+  padding:0.3rem 0.8rem;background:var(--bg2);border-bottom:2px solid var(--border)}
+.mode-toggle-bar.mode-structural{border-bottom-color:var(--accent)}
+.mode-toggle-bar.mode-performance{border-bottom-color:var(--blue)}
 .mode-toggle{display:flex;align-items:center;gap:0;border:1px solid var(--border);overflow:hidden}
 .mode-btn{background:none;border:none;font-family:'JetBrains Mono',monospace;
-  font-size:0.38rem;letter-spacing:0.06em;padding:0.12rem 0.45rem;cursor:pointer;
+  font-size:0.42rem;letter-spacing:0.06em;padding:0.18rem 0.6rem;cursor:pointer;
   color:var(--text-faint);transition:all 0.15s;white-space:nowrap}
-.mode-btn.active-structural{background:var(--accent);color:var(--bg)}
-.mode-btn.active-performance{background:var(--blue);color:#fff}
+.mode-btn.active-structural{background:var(--accent);color:var(--bg);font-weight:500}
+.mode-btn.active-performance{background:var(--blue);color:#fff;font-weight:500}
 .mode-btn:not(.active-structural):not(.active-performance):hover{color:var(--text)}
+.mode-label{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.08em}
+
+/* ── COLOR-CODED MARK ROWS ── */
+.marker-row.structural-mark{border-left:2px solid var(--accent)}
+.marker-row.performance-mark{border-left:2px solid var(--blue)}
+.marker-row.structural-mark .marker-label-input{color:var(--accent)}
+.marker-row.performance-mark .marker-label-input{color:var(--blue)}
+
+/* ── RECORDING CONTROLS BAR ── */
+.rec-controls-bar{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;
+  padding:0.4rem 0.5rem;background:var(--bg3);border:1px solid var(--border);
+  margin-bottom:0.4rem}
+.rec-ctrl-label{font-size:0.4rem;color:var(--text-faint);white-space:nowrap}
+.rec-blend-slider{flex:1;min-width:60px;accent-color:var(--blue);cursor:pointer}
+.rec-ctrl-val{font-size:0.42rem;color:var(--text-mid);min-width:2.5rem;text-align:right;white-space:nowrap}
 
 /* ── PASSAGE NOTES ── */
 .passage-note-input{background:none;border:none;border-top:1px solid var(--border);
@@ -226,7 +245,6 @@ input[type=file]{display:none}
 .annotation-tag{font-size:0.38rem;padding:0.08rem 0.3rem;border-radius:2px;
   cursor:pointer;white-space:nowrap;transition:all 0.15s;border:1px solid var(--border);
   color:var(--text-faint);background:none;font-family:'JetBrains Mono',monospace}
-.annotation-tag.teacher{border-color:var(--blue);color:var(--blue);background:rgba(74,126,196,0.1)}
 .annotation-date{font-size:0.38rem;color:var(--text-faint);white-space:nowrap;align-self:flex-end;padding-bottom:0.1rem}
 
 /* ── RIGHT COLUMN PANELS ── */
@@ -490,7 +508,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.6</span>
+    <span class="app-ver">v5.7</span>
   </div>
 </header>
 
@@ -510,6 +528,19 @@ input[type=file]{display:none}
 
   <!-- Player + waveform -->
   <div id="audio-player">
+    <!-- Mode toggle bar — above waveform, always visible -->
+    <div class="mode-toggle-bar mode-structural" id="mode-toggle-bar">
+      <span class="mode-label">Mode:</span>
+      <div class="mode-toggle">
+        <button class="mode-btn active-structural" id="wv-btn-structural"
+          onclick="setMarkMode('structural')">Structural</button>
+        <button class="mode-btn" id="wv-btn-performance"
+          onclick="setMarkMode('performance')">Performance</button>
+      </div>
+      <span style="font-size:0.4rem;color:var(--text-faint)" id="mode-hint">
+        showing structural marks only
+      </span>
+    </div>
     <div class="overview-wrap">
       <canvas id="overview-canvas"></canvas>
     </div>
@@ -577,16 +608,16 @@ input[type=file]{display:none}
         </div>
       </div>
 
-      <!-- Rehearsal marks (formerly Markers) -->
+      <!-- Rehearsal marks -->
       <div class="marker-panel">
         <div class="section-divider">
           <span>Rehearsal marks</span>
           <div style="display:flex;align-items:center;gap:0.5rem">
-            <div class="mode-toggle" id="mark-mode-toggle">
+            <div class="mode-toggle" id="mark-mode-toggle-2">
               <button class="mode-btn active-structural" id="btn-mode-structural"
-                onclick="setMarkMode('structural')" title="Drop composer rehearsal marks (gold)">Structural</button>
+                onclick="setMarkMode('structural')">Structural</button>
               <button class="mode-btn" id="btn-mode-performance"
-                onclick="setMarkMode('performance')" title="Drop personal practice marks (blue)">Performance</button>
+                onclick="setMarkMode('performance')">Performance</button>
             </div>
             <span id="marker-count" style="color:var(--accent)">0 marks</span>
           </div>
@@ -637,8 +668,21 @@ input[type=file]{display:none}
             <span class="rec-scope" id="rec-scope"></span>
           </div>
         </div>
-        <!-- Blend slider removed — see future features -->
-        <div class="rec-controls" style="margin:0.3rem 0">
+        <!-- System-level recording controls -->
+        <div class="rec-controls-bar">
+          <span class="rec-ctrl-label">Blend</span>
+          <span class="rec-ctrl-label" style="font-size:0.38rem">Ref</span>
+          <input type="range" class="rec-blend-slider" id="blend-slider"
+            min="0" max="100" value="50" oninput="onBlendSlider(this.value)">
+          <span class="rec-ctrl-label" style="font-size:0.38rem">You</span>
+          <span class="rec-ctrl-val" id="blend-val">50/50</span>
+          <span style="width:1px;background:var(--border);height:1rem;flex-shrink:0"></span>
+          <span class="rec-ctrl-label">Sync</span>
+          <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.08rem 0.3rem;font-size:0.4rem">−</button>
+          <span class="rec-ctrl-val" id="latency-val">0ms</span>
+          <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.08rem 0.3rem;font-size:0.4rem">+</button>
+        </div>
+        <div class="rec-controls" style="margin:0.2rem 0">
           <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">● Record</button>
         </div>
         <div id="rec-clip-list" class="rec-clip-list">
@@ -648,13 +692,7 @@ input[type=file]{display:none}
           <button class="btn-sm primary" onclick="downloadSelected()">⬇ Download selected</button>
           <span id="review-status" style="font-size:0.44rem;color:var(--text-faint)"></span>
         </div>
-        <div class="latency-row" style="margin-top:0.3rem">
-          <span class="latency-label">Blend sync offset</span>
-          <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.1rem 0.4rem">−</button>
-          <span class="latency-val" id="latency-val">0ms</span>
-          <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.1rem 0.4rem">+</button>
-        </div>
-        <div class="rec-warning" style="font-size:0.4rem" title="Clips are not saved between sessions">Session clips only — download to keep</div>
+        <div class="rec-warning" style="font-size:0.4rem">Session clips only — download to keep</div>
       </div>
 
       <!-- Keyboard reference (collapsible) -->
@@ -728,15 +766,15 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.6</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.7</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.6</div>
-      · <strong style="color:var(--text)">Universal notes:</strong> Practice journal below piece notes — persists across all pieces in this browser.<br>
-      · <strong style="color:var(--text)">Mark deletion logic:</strong> Placeholder marks (unlabelled) delete silently. Labelled marks require confirmation.<br>
-      · <strong style="color:var(--text)">Takes plays reference in sync:</strong> Pressing play on a clip now plays the reference track alongside it automatically, positioned at the recording start point. Main player and clip player are mutually exclusive.<br>
-      · <strong style="color:var(--text)">Edit marks while looping:</strong> Drag marks on the waveform without stopping the loop. Loop boundaries update in real time if you move a boundary marker.<br>
-      · Blend bar removed from Takes panel (see Future Features).<br>
-      · Lead-in defaults to 0.0s.
+      <div class="doc-h">WHAT'S NEW IN v5.7</div>
+      · <strong style="color:var(--text)">Structural / Performance modes — full implementation:</strong> Mode toggle above waveform and in Rehearsal marks panel, always in sync. Structural mode shows only gold structural marks on waveform and in list. Performance mode shows all marks, color-coded gold/blue.<br>
+      · <strong style="color:var(--text)">Smart loop on structural marks:</strong> ⟳ on a structural mark loops to the next structural mark, skipping all performance marks between them. Section-level looping always works regardless of how many performance marks exist inside.<br>
+      · <strong style="color:var(--text)">Armed loop recording:</strong> Pressing R while a loop is playing arms the recorder — current pass plays out, recording starts automatically on the next full pass. R while stopped starts immediately.<br>
+      · <strong style="color:var(--text)">Takes controls bar:</strong> Blend mix and sync offset now live at the top of the Takes panel as system-level controls, above all clips.<br>
+      · <strong style="color:var(--text)">Slower zoom:</strong> More granular zoom steps for precise waveform navigation.<br>
+      · Teacher note function removed.
 
       <div class="doc-h">FUTURE FEATURES</div>
       · Blend playback (reference + clip mix with crossfade slider)<br>
@@ -1059,27 +1097,26 @@ function drawOverview() {
   ctx.fillText(fmtTime(viewEnd), W-3, H-3);
   ctx.textAlign = 'left';
 
-  // Marker lines + labels
-  // First pass: compute x positions and detect collisions
-  const visible = markers.filter(m => m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001);
+  // Marker lines + labels — filtered by current mode
+  const modeMarkers = _visibleMarkers();
+  const visible = modeMarkers.filter(m => m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001);
   const positions = visible.map(m => ({
     m,
     x: ((m.time - viewStart) / vDur) * W
   }));
 
-  // Draw marker lines
+  // Draw marker lines — structural=gold, performance=blue
+  const goldColor  = getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+  const blueColor  = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
   positions.forEach(({m, x}) => {
-    const color = m.type === 'D'
-      ? getComputedStyle(document.documentElement).getPropertyValue('--d-color').trim()
-      : getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+    const color = m.type === 'R' ? goldColor : blueColor;
     ctx.strokeStyle = color;
-    ctx.lineWidth = m.locked ? 0.8 : 1.5;
-    ctx.setLineDash(m.locked ? [3,3] : []);
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo(x, WAVE_TOP);
     ctx.lineTo(x, H - 12);
     ctx.stroke();
-    ctx.setLineDash([]);
     // Triangle handle
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -1097,14 +1134,9 @@ function drawOverview() {
   let row = 0;
   positions.forEach(({m, x}) => {
     if (!isPlaceholder(m.label)) {
-      const color = m.type === 'D'
-        ? getComputedStyle(document.documentElement).getPropertyValue('--d-color').trim()
-        : getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+      const color = m.type === 'R' ? goldColor : blueColor;
       ctx.fillStyle = color;
       if (x - lastX < MIN_GAP) { row = (row + 1) % 2; } else { row = 0; }
-      const y = row === 0 ? 11 : 11;  // single row for now, stagger handled by offset
-      const yOff = row === 1 ? 0 : 0;
-      // Just offset label slightly above line
       ctx.fillText(m.label, x + 3, WAVE_TOP - 3 + (row * 0));
       lastX = x;
     }
@@ -1126,7 +1158,7 @@ function drawOverview() {
 // ══════════════════════════════════════════════
 // ZOOM
 // ══════════════════════════════════════════════
-const ZOOM_STEPS = [1,1.5,2,3,4,6,8,12,16,24,32];
+const ZOOM_STEPS = [1,1.2,1.5,1.8,2,2.5,3,4,5,6,8,10,12,16,20,24,32];
 
 function updateZoomLabel() {
   // zoom-val display removed; zoom level tracked internally only
@@ -1241,10 +1273,20 @@ function _animLoop() {
 }
 
 function _onTimeUpdate() {
-  // Handle loop boundary
   if (loopStart !== null && loopEnd !== null && audioEl) {
     if (audioEl.currentTime >= loopEnd - 0.05) {
       audioEl.currentTime = loopStart;
+      // Trigger armed recording on loop restart
+      if (recArmed && !isRecording) {
+        recArmed = false;
+        document.getElementById('btn-rec').textContent = '● Record';
+        document.getElementById('btn-rec').classList.remove('recording');
+        document.getElementById('rec-scope').textContent = '';
+        const startTime = loopStart - trimOffset;
+        const endTime   = loopEnd   - trimOffset;
+        const passLabel = _recScopeLabel();
+        _startRecordingPass(startTime, endTime, passLabel, !!audioBuffer).catch(() => {});
+      }
     }
   }
 }
@@ -1428,19 +1470,48 @@ function tapMarker(type) {
 
 function setMarkMode(mode) {
   markMode = mode;
-  // Update toggle button styles
-  const btnS = document.getElementById('btn-mode-structural');
-  const btnP = document.getElementById('btn-mode-performance');
-  if (btnS && btnP) {
-    btnS.className = 'mode-btn' + (mode === 'structural' ? ' active-structural' : '');
-    btnP.className = 'mode-btn' + (mode === 'performance' ? ' active-performance' : '');
+  const isStructural = mode === 'structural';
+
+  // Update all toggle buttons (waveform bar + marks panel)
+  ['btn-mode-structural', 'wv-btn-structural'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'mode-btn' + (isStructural ? ' active-structural' : '');
+  });
+  ['btn-mode-performance', 'wv-btn-performance'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'mode-btn' + (!isStructural ? ' active-performance' : '');
+  });
+
+  // Update waveform mode bar colour and hint text
+  const bar = document.getElementById('mode-toggle-bar');
+  if (bar) {
+    bar.className = 'mode-toggle-bar ' + (isStructural ? 'mode-structural' : 'mode-performance');
   }
-  // Update waveform cursor color
+  const hint = document.getElementById('mode-hint');
+  if (hint) {
+    hint.textContent = isStructural
+      ? 'showing structural marks only'
+      : 'showing all marks';
+  }
+
+  // Update waveform cursor
   const canvas = document.getElementById('overview-canvas');
   if (canvas) {
-    canvas.classList.toggle('mode-structural', mode === 'structural');
-    canvas.classList.toggle('mode-performance', mode === 'performance');
+    canvas.classList.toggle('mode-structural',   isStructural);
+    canvas.classList.toggle('mode-performance', !isStructural);
   }
+
+  // Re-render marks list and waveform with current filter
+  renderMarkers();
+  drawOverview();
+}
+
+// ── Filter markers for display based on mode ──
+function _visibleMarkers() {
+  if (markMode === 'structural') {
+    return markers.filter(m => m.type === 'R');
+  }
+  return markers; // performance mode shows all
 }
 
 function removeMarker(id) {
@@ -1538,41 +1609,38 @@ function renderMarkers() {
   const list   = document.getElementById('marker-list');
   const header = document.getElementById('marker-col-header');
   const countEl= document.getElementById('marker-count');
+  const visible = _visibleMarkers();
   countEl.textContent = `${markers.length} mark${markers.length!==1?'s':''}`;
 
-  if (!markers.length) {
+  if (!visible.length) {
     header.style.display = 'none';
     list.innerHTML = `<div style="font-size:0.54rem;color:var(--text-faint);padding:0.55rem 0;text-align:center">
-      No markers yet — press M while listening</div>`;
+      ${markers.length ? 'Switch to Performance mode to see all marks' : 'No marks yet — press M while listening'}</div>`;
     drawOverview(); return;
   }
   header.style.display = 'grid';
 
-  list.innerHTML = markers.map((m, i) => {
-    const end = i < markers.length-1 ? markers[i+1].time : audioDuration;
-    const dur = Math.max(0, end - m.time);
+  list.innerHTML = visible.map((m, i) => {
+    const isActive = markers.indexOf(m) === activeMarkerIdx;
+    const isQLS = m.id === quickLoopStartId;
     const ph  = isPlaceholder(m.label);
-    const isActive = i === activeMarkerIdx;
-    const isQLS = m.id === quickLoopStartId; // quick loop start marker
+    const isStructuralMark = m.type === 'R';
+    const rowClass = isStructuralMark ? 'structural-mark' : 'performance-mark';
     const hasAnnotation = m.annotation && m.annotation.text;
     const annotationRow = `<div class="marker-annotation-row">
       <textarea class="marker-annotation-input" rows="1"
         placeholder="add note…"
         onchange="updateMarkerAnnotation(${m.id},this.value)"
         onfocus="this.rows=2" onblur="this.rows=this.value?2:1"
-        title="Annotation for this marker">${escHtml((m.annotation&&m.annotation.text)||'')}</textarea>
-      <button class="annotation-tag${(m.annotation&&m.annotation.teacher)?' teacher':''}"
-        onclick="toggleAnnotationTeacher(${m.id})"
-        title="Toggle teacher note">T</button>
+        title="Annotation for this mark">${escHtml((m.annotation&&m.annotation.text)||'')}</textarea>
       ${hasAnnotation&&m.annotation.date?`<span class="annotation-date">${m.annotation.date}</span>`:''}
     </div>`;
-    return `<div class="marker-row${isActive?' active-marker':''}" id="marker-row-${m.id}">
+    return `<div class="marker-row ${rowClass}${isActive?' active-marker':''}" id="marker-row-${m.id}">
       <span class="marker-seq">${i+1}</span>
       <input class="marker-label-input${ph?' is-placeholder':''}"
         value="${escHtml(m.label)}"
         onchange="updateMarkerLabel(${m.id},this.value)"
-        ${m.locked?'readonly style="opacity:0.5"':''}
-        title="Score label">
+        title="Mark label">
       <input class="marker-bar-input"
         value="${escHtml(m.bar||'')}"
         placeholder="bar"
@@ -1580,20 +1648,21 @@ function renderMarkers() {
         title="Bar number">
       <input class="marker-time-input" value="${fmtTime(m.time)}"
         onblur="updateMarkerTime(${m.id},this.value)"
-        ${m.locked?'readonly style="opacity:0.5"':''}
         title="Start time">
-      <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here (lead-in)">▶</button>
-      <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next marker">⟳</button>
+      <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here">▶</button>
+      <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next ${isStructuralMark?'structural ':''}mark">⟳</button>
       <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Open Woodshed">T</button>
-      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here (●)">●</button>
+      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here">●</button>
       <button class="marker-btn delete"
-        onclick="removeMarker(${m.id})" title="Remove" ${m.locked?'disabled':''}>✕</button>
+        onclick="removeMarker(${m.id})" title="Remove">✕</button>
       ${annotationRow}
     </div>`;
   }).join('');
 
   drawOverview();
 }
+
+
 
 function previewFromMarker(id) {
   const m = markers.find(x=>x.id===id);
@@ -1606,13 +1675,21 @@ function previewFromMarker(id) {
 
 function markerLoopToNext(id) {
   const idx = markers.findIndex(m => m.id === id);
-  if (idx < 0 || idx >= markers.length - 1) return;
+  if (idx < 0) return;
   const startM = markers[idx];
-  const endM   = markers[idx + 1];
-  // Create a temporary ad-hoc loop (not saved to segments)
-  activeLoopId = null; // clear any named loop
+
+  let endM;
+  if (startM.type === 'R') {
+    // Structural mark — find next structural mark, skipping performance marks
+    endM = markers.slice(idx + 1).find(m => m.type === 'R');
+  } else {
+    // Performance mark — loop to immediately next mark (any type)
+    endM = markers[idx + 1];
+  }
+  if (!endM) return;
+
+  activeLoopId = null;
   _startLooping(startM.time, endM.time);
-  // Zoom waveform to show the range
   const dur = endM.time - startM.time;
   const pad = dur * 0.15;
   viewStart = Math.max(0, startM.time - pad);
@@ -2629,18 +2706,37 @@ function _stopRecording() {
 }
 
 // ── R key / panel button: context-aware dispatch ──
+let recArmed = false; // true when waiting for next loop boundary to start recording
+
 async function toggleRecording() {
   if (isRecording) { _stopRecording(); return; }
-  // Segment selected?
+  if (recArmed) {
+    // Cancel arm
+    recArmed = false;
+    document.getElementById('rec-scope').textContent = '';
+    document.getElementById('btn-rec').textContent = '● Record';
+    document.getElementById('btn-rec').classList.remove('recording');
+    return;
+  }
+
+  // If looping is active — arm for next loop pass (don't interrupt current pass)
+  if (isPlaying && loopStart !== null && loopEnd !== null) {
+    recArmed = true;
+    document.getElementById('btn-rec').textContent = '◉ Armed';
+    document.getElementById('btn-rec').classList.add('recording');
+    const scopeLabel = _recScopeLabel();
+    document.getElementById('rec-scope').textContent = `next pass: ${scopeLabel}`;
+    return;
+  }
+
+  // Not looping — start immediately based on context
   if (activeLoopId !== null) {
     const seg = segments.find(s => s.id === activeLoopId);
     if (seg) { await recordSegment(seg.id); return; }
   }
-  // Active marker navigated?
   if (activeMarkerIdx >= 0 && activeMarkerIdx < markers.length - 1) {
     await recordFromMarker(markers[activeMarkerIdx].id); return;
   }
-  // Free recording
   await _startFreeRecording();
 }
 
