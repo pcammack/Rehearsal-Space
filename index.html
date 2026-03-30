@@ -126,16 +126,11 @@ input[type=file]{display:none}
 
 .marker-col-header,.marker-row{
   display:grid;
-  grid-template-columns:16px 52px 48px 66px 20px 20px 20px 20px 20px 20px;
+  grid-template-columns:16px 72px 66px 20px 20px 20px 20px 20px 20px;
   gap:0.3rem;align-items:center}
 
 /* ── BAR NUMBER INPUT ── */
-.marker-bar-input{background:var(--bg3);border:1px solid var(--border);
-  color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.46rem;
-  padding:0.15rem 0.25rem;width:100%;outline:none;transition:border-color 0.15s;
-  text-align:center}
-.marker-bar-input:focus{border-color:var(--blue);color:var(--text)}
-.marker-bar-input::placeholder{color:var(--text-faint)}
+
 
 /* ── RECORDING PANEL ── */
 .rec-panel{background:var(--bg2);border:1px solid var(--border);
@@ -508,7 +503,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v5.9</span>
+    <span class="app-ver">v6.0</span>
   </div>
 </header>
 
@@ -536,10 +531,10 @@ input[type=file]{display:none}
           onclick="setMarkMode('structural')">Structural</button>
         <button class="mode-btn" id="wv-btn-performance"
           onclick="setMarkMode('performance')">Performance</button>
+        <button class="mode-btn" id="wv-btn-all"
+          onclick="setMarkMode('all')">All</button>
       </div>
-      <span style="font-size:0.4rem;color:var(--text-faint)" id="mode-hint">
-        showing structural marks only
-      </span>
+
     </div>
     <div class="overview-wrap">
       <canvas id="overview-canvas"></canvas>
@@ -618,13 +613,15 @@ input[type=file]{display:none}
                 onclick="setMarkMode('structural')">Structural</button>
               <button class="mode-btn" id="btn-mode-performance"
                 onclick="setMarkMode('performance')">Performance</button>
+              <button class="mode-btn" id="btn-mode-all"
+                onclick="setMarkMode('all')">All</button>
             </div>
             <span id="marker-count" style="color:var(--accent)">0 marks</span>
           </div>
         </div>
         <div class="marker-col-header" id="marker-col-header">
           <span>#</span><span>Label</span>
-          <span>Bar</span><span>Time</span>
+          <span>Time</span>
           <span>►</span><span>⟳</span><span>T</span><span title="S=Structural / P=Performance">S/P</span><span>●</span><span>✕</span>
         </div>
         <div id="marker-list"></div>
@@ -773,9 +770,9 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v5.9</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.0</span>
 
-      <div class="doc-h">WHAT'S NEW IN v5.9</div>
+      <div class="doc-h">WHAT'S NEW IN v6.0</div>
       · <strong style="color:var(--text)">Piece data now persists correctly:</strong> Marks, annotations, bar numbers, and piece notes all save automatically to the library. No more "↓ Save current" required for mid-session edits.<br>
       · <strong style="color:var(--text)">Takes save as WAV:</strong> All recordings download as .wav files for universal DAW compatibility. The blend mix still exports as WAV too.<br>
       · <strong style="color:var(--text)">Streamlined take naming:</strong> Each clip shows an editable name field — the name is the filename. Edit before saving. No prompt dialogs.<br>
@@ -898,7 +895,7 @@ function escHtml(s) {
 function sanitizeName(s) {
   return (s||'').trim().replace(/[\\/:"*?<>|]/g,'').replace(/\s+/g,'_') || 'piece';
 }
-function isPlaceholder(label) { return String(label).trim() === '.'; }
+function isPlaceholder(label) { const t = String(label).trim(); return t === '.' || t === ''; }
 
 function toggleSection(id) {
   const body = document.getElementById(`${id}-body`);
@@ -1105,50 +1102,99 @@ function drawOverview() {
   ctx.fillText(fmtTime(viewEnd), W-3, H-3);
   ctx.textAlign = 'left';
 
-  // Marker lines + labels — filtered by current mode
-  const modeMarkers = _visibleMarkers();
-  const visible = modeMarkers.filter(m => m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001);
-  const positions = visible.map(m => ({
-    m,
-    x: ((m.time - viewStart) / vDur) * W
-  }));
+  // Waveform vertical split: structural=top half, performance=bottom half
+  const goldColor = getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
+  const blueColor = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
 
-  // Draw marker lines — structural=gold, performance=blue
-  const goldColor  = getComputedStyle(document.documentElement).getPropertyValue('--r-color').trim();
-  const blueColor  = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
-  positions.forEach(({m, x}) => {
-    const color = m.type === 'R' ? goldColor : blueColor;
-    ctx.strokeStyle = color;
+  // Divider line between zones (only in 'all' or 'performance' mode)
+  if (markMode !== 'structural') {
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2,4]);
+    const midY = WAVE_TOP + WAVE_H / 2;
+    ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Structural marks — top half (WAVE_TOP to midpoint)
+  const structuralVisible = markers.filter(m =>
+    m.type === 'R' && m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001
+  );
+  const midY = WAVE_TOP + WAVE_H / 2;
+  const structAlpha = (markMode === 'performance') ? 0.25 : 1.0;
+
+  ctx.globalAlpha = structAlpha;
+  structuralVisible.forEach(m => {
+    const x = ((m.time - viewStart) / vDur) * W;
+    ctx.strokeStyle = goldColor;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo(x, WAVE_TOP);
-    ctx.lineTo(x, H - 12);
+    ctx.lineTo(x, midY);
     ctx.stroke();
-    // Triangle handle
-    ctx.fillStyle = color;
+    // Triangle handle at top
+    ctx.fillStyle = goldColor;
     ctx.beginPath();
-    ctx.moveTo(x-5, WAVE_TOP);
-    ctx.lineTo(x+5, WAVE_TOP);
-    ctx.lineTo(x, WAVE_TOP + 8);
+    ctx.moveTo(x-4, WAVE_TOP);
+    ctx.lineTo(x+4, WAVE_TOP);
+    ctx.lineTo(x, WAVE_TOP + 7);
     ctx.closePath();
     ctx.fill();
   });
-
-  // Draw labels at top — with collision staggering
+  // Structural labels
   ctx.font = 'bold 9px JetBrains Mono, monospace';
-  const MIN_GAP = 22;
-  let lastX = -999;
-  let row = 0;
-  positions.forEach(({m, x}) => {
+  ctx.fillStyle = goldColor;
+  let lastSX = -999;
+  structuralVisible.forEach(m => {
     if (!isPlaceholder(m.label)) {
-      const color = m.type === 'R' ? goldColor : blueColor;
-      ctx.fillStyle = color;
-      if (x - lastX < MIN_GAP) { row = (row + 1) % 2; } else { row = 0; }
-      ctx.fillText(m.label, x + 3, WAVE_TOP - 3 + (row * 0));
-      lastX = x;
+      const x = ((m.time - viewStart) / vDur) * W;
+      const stagger = (x - lastSX < 22) ? 9 : 0;
+      ctx.fillText(m.label, x + 3, WAVE_TOP + 10 + stagger);
+      lastSX = x;
     }
   });
+  ctx.globalAlpha = 1.0;
+
+  // Performance marks — bottom half (midpoint to bottom)
+  if (markMode !== 'structural') {
+    const perfVisible = markers.filter(m =>
+      m.type === 'D' && m.time >= viewStart - 0.001 && m.time <= viewEnd + 0.001
+    );
+    const perfAlpha = (markMode === 'all') ? 1.0 : 1.0;
+    ctx.globalAlpha = perfAlpha;
+    perfVisible.forEach(m => {
+      const x = ((m.time - viewStart) / vDur) * W;
+      ctx.strokeStyle = blueColor;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x, midY);
+      ctx.lineTo(x, H - 12);
+      ctx.stroke();
+      // Triangle handle at bottom edge of upper half
+      ctx.fillStyle = blueColor;
+      ctx.beginPath();
+      ctx.moveTo(x-4, midY);
+      ctx.lineTo(x+4, midY);
+      ctx.lineTo(x, midY + 7);
+      ctx.closePath();
+      ctx.fill();
+    });
+    // Performance labels (near bottom)
+    ctx.font = 'bold 9px JetBrains Mono, monospace';
+    ctx.fillStyle = blueColor;
+    let lastPX = -999;
+    perfVisible.forEach(m => {
+      if (!isPlaceholder(m.label)) {
+        const x = ((m.time - viewStart) / vDur) * W;
+        const stagger = (x - lastPX < 22) ? -9 : 0;
+        ctx.fillText(m.label, x + 3, H - 14 + stagger);
+        lastPX = x;
+      }
+    });
+    ctx.globalAlpha = 1.0;
+  }
 
   // Playhead
   const ph = (((_currentAudioTime()) - viewStart) / vDur) * W;
@@ -1161,6 +1207,31 @@ function drawOverview() {
   }
 
   ctx.setTransform(1,0,0,1,0,0);
+}
+
+// ══════════════════════════════════════════════
+// WAVEFORM CURSOR TIME DISPLAY
+// ══════════════════════════════════════════════
+let _cursorTimeEl = null;
+function _showWaveformCursorTime(time, clientX, rect) {
+  if (!_cursorTimeEl) {
+    _cursorTimeEl = document.createElement('div');
+    _cursorTimeEl.style.cssText = [
+      'position:fixed','background:var(--bg3)','border:1px solid var(--border-l)',
+      'color:var(--text-faint)','font-family:JetBrains Mono,monospace',
+      'font-size:0.4rem','padding:0.1rem 0.35rem','pointer-events:none',
+      'z-index:60','letter-spacing:0.06em'
+    ].join(';');
+    document.body.appendChild(_cursorTimeEl);
+  }
+  _cursorTimeEl.textContent = fmtTime(time);
+  _cursorTimeEl.style.display = 'block';
+  const ttX = Math.min(clientX + 8, window.innerWidth - 80);
+  _cursorTimeEl.style.left = ttX + 'px';
+  _cursorTimeEl.style.top  = (rect.bottom - window.scrollY - 18) + 'px';
+}
+function _hideWaveformCursorTime() {
+  if (_cursorTimeEl) _cursorTimeEl.style.display = 'none';
 }
 
 // ══════════════════════════════════════════════
@@ -1454,9 +1525,25 @@ function cascadeAfter(fromIdx, prevLabel) {
   }
 }
 
+const PERF_SNAP_SEC = 1.0; // seconds within which a performance mark snaps to a structural mark
+
 function addMarker(label, type, time) {
   pushUndo();
-  markers.push({ id: markerIdCounter++, label: label || '.', type: type||'R', time, locked: false });
+  const defaultLabel = (type === 'D') ? '' : '.';
+
+  // Snap performance marks to nearby structural marks
+  let snappedTo = null;
+  if (type === 'D') {
+    const near = markers.filter(m => m.type === 'R')
+      .map(m => ({ m, dist: Math.abs(m.time - time) }))
+      .sort((a, b) => a.dist - b.dist)[0];
+    if (near && near.dist <= PERF_SNAP_SEC) {
+      time = near.m.time;
+      snappedTo = near.m.id;
+    }
+  }
+
+  markers.push({ id: markerIdCounter++, label: label || defaultLabel, type: type||'R', time, locked: false, snappedTo: snappedTo || null });
   markers.sort((a,b)=>a.time-b.time);
   const insertIdx = markers.findIndex(m => m.time === time && (m.label === label || m.label === '.'));
 
@@ -1491,38 +1578,54 @@ function tapMarker(type) {
 
 function setMarkMode(mode) {
   markMode = mode;
-  const isStructural = mode === 'structural';
+  const isStructural  = mode === 'structural';
+  const isPerformance = mode === 'performance';
+  const isAll         = mode === 'all';
+
   // Update time-entry mode hint
   const timeHint = document.getElementById('mark-time-mode-hint');
-  if (timeHint) { timeHint.textContent = isStructural ? 'S' : 'P'; timeHint.style.color = isStructural ? 'var(--accent)' : 'var(--blue)'; }
+  if (timeHint) {
+    timeHint.textContent  = isStructural ? 'S' : 'P';
+    timeHint.style.color  = isStructural ? 'var(--accent)' : 'var(--blue)';
+  }
 
-  // Update all toggle buttons (waveform bar + marks panel)
-  ['btn-mode-structural', 'wv-btn-structural'].forEach(id => {
+  // Update all toggle buttons
+  ['btn-mode-structural','wv-btn-structural'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.className = 'mode-btn' + (isStructural ? ' active-structural' : '');
   });
-  ['btn-mode-performance', 'wv-btn-performance'].forEach(id => {
+  ['btn-mode-performance','wv-btn-performance'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.className = 'mode-btn' + (!isStructural ? ' active-performance' : '');
+    if (el) el.className = 'mode-btn' + (isPerformance ? ' active-performance' : '');
+  });
+  ['btn-mode-all','wv-btn-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'mode-btn' + (isAll ? ' active-performance' : '');
   });
 
-  // Update waveform mode bar colour and hint text
+  // Update waveform bar border colour
   const bar = document.getElementById('mode-toggle-bar');
   if (bar) {
-    bar.className = 'mode-toggle-bar ' + (isStructural ? 'mode-structural' : 'mode-performance');
-  }
-  const hint = document.getElementById('mode-hint');
-  if (hint) {
-    hint.textContent = isStructural
-      ? 'showing structural marks only'
-      : 'showing all marks';
+    bar.className = 'mode-toggle-bar ' +
+      (isStructural ? 'mode-structural' : isPerformance ? 'mode-performance' : 'mode-structural');
   }
 
-  // Update waveform cursor
+  // Update waveform cursor class
   const canvas = document.getElementById('overview-canvas');
   if (canvas) {
-    canvas.classList.toggle('mode-structural',   isStructural);
-    canvas.classList.toggle('mode-performance', !isStructural);
+    canvas.classList.toggle('mode-structural',   isStructural || isAll);
+    canvas.classList.toggle('mode-performance', isPerformance);
+  }
+
+  // Update marker count tally
+  const countEl = document.getElementById('marker-count');
+  if (countEl) {
+    const sCount = markers.filter(m => m.type === 'R').length;
+    const pCount = markers.filter(m => m.type === 'D').length;
+    if (isStructural)  countEl.textContent = `${sCount} structural`;
+    else if (isPerformance) countEl.textContent = `${pCount} performance`;
+    else countEl.textContent = `${sCount}S · ${pCount}P`;
+    countEl.style.color = isStructural ? 'var(--accent)' : isPerformance ? 'var(--blue)' : 'var(--text-faint)';
   }
 
   // Re-render marks list and waveform with current filter
@@ -1532,10 +1635,9 @@ function setMarkMode(mode) {
 
 // ── Filter markers for display based on mode ──
 function _visibleMarkers() {
-  if (markMode === 'structural') {
-    return markers.filter(m => m.type === 'R');
-  }
-  return markers; // performance mode shows all
+  if (markMode === 'structural')  return markers.filter(m => m.type === 'R');
+  if (markMode === 'performance') return markers.filter(m => m.type === 'D');
+  return markers; // 'all' shows everything
 }
 
 function removeMarker(id) {
@@ -1655,7 +1757,7 @@ function renderMarkers() {
   if (!visible.length) {
     header.style.display = 'none';
     list.innerHTML = `<div style="font-size:0.54rem;color:var(--text-faint);padding:0.55rem 0;text-align:center">
-      ${markers.length ? 'Switch to Performance mode to see all marks' : 'No marks yet — press M while listening'}</div>`;
+      ${markers.length ? 'No marks in this mode' : 'No marks yet — press M while listening'}</div>`;
     drawOverview(); return;
   }
   header.style.display = 'grid';
@@ -1665,6 +1767,8 @@ function renderMarkers() {
     const isQLS = m.id === quickLoopStartId;
     const ph  = isPlaceholder(m.label);
     const isStructuralMark = m.type === 'R';
+    // In performance mode, structural marks are ghost/reference only
+    const isGhost = (markMode === 'performance' && isStructuralMark);
     const rowClass = isStructuralMark ? 'structural-mark' : 'performance-mark';
     const hasAnnotation = m.annotation && m.annotation.text;
     const annotationRow = `<div class="marker-annotation-row">
@@ -1675,28 +1779,24 @@ function renderMarkers() {
         title="Annotation for this mark">${escHtml((m.annotation&&m.annotation.text)||'')}</textarea>
       ${hasAnnotation&&m.annotation.date?`<span class="annotation-date">${m.annotation.date}</span>`:''}
     </div>`;
-    return `<div class="marker-row ${rowClass}${isActive?' active-marker':''}" id="marker-row-${m.id}">
-      <span class="marker-seq">${i+1}</span>
+    const ghostStyle = isGhost ? 'opacity:0.35;pointer-events:none;' : '';
+    return `<div class="marker-row ${rowClass}${isActive?' active-marker':''}" id="marker-row-${m.id}" style="${ghostStyle}">
+      <span class="marker-seq" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}">${isStructuralMark?'S':'P'}${i+1}</span>
       <input class="marker-label-input${ph?' is-placeholder':''}"
         value="${escHtml(m.label)}"
-        onchange="updateMarkerLabel(${m.id},this.value)"
+        ${isGhost?'disabled':''} onchange="updateMarkerLabel(${m.id},this.value)"
         title="Mark label">
-      <input class="marker-bar-input"
-        value="${escHtml(m.bar||'')}"
-        placeholder="bar"
-        onchange="updateMarkerBar(${m.id},this.value)"
-        title="Bar number">
       <input class="marker-time-input" value="${fmtTime(m.time)}"
-        onblur="updateMarkerTime(${m.id},this.value)"
+        ${isGhost?'disabled':''} onblur="updateMarkerTime(${m.id},this.value)"
         title="Start time">
       <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here">▶</button>
       <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next ${isStructuralMark?'structural ':''}mark">⟳</button>
-      <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Open Woodshed">T</button>
-      <button class="marker-btn" onclick="toggleMarkerType(${m.id})" title="${isStructuralMark?'Structural — click to make Performance':'Performance — click to make Structural'}" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}">S</button>
-      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here">●</button>
+      <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Open Woodshed" ${isGhost?'disabled':''}>T</button>
+      <button class="marker-btn" onclick="toggleMarkerType(${m.id})" title="${isStructuralMark?'Structural — click to make Performance':'Performance — click to make Structural'}" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}" ${isGhost?'disabled':''}>${isStructuralMark?'S':'P'}</button>
+      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here" ${isGhost?'disabled':''}>●</button>
       <button class="marker-btn delete"
-        onclick="removeMarker(${m.id})" title="Remove">✕</button>
-      ${annotationRow}
+        onclick="removeMarker(${m.id})" title="Remove" ${isGhost?'disabled':''}>✕</button>
+      ${isGhost ? '' : annotationRow}
     </div>`;
   }).join('');
 
@@ -1828,9 +1928,15 @@ function refreshSegmentDropdowns() {
   const startSel = document.getElementById('seg-start');
   const endSel   = document.getElementById('seg-end');
   const sv = startSel.value, ev = endSel.value;
+  // Performance marks first, then structural — sorted by time within each group
+  const perfMarkers   = markers.filter(m => m.type === 'D' && !isPlaceholder(m.label));
+  const structMarkers = markers.filter(m => m.type === 'R' && !isPlaceholder(m.label));
+  const ordered = [...perfMarkers, ...structMarkers];
   const opts = ['<option value="">—</option>',
-    ...markers.filter(m=>!isPlaceholder(m.label)).map(m =>
-      `<option value="${m.id}">${m.label} (${fmtTime(m.time)})</option>`)
+    ...ordered.map(m => {
+      const prefix = m.type === 'D' ? 'P: ' : 'S: ';
+      return `<option value="${m.id}">${prefix}${m.label} (${fmtTime(m.time)})</option>`;
+    })
   ].join('');
   startSel.innerHTML = opts;
   endSel.innerHTML   = opts;
@@ -2189,6 +2295,10 @@ async function loadNamedSession(name) {
   segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length?segments.map(x=>x.id+1):[0]));
   audioFileName = s.audioFileName||'';
   document.getElementById('piece-notes').value = s.notes || '';
+
+  // Auto-select mode based on whether structural marks exist
+  const hasStructural = (markers || []).some(m => m.type === 'R');
+  setMarkMode(hasStructural ? 'performance' : 'structural');
 
   renderMarkers(); renderSegments(); refreshSegmentDropdowns();
   renderSessionsList();
@@ -3513,13 +3623,10 @@ async function _saveSessionToFolder(pieceName, sessionData, notes) {
   if (!rsRootHandle) return false;
   const pieceDir = await _getPieceFolder(pieceName);
   if (!pieceDir) return false;
-  // Write session.json
-  const sessionJson = JSON.stringify(sessionData, null, 2);
+  // Embed notes directly in session.json — no separate notes.txt
+  const merged = { ...sessionData, notes: notes || '' };
+  const sessionJson = JSON.stringify(merged, null, 2);
   await _writeFile(pieceDir, 'session.json', sessionJson);
-  // Write notes.txt if notes provided
-  if (notes !== undefined && notes !== null) {
-    await _writeFile(pieceDir, 'notes.txt', notes);
-  }
   // Create recordings subfolder
   try { await pieceDir.getDirectoryHandle('recordings', { create: true }); } catch(e) {}
   return true;
@@ -3704,13 +3811,26 @@ function _timeFromOverviewX(e) {
   return viewStart + (x / rect.width) * (viewEnd - viewStart);
 }
 
-function _hitTestMarker(mouseX, canvasWidth) {
+function _hitTestMarker(mouseX, canvasWidth, mouseY, canvasHeight) {
   if (!audioDuration) return null;
   const vDur = viewEnd - viewStart;
+  const LABEL_H = 18;
+  const WAVE_TOP = LABEL_H;
+  const WAVE_H = (canvasHeight || 128) - LABEL_H;
+  const midY = WAVE_TOP + WAVE_H / 2;
+
   for (const m of markers) {
     if (m.time < viewStart || m.time > viewEnd) continue;
     const x = ((m.time - viewStart) / vDur) * canvasWidth;
-    if (Math.abs(mouseX - x) <= GRAB_PX) return m;
+    if (Math.abs(mouseX - x) > GRAB_PX) continue;
+    // Structural marks locked in performance mode — not draggable
+    if (m.type === 'R' && markMode === 'performance') continue;
+    // Zone filtering: structural = top half, performance = bottom half
+    if (mouseY !== undefined && canvasHeight !== undefined) {
+      if (m.type === 'R' && mouseY > midY) continue;
+      if (m.type === 'D' && mouseY < midY && markMode !== 'all') continue;
+    }
+    return m;
   }
   return null;
 }
@@ -3723,7 +3843,7 @@ function _hitTestMarker(mouseX, canvasWidth) {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const hit = _hitTestMarker(mouseX, rect.width);
+    const hit = _hitTestMarker(mouseX, rect.width, mouseY, rect.height);
     if (hit) {
       pushUndo();
       dragMarkerState = { id:hit.id, snapTime:hit.time, mousedownX:e.clientX, didDrag:false, locked:!!hit.locked };
@@ -3764,6 +3884,23 @@ function _hitTestMarker(mouseX, canvasWidth) {
         const m = markers.find(x=>x.id===dragMarkerState.id);
         if (m) {
           m.time = newTime;
+          // Detach snap if dragged beyond threshold
+          if (m.snappedTo !== null) {
+            const anchor = markers.find(mk => mk.id === m.snappedTo);
+            if (!anchor || Math.abs(newTime - anchor.time) > PERF_SNAP_SEC) {
+              m.snappedTo = null;
+            }
+          }
+          // Re-snap if dragged close to a structural mark
+          if (m.type === 'D' && m.snappedTo === null) {
+            const near = markers.filter(mk => mk.type === 'R')
+              .map(mk => ({ mk, dist: Math.abs(mk.time - newTime) }))
+              .sort((a,b) => a.dist - b.dist)[0];
+            if (near && near.dist <= PERF_SNAP_SEC * 0.5) {
+              m.time = near.mk.time;
+              m.snappedTo = near.mk.id;
+            }
+          }
           markers.sort((a,b)=>a.time-b.time);
           const ti = document.querySelector(`#marker-row-${dragMarkerState.id} .marker-time-input`);
           if (ti) ti.value = fmtTime(newTime);
@@ -3824,7 +3961,7 @@ function _hitTestMarker(mouseX, canvasWidth) {
         }
       }
       tooltip.style.display = 'none';
-      const hit = _hitTestMarker(mouseX, rect.width);
+      const hit = _hitTestMarker(mouseX, rect.width, mouseY, rect.height);
       canvas.style.cursor = hit ? (hit.locked?'pointer':'ew-resize') : (zoomLevel>1?'grab':'crosshair');
       // Marker hover tooltip
       const mtt = document.getElementById('marker-tooltip');
@@ -3848,6 +3985,8 @@ function _hitTestMarker(mouseX, canvasWidth) {
       if (mouseX >= 0 && mouseX <= rect.width) {
         const hoverTime = Math.max(0, Math.min(audioDuration, viewStart + (mouseX/rect.width)*(viewEnd-viewStart)));
         if (!isPlaying) _updateDisplay(hoverTime);
+        // Show cursor position overlay on waveform always
+        _showWaveformCursorTime(hoverTime, e.clientX, rect);
       }
     }
   });
@@ -3855,6 +3994,7 @@ function _hitTestMarker(mouseX, canvasWidth) {
   window.addEventListener('mouseup', e => {
     document.getElementById('drag-tooltip').style.display = 'none';
     document.getElementById('marker-tooltip').style.display = 'none';
+    _hideWaveformCursorTime();
     if (dragMarkerState) {
       const wasDrag = dragMarkerState.didDrag;
       const snapTime = dragMarkerState.snapTime;
@@ -3903,6 +4043,11 @@ function _hitTestMarker(mouseX, canvasWidth) {
     e.preventDefault();
     const t = Math.max(0, Math.min(audioDuration, _timeFromOverviewX(e)));
     _startPlayback(t);
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    document.getElementById('marker-tooltip').style.display = 'none';
+    _hideWaveformCursorTime();
   });
 })();
 
