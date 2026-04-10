@@ -350,7 +350,7 @@ input[type=file]{display:none}
 /* Loop rows: label | span | dur | ▶ | ⟳ | 🎯 | ✕ */
 .loop-col-header,.loop-row{
   display:grid;
-  grid-template-columns:1fr 70px 46px 22px 22px 22px 22px 22px;
+  grid-template-columns:18px 1fr 70px 46px 22px 22px 22px 22px 22px;
   gap:0.3rem;align-items:center}
 .passage-note-input{grid-column:1/-1}
 .loop-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
@@ -360,6 +360,11 @@ input[type=file]{display:none}
 .loop-row:last-child{border-bottom:none}
 .loop-row:hover{background:var(--bg3)}
 .loop-row.active-loop{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
+.loop-row.starred-loop{background:color-mix(in srgb,var(--accent) 7%,var(--bg2));border-left:2px solid var(--accent);padding-left:0.3rem}
+.loop-row.starred-loop.active-loop{background:color-mix(in srgb,var(--accent) 14%,var(--bg2))}
+.star-btn{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:0.65rem;padding:0;line-height:1;transition:color 0.15s}
+.star-btn:hover{color:var(--accent)}
+.star-btn.starred{color:var(--accent)}
 .loop-label-input{background:none;border:none;color:var(--text);
   font-family:'JetBrains Mono',monospace;font-size:0.5rem;
   padding:0.1rem 0;width:100%;outline:none;border-bottom:1px solid transparent;
@@ -598,7 +603,7 @@ input[type=file]{display:none}
           <button class="btn-sm primary" onclick="addSegment()">+ Add</button>
         </div>
         <div class="loop-col-header" id="loop-col-header">
-          <span>Name</span><span>Dur</span><span>▶</span><span>⟳</span><span>T</span><span>●</span><span>✕</span>
+          <span>★</span><span>Name</span><span>Span</span><span>Dur</span><span>▶</span><span>⟳</span><span>T</span><span>●</span><span>✕</span>
         </div>
         <div id="seg-list"></div>
       </div>
@@ -809,24 +814,24 @@ input[type=file]{display:none}
     <div class="library-hdr">
       <span class="library-title">Repertoire</span>
       <div class="library-actions">
-        <button class="btn-sm" onclick="exportLibraryJSON()">↓ Export</button>
+        <button class="btn-sm" onclick="exportLibraryJSON()" title="Export full library (all pieces) to a dated JSON backup file">↓ Export library</button>
         <label style="display:inline-block">
-          <span class="btn-sm" style="display:inline-block;cursor:pointer">↑ Import JSON</span>
+          <span class="btn-sm" style="display:inline-block;cursor:pointer" title="Import a library backup JSON — adds pieces not already present, skips duplicates">↑ Import library</span>
           <input type="file" id="import-json-input" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="importLibraryJSON(this.files[0])">
         </label>
-        <button class="btn-sm" onclick="saveSessionToStorage()">↓ Save current</button>
       </div>
     </div>
-    <!-- Manual piece-data load / save row -->
+    <!-- Piece-data backup / recovery row -->
     <div style="display:flex;gap:0.35rem;flex-wrap:wrap;padding:0.3rem 0.5rem;border-bottom:1px solid var(--border);align-items:center">
-      <span style="font-size:0.52rem;color:var(--text-dim);flex:0 0 auto">Piece data:</span>
-      <button class="btn-sm" onclick="manualSavePieceData()" title="Save current piece markers + notes to a JSON file">↓ Save piece</button>
+      <span style="font-size:0.48rem;color:var(--text-faint);flex:0 0 auto;letter-spacing:0.06em">Current piece:</span>
+      <button class="btn-sm" onclick="saveSessionToStorage()" title="Force-save the current piece to localStorage now (autosave normally handles this)">↓ Save now</button>
+      <button class="btn-sm" onclick="manualSavePieceData()" title="Export current piece markers + passages + notes to a JSON file for backup or transfer">↓ Backup piece</button>
       <label style="display:inline-block;flex:0 0 auto">
-        <span class="btn-sm" style="display:inline-block;cursor:pointer" title="Load piece markers + notes from a previously saved JSON file">↑ Load piece JSON</span>
+        <span class="btn-sm" style="display:inline-block;cursor:pointer" title="Restore piece markers + passages + notes from a backup JSON file">↑ Restore piece</span>
         <input type="file" id="piece-json-input" accept=".json" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="manualLoadPieceJSON(this.files[0])">
       </label>
       <label style="display:inline-block;flex:0 0 auto">
-        <span class="btn-sm" style="display:inline-block;cursor:pointer" title="Load piece notes from a plain text (.txt) file">↑ Load notes .txt</span>
+        <span class="btn-sm" style="display:inline-block;cursor:pointer" title="Load piece notes from a plain text (.txt) file">↑ Notes .txt</span>
         <input type="file" id="piece-txt-input" accept=".txt,text/plain" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="manualLoadPieceTxt(this.files[0])">
       </label>
     </div>
@@ -859,22 +864,24 @@ input[type=file]{display:none}
 
       <div class="doc-h">FUTURE FEATURES</div>
       <div style="color:var(--accent);font-size:0.4rem;letter-spacing:0.1em;margin:0.3rem 0 0.1rem">NEAR-TERM — contained, low risk</div>
-      · Folder migration: scan piece folders for legacy notes.txt on reconnect, merge into session.json<br>
-      · Input level monitor — mic level indicator to verify external mic before recording<br>
-      · Progress log — recordings history per piece, compare clips across sessions<br>
-      · Score-to-marker workflow — tap-to-place guided placement from a rehearsal mark list<br>
-      · Record segment without looping (single pass, immediate)<br>
+      · Input level monitor — mic level indicator to verify external mic is active before recording<br>
+      · Record segment without looping — single-pass immediate recording, no loop required<br>
+      · Score-to-marker workflow — tap-to-place guided mark placement from a rehearsal letter list<br>
+      · Progress log — recording history per piece with date/tempo; compare clips across sessions<br>
+      · Folder migration — on reconnecting to Rehearsal Space folder, scan for legacy notes.txt and merge into piece notes (run once per piece)<br>
       <div style="color:var(--accent);font-size:0.4rem;letter-spacing:0.1em;margin:0.4rem 0 0.1rem">MEDIUM — moderate complexity</div>
-      · Spool — curated sequence of non-contiguous passages at stepped tempos, plays through automatically. Option to record one full pass as single clip<br>
-      · Blend export refinement — crossfade slider for mix export<br>
-      · Latency calibration refinement — quality scoring, per-session variance tracking<br>
-      · Highlight key areas — visual passage emphasis on waveform<br>
+      · Spool — curated sequence of non-contiguous passages at stepped tempos, plays through automatically; option to record one full pass as a single clip<br>
+      · Clip speed label — display recording tempo next to each take (e.g. "I.1 · 75%") as a permanent reminder<br>
+      · Latency calibration refinement — quality scoring, per-session variance tracking over time<br>
+      · Highlight key areas — visual passage emphasis on waveform (colour-tinted region between marks)<br>
       <div style="color:var(--accent);font-size:0.4rem;letter-spacing:0.1em;margin:0.4rem 0 0.1rem">LONGER HORIZON — architectural</div>
-      · Metronome with time-signature structure — define meter and tempo changes per section, useful for solo repertoire without a commercial recording<br>
-      · Basic tuner<br>
-      · Folder architecture — piece subfolders, audio auto-detected from piece folder, session.json as primary store<br>
+      · <strong style="color:var(--text-mid)">Standalone cloud app</strong> — self-contained app hosted on a permanent URL; stores audio and piece data remotely (e.g. Cloudflare R2 or similar), no local files required, fully portable across devices. Would enable a significantly simpler interface since file management disappears. Prerequisite for the iPhone version below.<br>
+      · <strong style="color:var(--text-mid)">iPhone companion app</strong> — simplified mobile version (separate app, same URL/library); loads pieces from the existing library, plays passages, records takes. No mark editing, no library additions, no woodshed. Fully compatible with the desktop data format. Contingent on the standalone cloud architecture above.<br>
       · ForScore integration — import rehearsal mark list from ForScore export for tap-to-place workflow<br>
-      · Multi-device sync — cloud storage or export-to-URL
+      <div style="color:var(--accent);font-size:0.4rem;letter-spacing:0.1em;margin:0.4rem 0 0.1rem">NOTIONAL — ideas only, not committed</div>
+      · Metronome with time-signature structure — define meter and tempo changes per section; useful for building custom reference recordings for solo repertoire without a commercial recording<br>
+      · Basic tuner<br>
+      · Multi-device sync via export-to-URL or shared cloud storage
 
       <div class="doc-h">WORKFLOW</div>
       1. Select a piece from the Library — the file picker opens automatically.<br>
@@ -2092,17 +2099,18 @@ function renderLoops() {
   const list    = document.getElementById('seg-list');
   const header  = document.getElementById('loop-col-header');
   const countEl = document.getElementById('loop-count');
-  countEl.textContent = `${segments.length} loop${segments.length!==1?'s':''}`;
+  countEl.textContent = `${segments.length} passage${segments.length!==1?'s':''}`;
 
   if (!segments.length) {
     if (header) header.style.display = 'none';
-    list.innerHTML = `<div class="loop-empty">No loops yet — pick markers above and click Add</div>`;
+    list.innerHTML = `<div class="loop-empty">No passages yet — pick markers above and click Add</div>`;
     return;
   }
   if (header) header.style.display = 'grid';
 
-  // Sort passages by start marker time
+  // Sort: starred first, then by start marker time
   const sortedSegs = [...segments].sort((a, b) => {
+    if (!!a.starred !== !!b.starred) return a.starred ? -1 : 1;
     const ma = markers.find(m => m.id === a.startId);
     const mb = markers.find(m => m.id === b.startId);
     return (ma ? ma.time : 0) - (mb ? mb.time : 0);
@@ -2111,7 +2119,6 @@ function renderLoops() {
     const sm = markers.find(m=>m.id===seg.startId);
     const em = markers.find(m=>m.id===seg.endId);
     if (!sm||!em) {
-      // Broken loop — marker was deleted
       return `<div class="loop-row" style="opacity:0.4" id="seg-row-${seg.id}">
         <span class="loop-label-input" style="font-style:italic;color:var(--red)">⚠ missing marker</span>
         <span class="loop-span"></span>
@@ -2122,10 +2129,12 @@ function renderLoops() {
     }
     const dur = Math.max(0, em.time - sm.time);
     const isActive = seg.id === activeLoopId;
+    const isStarred = !!seg.starred;
     const defaultName = `${sm.label} → ${em.label}`;
     const displayName = seg.name || defaultName;
     const hasNote = seg.note && seg.note.trim();
-    return `<div class="loop-row${isActive?' active-loop':''}" id="seg-row-${seg.id}">
+    return `<div class="loop-row${isActive?' active-loop':''}${isStarred?' starred-loop':''}" id="seg-row-${seg.id}">
+      <button class="loop-btn star-btn${isStarred?' starred':''}" onclick="togglePassageStar(${seg.id})" title="${isStarred?'Remove star':'Star this passage'}">★</button>
       <input class="loop-label-input" value="${escHtml(displayName)}"
         placeholder="${escHtml(defaultName)}"
         onchange="updateLoopName(${seg.id},this.value)"
@@ -2157,6 +2166,14 @@ function updateLoopName(id, val) {
 function updatePassageNote(id, val) {
   const seg = segments.find(s=>s.id===id);
   if (seg) { seg.note = val.trim(); saveSession(); }
+}
+
+function togglePassageStar(id) {
+  const seg = segments.find(s=>s.id===id);
+  if (!seg) return;
+  seg.starred = !seg.starred;
+  saveSession();
+  renderLoops();
 }
 
 function toggleLoop(id) {
@@ -2712,7 +2729,8 @@ function manualLoadPieceJSON(file) {
     markerIdCounter = Math.max(data.markerIdCounter || 0, ...(markers.length ? markers.map(m => m.id + 1) : [0]));
     segments = (data.segments || []).map(seg => ({
       id: seg.id ?? 0, startId: seg.startId, endId: seg.endId,
-      name: seg.name || '', note: seg.note || '', include: seg.include !== false
+      name: seg.name || '', note: seg.note || '', include: seg.include !== false,
+      starred: !!seg.starred
     }));
     segmentIdCounter = Math.max(data.segmentIdCounter || 0, ...(segments.length ? segments.map(s => s.id + 1) : [0]));
     if (data.notes !== undefined) {
@@ -4266,24 +4284,33 @@ function _hitTestMarker(mouseX, canvasWidth, mouseY, canvasHeight) {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const hit = _hitTestMarker(mouseX, rect.width, mouseY, rect.height);
+    const mouseYlocal = e.clientY - rect.top;
+    const hit = _hitTestMarker(mouseX, rect.width, mouseYlocal, rect.height);
     if (hit) {
       pushUndo();
       dragMarkerState = { id:hit.id, snapTime:hit.time, mousedownX:e.clientX, didDrag:false, locked:!!hit.locked };
       canvas.classList.add('marker-drag');
-      // Only pause if not looping — allow marker edits during loop playback
       if (isPlaying && loopStart === null) _pause();
     } else {
       dragMarkerState = null;
-      isDragging = false; isPanning = false;
+      isDragging = false;
       dragStartX = e.clientX; lastDragX = e.clientX;
       dragStartTime = _timeFromOverviewX(e);
       dragWasPlaying = isPlaying;
-      if (isPlaying) _pause();
-      // Immediately seek on mousedown (works at any zoom)
-      const t = Math.max(0, Math.min(audioDuration, dragStartTime));
-      playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
-      // We'll decide pan vs seek in mousemove based on distance
+      if (zoomLevel > 1.01) {
+        // Zoomed: immediately start panning on mousedown
+        isPanning = true;
+        panStartX = e.clientX;
+        panStartViewStart = viewStart;
+        canvas.style.cursor = 'grabbing';
+      } else {
+        // Full view: seek immediately on mousedown
+        isPanning = false;
+        if (isPlaying) _pause();
+        const t = Math.max(0, Math.min(audioDuration, dragStartTime));
+        playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
+        isDragging = true;
+      }
       canvas.classList.add('dragging');
     }
   });
@@ -4370,19 +4397,6 @@ function _hitTestMarker(mouseX, canvasWidth, mouseY, canvasHeight) {
       tooltip.style.left = e.clientX + 'px';
       tooltip.style.top  = (rect.top + window.scrollY - 4) + 'px';
     } else if (!dragMarkerState && !isPanning && !isDragging) {
-      // Not yet committed — check if we've moved enough to start pan or seek
-      const moved = Math.abs(e.clientX - dragStartX);
-      if (moved > 3 && canvas.classList.contains('dragging')) {
-        if (zoomLevel > 1.01) {
-          // Start pan
-          isPanning = true;
-          panStartX = e.clientX;
-          panStartViewStart = viewStart;
-          canvas.style.cursor = 'grabbing';
-        } else {
-          isDragging = true;
-        }
-      }
       tooltip.style.display = 'none';
       const hit = _hitTestMarker(mouseX, rect.width, mouseY, rect.height);
       canvas.style.cursor = hit ? (hit.locked?'pointer':'ew-resize') : (zoomLevel>1?'grab':'crosshair');
@@ -4439,15 +4453,24 @@ function _hitTestMarker(mouseX, canvasWidth, mouseY, canvasHeight) {
     } else if (isPanning) {
       isPanning = false;
       canvas.classList.remove('dragging');
-      canvas.style.cursor = 'crosshair';
+      canvas.style.cursor = zoomLevel > 1 ? 'grab' : 'crosshair';
+      // If user barely moved (click rather than pan), treat as a seek
+      if (Math.abs(e.clientX - panStartX) < 4) {
+        if (dragWasPlaying) _pause();
+        const t = Math.max(0, Math.min(audioDuration, dragStartTime));
+        playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
+      }
     } else if (isDragging) {
       isDragging = false;
       canvas.classList.remove('dragging');
       if (dragWasPlaying && Math.abs(lastDragX-dragStartX)>4) _startPlayback(playOffset);
     } else if (canvas.classList.contains('dragging')) {
-      // Click with no drag — seek already happened on mousedown, just clean up
+      // Click with no drag — seek to clicked position (works at any zoom level)
       canvas.classList.remove('dragging');
       canvas.style.cursor = zoomLevel > 1 ? 'grab' : 'crosshair';
+      if (dragWasPlaying) _pause();
+      const t = Math.max(0, Math.min(audioDuration, dragStartTime));
+      playOffset = t; queuePoint = t; _updateDisplay(t); drawOverview();
     }
   });
 
@@ -4464,7 +4487,13 @@ function _hitTestMarker(mouseX, canvasWidth, mouseY, canvasHeight) {
   canvas.addEventListener('dblclick', e => {
     if (!audioBuffer) return;
     e.preventDefault();
-    const t = Math.max(0, Math.min(audioDuration, _timeFromOverviewX(e)));
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseYlocal = e.clientY - rect.top;
+    const hit = _hitTestMarker(mouseX, rect.width, mouseYlocal, rect.height);
+    const t = hit
+      ? hit.time
+      : Math.max(0, Math.min(audioDuration, _timeFromOverviewX(e)));
     _startPlayback(t);
   });
 
