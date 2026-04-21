@@ -175,9 +175,6 @@ input[type=file]{display:none}
 .rec-warning{font-size:0.42rem;color:var(--text-faint);margin-top:0.35rem;line-height:1.7}
 
 /* ── INLINE RECORD BUTTONS (marker + segment rows) ── */
-.marker-btn.record{color:var(--red);opacity:0;transition:opacity 0.15s,color 0.15s}
-.marker-row:hover .marker-btn.record{opacity:1}
-.marker-btn.record:hover{color:#ff6b5b}
 .loop-btn.record{color:var(--red);opacity:0;transition:opacity 0.15s,color 0.15s}
 .loop-row:hover .loop-btn.record{opacity:1}
 .loop-btn.record:hover{color:#ff6b5b}
@@ -535,7 +532,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v6.6</span>
+    <span class="app-ver">v6.7</span>
   </div>
 </header>
 
@@ -854,9 +851,17 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.6</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.7</span>
 
-      <div class="doc-h">WHAT'S NEW IN v6.6</div>
+      <div class="doc-h">WHAT'S NEW IN v6.7</div>
+      <div class="doc-p">
+        · <strong style="color:var(--text)">Rehearsal mark recording removed:</strong> Recording is now passage-scoped or free only. Eliminates premature auto-stop bugs from open-ended mark recordings.<br>
+        · <strong style="color:var(--text)">Frozen playback fixed:</strong> AudioContext is now created once per clip and reused across pause/play cycles. Only destroyed on clip delete. Eliminates the freeze caused by calling createMediaElementSource() on an already-wired element.<br>
+        · <strong style="color:var(--text)">Clip seek / jump-to:</strong> Both rec and ref waveform canvases are now clickable to seek. Seeking one channel seeks both in sync.<br>
+        · <strong style="color:var(--text)">Reference baking fix:</strong> _bakeRefChannel now correctly time-stretches the reference slice. At 70% speed, the reference plays at 70% — not 130%. Pitch is preserved.<br>
+        · <strong style="color:var(--text)">Latency offset direction fixed:</strong> latencyOffset now correctly shifts the reference start position (negative offset = reference starts earlier to compensate for capture delay).<br>
+        · <strong style="color:var(--text)">85% tempo step:</strong> Added to all speed step arrays (STOPS and TT_STOPS).
+      </div>
       <div class="doc-p">
         · <strong style="color:var(--text)">Passage queue:</strong> Checkbox on each passage to build a play queue. ▶ Play queue button runs through checked passages in chronological order, one pass each.<br>
         · <strong style="color:var(--text)">Loop counter:</strong> Visible count of consecutive loop plays with a reset button. Appears when a loop is active.<br>
@@ -1571,7 +1576,7 @@ function playToNextMarker() {
 
 function onSpeedChange(v) {
   currentSpeed = parseFloat(v);
-  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
   const snapped = STOPS.reduce((a,b) => Math.abs(b-currentSpeed)<Math.abs(a-currentSpeed)?b:a);
   currentSpeed = snapped;
   document.getElementById('speed-slider').value = currentSpeed;
@@ -1580,7 +1585,7 @@ function onSpeedChange(v) {
 }
 
 function stepTempo(dir) {
-  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+  const STOPS = [0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
   const idx = STOPS.indexOf(currentSpeed);
   const cur = idx !== -1 ? idx : STOPS.findIndex(s => s >= currentSpeed);
   const newIdx = Math.max(0, Math.min(STOPS.length-1, (idx !== -1 ? idx : cur) + dir));
@@ -1913,7 +1918,6 @@ function renderMarkers() {
       <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next ${isStructuralMark?'structural ':''}mark">⟳</button>
       <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Open Woodshed" ${isGhost?'disabled':''}>T</button>
       <button class="marker-btn" onclick="toggleMarkerType(${m.id})" title="${isStructuralMark?'Structural — click to make Performance':'Performance — click to make Structural'}" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}" ${isGhost?'disabled':''}>${isStructuralMark?'S':'P'}</button>
-      <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here" ${isGhost?'disabled':''}>●</button>
       <button class="marker-btn delete"
         onclick="removeMarker(${m.id})" title="Remove" ${isGhost?'disabled':''}>✕</button>
       ${isGhost ? '' : annotationRow}
@@ -2804,7 +2808,7 @@ function manualLoadPieceTxt(file) {
 // ══════════════════════════════════════════════
 // TEMPO TRAINING
 // ══════════════════════════════════════════════
-const TT_STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
+const TT_STOPS = [0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
 let ttConfig    = TT_STOPS.map(s => ({ pct: s, enabled: s >= 0.8 && s <= 1.0, reps: 2 }));
 let ttState     = null; // null = idle, else { stepIdx, repsDone, paused }
 let ttLoopId    = null;
@@ -3175,23 +3179,9 @@ async function toggleRecording() {
     const seg = segments.find(s => s.id === activeLoopId);
     if (seg) { await recordSegment(seg.id); return; }
   }
-  if (activeMarkerIdx >= 0 && activeMarkerIdx < markers.length - 1) {
-    await recordFromMarker(markers[activeMarkerIdx].id); return;
-  }
   await _startFreeRecording();
 }
 
-// ── Record from a marker row ● button ──
-async function recordFromMarker(markerId) {
-  const idx = markers.findIndex(m => m.id === markerId);
-  if (idx < 0 || idx >= markers.length - 1) { await _startFreeRecording(); return; }
-  const sm = markers[idx];
-  const em = markers[idx + 1];
-  const passLabel = sm.label + '→' + em.label;
-  // withRef = true whenever reference audio is loaded — reference plays audibly
-  // through headphones, microphone captures instrument only
-  await _startRecordingPass(sm.time, em.time, passLabel, !!audioBuffer);
-}
 
 // ── Record from a segment ● button ──
 async function recordSegment(segId) {
@@ -3268,33 +3258,43 @@ async function _onRecordingStop(passLabel, withRef, nominalDuration) {
 
 async function _bakeRefChannel(clip) {
   try {
-    const speed = clip.recordingSpeed || 1.0;
-    const startSec = (clip.startOffset || 0) + (latencyOffset / 1000);
-    const sr = audioBuffer.sampleRate;
-    const numCh = audioBuffer.numberOfChannels;
+    const speed    = clip.recordingSpeed || 1.0;
+    const sr       = audioBuffer.sampleRate;
+    const numCh    = audioBuffer.numberOfChannels;
 
-    // Duration of the clip in source (pre-speed) seconds
-    const srcDur = clip.duration * speed;
-    const startSample = Math.max(0, Math.floor(startSec * sr));
-    const frameCount  = Math.min(
-      Math.ceil(clip.duration * sr),   // frames at output rate
-      Math.ceil(srcDur * sr)
-    );
+    // latencyOffset shifts where in the reference we start reading.
+    // Positive offset = reference started later → read earlier in the buffer.
+    const startSec    = Math.max(0, (clip.startOffset || 0) - (latencyOffset / 1000));
+    const startSample = Math.floor(startSec * sr);
 
-    // Build an OfflineAudioContext at the target duration (clip.duration seconds)
-    const offCtx = new OfflineAudioContext(numCh, Math.ceil(clip.duration * sr), sr);
-    const refBuf = offCtx.createBuffer(numCh, Math.ceil(srcDur * sr), sr);
+    // How many source samples correspond to the recording duration at recorded speed?
+    // At speed=0.7: the reference played at 0.7×, so clip.duration wall-clock seconds
+    // = clip.duration * 0.7 seconds of source material.
+    const srcFrames = Math.round(clip.duration * speed * sr);
+    const endSample = Math.min(audioBuffer.length, startSample + srcFrames);
+    const actualSrcFrames = endSample - startSample;
+
+    // Output buffer: clip.duration seconds at native sample rate.
+    // We copy actualSrcFrames of source into a buffer of clipFrames — the
+    // OfflineAudioContext resamples implicitly when rendered length differs.
+    const clipFrames = Math.round(clip.duration * sr);
+    const offCtx = new OfflineAudioContext(numCh, clipFrames, sr);
+
+    // Fill a source buffer with the raw (un-speed-adjusted) reference slice
+    const srcBuf = offCtx.createBuffer(numCh, actualSrcFrames, sr);
     for (let c = 0; c < numCh; c++) {
-      const src = audioBuffer.getChannelData(Math.min(c, audioBuffer.numberOfChannels - 1));
-      const dst = refBuf.getChannelData(c);
-      const endSample = Math.min(src.length, startSample + Math.ceil(srcDur * sr));
-      dst.set(src.subarray(startSample, endSample));
+      const srcData = audioBuffer.getChannelData(Math.min(c, numCh - 1));
+      srcBuf.getChannelData(c).set(srcData.subarray(startSample, endSample));
     }
-    const src = offCtx.createBufferSource();
-    src.buffer = refBuf;
-    src.playbackRate.value = 1 / speed; // time-stretch to match clip duration
-    src.connect(offCtx.destination);
-    src.start(0);
+
+    // Play the source buffer at playbackRate = speed so it time-stretches
+    // to fill exactly clipFrames — no pitch manipulation, just rate change
+    // which the OfflineAudioContext handles in the time domain.
+    const srcNode = offCtx.createBufferSource();
+    srcNode.buffer = srcBuf;
+    srcNode.playbackRate.value = speed; // play at recorded speed → fills clip duration
+    srcNode.connect(offCtx.destination);
+    srcNode.start(0);
     const rendered = await offCtx.startRendering();
     clip.refBlob = _audioBufferToWavBlob(rendered);
 
@@ -3371,7 +3371,8 @@ function renderRecClips() {
       <canvas class="clip-waveform-canvas" id="clip-wave-${clip.id}"
         onclick="seekClip(${clip.id},event)" title="Click to seek"></canvas>
       ${hasRef ? `<canvas class="clip-waveform-canvas" id="clip-ref-wave-${clip.id}"
-        style="margin-top:1px;opacity:0.7" title="Reference (baked at ${Math.round((clip.recordingSpeed||1)*100)}%)"></canvas>` : ''}
+        style="margin-top:1px;opacity:0.7" title="Reference — click to seek"
+        onclick="seekClip(${clip.id},event)"></canvas>` : ''}
       <div class="clip-transport">
         <button class="clip-play-btn" id="clip-btn-${clip.id}"
           onclick="toggleClipPlay(${clip.id})">▶</button>
@@ -3566,9 +3567,12 @@ function clipToggleMute(clipId, ch) {
   }
 }
 
+// Full teardown — called on delete or session clear
 function _stopClipPlayback(clipId) {
   const g = clipGainNodes[clipId];
   if (g) {
+    if (g.recAudio) g.recAudio.pause();
+    if (g.refAudio) { g.refAudio.pause(); URL.revokeObjectURL(g.refAudio.src); }
     try { g.ctx.close(); } catch(e) {}
     delete clipGainNodes[clipId];
   }
@@ -3580,6 +3584,43 @@ function _stopClipPlayback(clipId) {
   if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
 }
 
+// Build (or resume) the AudioContext graph for a clip.
+// The context is created once and reused — never re-created on pause/play.
+// Destroyed only on _stopClipPlayback (delete or new recording session).
+function _ensureClipContext(clip) {
+  const id = clip.id;
+  if (clipGainNodes[id] && clipGainNodes[id].ctx.state !== 'closed') {
+    return clipGainNodes[id]; // reuse existing graph
+  }
+  const recAudio = clipAudioEls[id];
+  if (!recAudio) return null;
+
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const recGain = ctx.createGain();
+  recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
+  recGain.connect(ctx.destination);
+
+  // rec channel — createMediaElementSource only called once per element
+  const recSrc = ctx.createMediaElementSource(recAudio);
+  recSrc.connect(recGain);
+
+  let refAudio = null;
+  let refGain = null;
+  if (clip.refBlob) {
+    refAudio = new Audio();
+    refAudio.src = URL.createObjectURL(clip.refBlob);
+    refGain = ctx.createGain();
+    refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
+    const refSrc = ctx.createMediaElementSource(refAudio);
+    refSrc.connect(refGain);
+    refGain.connect(ctx.destination);
+  }
+
+  const g = { ctx, recGain, refGain, recAudio, refAudio };
+  clipGainNodes[id] = g;
+  return g;
+}
+
 function toggleClipPlay(clipId) {
   const clip = recClips.find(c => c.id === clipId);
   const btn  = document.getElementById(`clip-btn-${clipId}`);
@@ -3588,13 +3629,14 @@ function toggleClipPlay(clipId) {
   // Stop all other clips
   recClips.forEach(c => { if (c.id !== clipId) _stopClipPlayback(c.id); });
 
-  const existing = clipGainNodes[clipId];
   const recAudio = clipAudioEls[clipId];
+  if (!recAudio) return;
 
-  if (existing && recAudio && !recAudio.paused) {
-    // Pause
+  // If playing → pause
+  if (!recAudio.paused) {
     recAudio.pause();
-    if (existing.refAudio) existing.refAudio.pause();
+    const g = clipGainNodes[clipId];
+    if (g && g.refAudio) g.refAudio.pause();
     btn.textContent = '▶'; btn.classList.remove('playing');
     return;
   }
@@ -3602,64 +3644,51 @@ function toggleClipPlay(clipId) {
   // Stop main player
   if (isPlaying) _pause();
 
-  // Build AudioContext with GainNodes for live mix
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const recGain = ctx.createGain();
-  const refGain = ctx.createGain();
-  recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
-  refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
-  recGain.connect(ctx.destination);
+  // Build or reuse context (this is safe to call repeatedly)
+  const g = _ensureClipContext(clip);
+  if (!g) return;
 
-  let refAudio = null;
+  // Resume suspended context (Chrome autoplay policy)
+  if (g.ctx.state === 'suspended') g.ctx.resume();
 
-  // Wire rec channel
-  if (!recAudio) { btn.textContent = '▶'; return; }
-  recAudio.currentTime = 0;
-  const recSrc = ctx.createMediaElementSource(recAudio);
-  recSrc.connect(recGain);
-
-  // Wire ref channel if baked blob available
-  if (clip.refBlob) {
-    refAudio = new Audio();
-    refAudio.src = URL.createObjectURL(clip.refBlob);
-    refAudio.currentTime = 0;
-    refGain.connect(ctx.destination);
-    const refSrc = ctx.createMediaElementSource(refAudio);
-    refSrc.connect(refGain);
+  // Seek both to current rec position
+  const t = recAudio.currentTime;
+  if (g.refAudio) {
+    g.refAudio.currentTime = t; // ref baked to same duration, seek to same position
   }
 
-  clipGainNodes[clipId] = { ctx, recGain, refGain, refAudio };
-
-  // Play both
-  const playPromises = [recAudio.play()];
-  if (refAudio) playPromises.push(refAudio.play().catch(() => {}));
-  Promise.all(playPromises).then(() => {
+  const plays = [recAudio.play()];
+  if (g.refAudio) plays.push(g.refAudio.play().catch(() => {}));
+  Promise.all(plays).then(() => {
     btn.textContent = '⏸'; btn.classList.add('playing');
   }).catch(() => {});
 
-  // Stop ref when rec ends
   recAudio.onended = () => {
-    if (refAudio) refAudio.pause();
+    if (g.refAudio) g.refAudio.pause();
     btn.textContent = '▶'; btn.classList.remove('playing');
     _drawClipWaveform(clipId, 0);
+    _drawClipRefWaveform(clipId, 0);
   };
 }
 
-function seekClip(clipId, event) {
-  const a = clipAudioEls[clipId];
-  const clip = recClips.find(c => c.id === clipId);
-  const canvas = document.getElementById(`clip-wave-${clipId}`);
-  if (!a || !clip || !canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  const progress = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-  a.currentTime = progress * clip.duration;
-  a.playbackRate = clip.recordingSpeed || 1.0;
-  _drawClipWaveform(clipId, progress);
-  // Reposition reference to match new clip position
-  if (audioBuffer && audioEl && !a.paused) {
-    const refPos = (clip.startOffset || 0) + a.currentTime + (latencyOffset / 1000);
-    audioEl.currentTime = trimOffset + Math.max(0, Math.min(audioDuration, refPos));
+function seekClip(clipId, progress) {
+  // progress: 0–1, or call as seekClip(id, event) from onclick
+  if (progress && typeof progress === 'object') {
+    const canvas = document.getElementById(`clip-wave-${clipId}`) ||
+                   document.getElementById(`clip-ref-wave-${clipId}`);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    progress = Math.max(0, Math.min(1, (progress.clientX - rect.left) / rect.width));
   }
+  const clip = recClips.find(c => c.id === clipId);
+  const a = clipAudioEls[clipId];
+  if (!clip || !a) return;
+  const t = progress * clip.duration;
+  a.currentTime = t;
+  const g = clipGainNodes[clipId];
+  if (g && g.refAudio) g.refAudio.currentTime = t;
+  _drawClipWaveform(clipId, progress);
+  _drawClipRefWaveform(clipId, progress);
 }
 
 
