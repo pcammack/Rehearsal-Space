@@ -69,25 +69,21 @@ header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);
 .rec-ctrl-label{font-size:0.4rem;color:var(--text-faint);white-space:nowrap}
 .rec-ctrl-val{font-size:0.42rem;color:var(--text-mid);min-width:2.5rem;text-align:right;white-space:nowrap}
 
-/* ── MIXER ── */
-.rec-mixer{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;
-  padding:0.4rem 0.5rem;background:var(--bg3);border:1px solid var(--border);
-  margin-bottom:0.4rem;grid-template-rows:auto auto}
-.mixer-channel{display:flex;flex-direction:column;gap:0.2rem}
-.mixer-channel-hdr{display:flex;align-items:center;justify-content:space-between}
-.mixer-ch-label{font-size:0.42rem;font-weight:500;letter-spacing:0.08em}
-.mixer-mute-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
-  font-size:0.44rem;padding:0.05rem 0.25rem;cursor:pointer;transition:all 0.15s;
-  font-family:'JetBrains Mono',monospace;line-height:1.2}
-.mixer-mute-btn:hover{border-color:var(--border-l);color:var(--text)}
-.mixer-mute-btn.muted{color:var(--red);border-color:var(--red)}
-.mixer-wave-canvas{width:100%;height:44px;background:var(--bg2);border:1px solid var(--border);
-  display:block;cursor:pointer}
-.mixer-fader{width:100%;accent-color:var(--accent);cursor:pointer;margin-top:0.1rem}
-.mixer-transport{grid-column:1/-1;display:flex;align-items:center;gap:0.4rem;
-  padding-top:0.3rem;border-top:1px solid var(--border);margin-top:0.1rem}
-.mixer-time{font-size:0.44rem;color:var(--text-mid);min-width:3rem}
 
+/* ── INLINE CLIP MIXER ── */
+.clip-mixer{padding:0.25rem 0 0.1rem;border-top:1px solid var(--border);margin-top:0.2rem;display:none}
+.clip-mixer.visible{display:block}
+.clip-mixer-row{display:flex;align-items:center;gap:0.35rem;margin-bottom:0.15rem}
+.clip-ch-label{font-size:0.38rem;letter-spacing:0.08em;min-width:1.8rem;font-weight:500}
+.clip-ch-label.ref{color:var(--accent)}
+.clip-ch-label.rec{color:var(--blue)}
+.clip-vol-slider{flex:1;accent-color:var(--accent);cursor:pointer}
+.clip-mute-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-size:0.4rem;padding:0.04rem 0.22rem;cursor:pointer;transition:all 0.15s;
+  font-family:'JetBrains Mono',monospace;line-height:1.3;white-space:nowrap}
+.clip-mute-btn:hover{border-color:var(--border-l);color:var(--text)}
+.clip-mute-btn.muted{color:var(--red);border-color:var(--red)}
+.clip-vol-pct{font-size:0.38rem;color:var(--text-faint);min-width:2rem;text-align:right}
 /* ── PASSAGE NOTES ── */
 .passage-note-input{background:none;border:none;border-top:1px solid var(--border);
   color:var(--text-mid);font-family:'JetBrains Mono',monospace;font-size:0.43rem;
@@ -387,6 +383,12 @@ input[type=file]{display:none}
 .level-meter-track{flex:1;height:5px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;overflow:hidden}
 .level-meter-bar{height:100%;width:0%;background:var(--green);transition:width 0.05s;border-radius:2px}
 .level-meter-label{font-size:0.38rem;color:var(--text-faint);white-space:nowrap}
+/* ── SINGLE PASS BUTTON ── */
+.btn-single{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:0.12rem 0.4rem;
+  cursor:pointer;transition:all 0.15s;letter-spacing:0.04em}
+.btn-single:hover{border-color:var(--border-l);color:var(--text)}
+.btn-single.active{background:var(--blue);border-color:var(--blue);color:#fff}
 /* ── INTENTION PROMPT ── */
 .intention-bar{display:flex;align-items:center;gap:0.4rem;padding:0.25rem 0;border-bottom:1px solid var(--border);margin-bottom:0.3rem}
 .intention-input{flex:1;background:none;border:none;border-bottom:1px solid var(--border-l);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:0.05rem 0;outline:none;transition:border-color 0.15s}
@@ -533,7 +535,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v6.4</span>
+    <span class="app-ver">v6.6</span>
   </div>
 </header>
 
@@ -718,46 +720,13 @@ input[type=file]{display:none}
             <span class="rec-scope" id="rec-scope"></span>
           </div>
         </div>
-        <!-- Mixer: two independent channels -->
-        <div class="rec-mixer" id="rec-mixer" style="display:none">
-          <!-- Reference channel -->
-          <div class="mixer-channel" id="mixer-ref-channel">
-            <div class="mixer-channel-hdr">
-              <span class="mixer-ch-label" style="color:var(--accent)">Ref</span>
-              <button class="mixer-mute-btn" id="mixer-ref-mute" onclick="mixerToggleMute('ref')" title="Mute reference">◉</button>
-            </div>
-            <canvas class="mixer-wave-canvas" id="mixer-ref-wave" title="Reference audio"></canvas>
-            <input type="range" class="mixer-fader" id="mixer-ref-vol"
-              min="0" max="100" value="80" oninput="mixerSetVol('ref',this.value)">
-          </div>
-          <!-- Recording channel -->
-          <div class="mixer-channel" id="mixer-rec-channel">
-            <div class="mixer-channel-hdr">
-              <span class="mixer-ch-label" style="color:var(--blue)">Rec</span>
-              <button class="mixer-mute-btn" id="mixer-rec-mute" onclick="mixerToggleMute('rec')" title="Mute recording">◉</button>
-            </div>
-            <canvas class="mixer-wave-canvas" id="mixer-rec-wave" title="Your recording"></canvas>
-            <input type="range" class="mixer-fader" id="mixer-rec-vol"
-              min="0" max="100" value="100" oninput="mixerSetVol('rec',this.value)">
-          </div>
-          <!-- Mixer transport -->
-          <div class="mixer-transport">
-            <button class="btn-sm" id="mixer-play-btn" onclick="mixerTogglePlay()" title="Play both channels">▶ Play</button>
-            <button class="btn-sm" id="mixer-loop-btn" onclick="mixerToggleLoop()" title="Loop clip">⟳</button>
-            <span class="mixer-time" id="mixer-time">0:00</span>
-            <span style="flex:1"></span>
-            <span class="rec-ctrl-label" style="font-size:0.38rem">Sync</span>
-            <button class="btn-sm" onclick="stepLatency(-5)" style="padding:0.08rem 0.3rem;font-size:0.4rem">−</button>
-            <span class="rec-ctrl-val" id="latency-val">0ms</span>
-            <button class="btn-sm" onclick="stepLatency(5)" style="padding:0.08rem 0.3rem;font-size:0.4rem">+</button>
-          </div>
-        </div>
         <div class="level-meter-wrap" id="level-meter-wrap">
           <span class="level-meter-label">mic</span>
           <div class="level-meter-track"><div class="level-meter-bar" id="level-meter-bar"></div></div>
         </div>
         <div class="rec-controls" style="margin:0.2rem 0">
           <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">● Record</button>
+          <button class="btn-single" id="btn-single" onclick="toggleSinglePass()" title="Record one pass — no loop repeat">⊳ Single</button>
         </div>
         <div id="rec-clip-list" class="rec-clip-list">
           <div class="rec-no-clips">No clips yet — press ● or R</div>
@@ -885,9 +854,9 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.4</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.6</span>
 
-      <div class="doc-h">WHAT'S NEW IN v6.4</div>
+      <div class="doc-h">WHAT'S NEW IN v6.6</div>
       <div class="doc-p">
         · <strong style="color:var(--text)">Passage queue:</strong> Checkbox on each passage to build a play queue. ▶ Play queue button runs through checked passages in chronological order, one pass each.<br>
         · <strong style="color:var(--text)">Loop counter:</strong> Visible count of consecutive loop plays with a reset button. Appears when a loop is active.<br>
@@ -1486,6 +1455,14 @@ function _animLoop() {
 function _onTimeUpdate() {
   if (loopStart !== null && loopEnd !== null && audioEl) {
     if (audioEl.currentTime >= loopEnd - 0.05) {
+      if (singlePassMode) {
+        singlePassMode = false;
+        const btnS = document.getElementById('btn-single');
+        if (btnS) btnS.classList.remove('active');
+        if (isRecording) _stopRecording();
+        _pause();
+        return;
+      }
       if (_queueActive) {
         // Queue mode: let _onAudioEnded handle advancement — just stop here
         if (isRecording) _stopRecording();
@@ -3012,209 +2989,10 @@ let recClipCounter   = 0;
 let isRecording      = false;
 let latencyOffset    = 0;
 
-// ── Mixer state ──
-const mixer = {
-  refVol: 0.8,   // reference channel volume 0-1
-  recVol: 1.0,   // recording channel volume 0-1
-  refMuted: false,
-  recMuted: false,
-  looping: false,
-  activeClipId: null,  // which clip is loaded in mixer
-  refAudio: null,      // HTMLAudioElement for reference in mixer
-  rafId: null
-};
-
-function mixerSetVol(ch, val) {
-  const v = parseInt(val) / 100;
-  if (ch === 'ref') {
-    mixer.refVol = v;
-    if (mixer.refAudio && !mixer.refMuted) mixer.refAudio.volume = v;
-  } else {
-    mixer.recVol = v;
-    const clip = recClips.find(c => c.id === mixer.activeClipId);
-    if (clip) {
-      const a = clipAudioEls[clip.id];
-      if (a && !mixer.recMuted) a.volume = v;
-    }
-  }
-}
-
-function mixerToggleMute(ch) {
-  if (ch === 'ref') {
-    mixer.refMuted = !mixer.refMuted;
-    if (mixer.refAudio) mixer.refAudio.volume = mixer.refMuted ? 0 : mixer.refVol;
-    const btn = document.getElementById('mixer-ref-mute');
-    if (btn) btn.classList.toggle('muted', mixer.refMuted);
-  } else {
-    mixer.recMuted = !mixer.recMuted;
-    const clip = recClips.find(c => c.id === mixer.activeClipId);
-    if (clip) {
-      const a = clipAudioEls[clip.id];
-      if (a) a.volume = mixer.recMuted ? 0 : mixer.recVol;
-    }
-    const btn = document.getElementById('mixer-rec-mute');
-    if (btn) btn.classList.toggle('muted', mixer.recMuted);
-  }
-}
-
-function mixerToggleLoop() {
-  mixer.looping = !mixer.looping;
-  const btn = document.getElementById('mixer-loop-btn');
-  if (btn) btn.classList.toggle('active', mixer.looping);
-}
-
-function mixerTogglePlay() {
-  const clip = recClips.find(c => c.id === mixer.activeClipId);
-  if (!clip) return;
-  const recAudio = clipAudioEls[clip.id];
-  if (!recAudio) return;
-  if (!recAudio.paused) {
-    // Pause both
-    recAudio.pause();
-    if (mixer.refAudio) mixer.refAudio.pause();
-    cancelAnimationFrame(mixer.rafId);
-    const btn = document.getElementById('mixer-play-btn');
-    if (btn) btn.textContent = '▶ Play';
-  } else {
-    _mixerPlay(clip);
-  }
-}
-
-function _mixerPlay(clip) {
-  const recAudio = clipAudioEls[clip.id];
-  if (!recAudio) return;
-
-  // Stop any other clips
-  _stopAllClips();
-
-  // Set volumes
-  recAudio.volume = mixer.recMuted ? 0 : mixer.recVol;
-  recAudio.currentTime = 0;
-
-  // Set up reference audio
-  if (audioBuffer && audioEl) {
-    if (!mixer.refAudio) {
-      mixer.refAudio = new Audio();
-      mixer.refAudio.preservesPitch = true;
-    }
-    const refSpeed = clip.recordingSpeed || 1.0;
-    mixer.refAudio.playbackRate = refSpeed;
-    mixer.refAudio.src = audioEl.src;
-    const refPos = trimOffset + (clip.startOffset || 0) + (latencyOffset / 1000);
-    mixer.refAudio.currentTime = Math.max(0, Math.min(audioDuration + trimOffset, refPos));
-    mixer.refAudio.volume = mixer.refMuted ? 0 : mixer.refVol;
-    mixer.refAudio.play().catch(() => {});
-  }
-
-  recAudio.play().catch(() => {});
-  const btn = document.getElementById('mixer-play-btn');
-  if (btn) btn.textContent = '⏸ Pause';
-
-  // Animate mixer time + waveform playheads
-  function _mixerTick() {
-    if (!recAudio || recAudio.paused) return;
-    const t = recAudio.currentTime;
-    const dur = recAudio.duration || clip.duration || 1;
-    const el = document.getElementById('mixer-time');
-    if (el) el.textContent = fmtTime(t);
-    _drawMixerWave('mixer-rec-wave', clipPeaks[clip.id], t / dur);
-    // Loop
-    if (mixer.looping && t >= dur - 0.1) {
-      recAudio.currentTime = 0;
-      if (mixer.refAudio) {
-        const refPos = trimOffset + (clip.startOffset || 0) + (latencyOffset / 1000);
-        mixer.refAudio.currentTime = Math.max(0, refPos);
-      }
-    }
-    mixer.rafId = requestAnimationFrame(_mixerTick);
-  }
-  cancelAnimationFrame(mixer.rafId);
-  mixer.rafId = requestAnimationFrame(_mixerTick);
-
-  recAudio.onended = () => {
-    if (mixer.looping) { recAudio.currentTime = 0; recAudio.play(); return; }
-    if (mixer.refAudio) mixer.refAudio.pause();
-    cancelAnimationFrame(mixer.rafId);
-    const btn = document.getElementById('mixer-play-btn');
-    if (btn) btn.textContent = '▶ Play';
-  };
-}
-
-function _drawMixerWave(canvasId, peaks, progress) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !peaks) return;
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  if (canvas.width !== W*dpr || canvas.height !== H*dpr) {
-    canvas.width = W*dpr; canvas.height = H*dpr;
-  }
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,W*dpr,H*dpr);
-  ctx.scale(dpr,dpr);
-  const isRef = canvasId === 'mixer-ref-wave';
-  const color = isRef ? 'rgba(196,146,42,0.6)' : 'rgba(74,126,196,0.7)';
-  const playedColor = isRef ? 'rgba(196,146,42,1)' : 'rgba(74,126,196,1)';
-  const playX = Math.floor(progress * W);
-  const BUCKETS = peaks.length;
-  for (let px = 0; px < W; px++) {
-    const b = Math.floor((px/W)*BUCKETS);
-    const peak = peaks[Math.min(b, BUCKETS-1)];
-    const h = Math.max(1, peak * H * 0.9);
-    ctx.fillStyle = px < playX ? playedColor : color;
-    ctx.fillRect(px, (H-h)/2, 1, h);
-  }
-  ctx.setTransform(1,0,0,1,0,0);
-}
-
-function mixerLoadClip(clipId) {
-  const clip = recClips.find(c => c.id === clipId);
-  if (!clip) return;
-  // Stop any current mixer playback
-  if (mixer.activeClipId !== null) {
-    const old = recClips.find(c => c.id === mixer.activeClipId);
-    if (old) { const a = clipAudioEls[old.id]; if (a) a.pause(); }
-    if (mixer.refAudio) mixer.refAudio.pause();
-    cancelAnimationFrame(mixer.rafId);
-  }
-  mixer.activeClipId = clipId;
-  document.getElementById('mixer-play-btn').textContent = '▶ Play';
-
-  // Show mixer, draw waveforms
-  const mixerEl = document.getElementById('rec-mixer');
-  if (mixerEl) mixerEl.style.display = 'grid';
-
-  // Draw ref waveform from waveCache
-  if (waveCache) _drawMixerWave('mixer-ref-wave', waveCache, 0);
-  // Draw rec waveform (may need to wait for peaks)
-  if (clipPeaks[clipId]) {
-    _drawMixerWave('mixer-rec-wave', clipPeaks[clipId], 0);
-  } else {
-    // Decode peaks async
-    (async () => {
-      const ctx2 = new (window.AudioContext||window.webkitAudioContext)();
-      const buf = await clip.blob.arrayBuffer();
-      const decoded = await ctx2.decodeAudioData(buf);
-      ctx2.close();
-      const BUCKETS = 200;
-      const data = decoded.getChannelData(0);
-      const peaks = new Float32Array(BUCKETS);
-      const step = data.length/BUCKETS;
-      for (let i=0;i<BUCKETS;i++){
-        const s=Math.floor(i*step),e=Math.floor((i+1)*step);
-        let pk=0; for(let j=s;j<e;j++){const v=Math.abs(data[j]);if(v>pk)pk=v;} peaks[i]=pk;
-      }
-      const sorted=peaks.slice().sort((a,b)=>a-b);
-      const p95=sorted[Math.floor(sorted.length*0.95)]||1;
-      for(let i=0;i<BUCKETS;i++) peaks[i]=Math.min(1,peaks[i]/p95);
-      clipPeaks[clipId]=peaks;
-      _drawMixerWave('mixer-rec-wave', peaks, 0);
-    })();
-  }
-}
-
 // Take counters per passage label
 let takeCounts = {};
 let loopCounter = 0;        // visible loop count for current active loop
+let singlePassMode = false;   // when true, next loop boundary stops instead of repeating
 let _queueActive   = false;  // passage queue running
 let _queueList     = [];     // sorted queued segments for current run
 let _queueIndex    = 0;      // current passage index in _queueList
@@ -3449,21 +3227,10 @@ function _trimAudioBuffer(audioCtx, buffer) {
 async function _onRecordingStop(passLabel, withRef, nominalDuration) {
   const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'audio/webm';
   const rawBlob = new Blob(recChunks, { type: mimeType });
-  let finalBlob = rawBlob;
-
-  // Trim silence
-  try {
-    const trimCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuf = await rawBlob.arrayBuffer();
-    const decoded  = await trimCtx.decodeAudioData(arrayBuf);
-    _trimAudioBuffer(trimCtx, decoded); // trim in place for analysis
-    trimCtx.close();
-    finalBlob = rawBlob; // use raw for download (trim affects waveform analysis only)
-  } catch(e) {}
 
   const duration = (Date.now() - recStartTime) / 1000;
   const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
-  const url = URL.createObjectURL(finalBlob);
+  const url = URL.createObjectURL(rawBlob);
 
   // Take numbering per passage
   if (!takeCounts[passLabel]) takeCounts[passLabel] = 0;
@@ -3479,15 +3246,84 @@ async function _onRecordingStop(passLabel, withRef, nominalDuration) {
     id: recClipCounter++,
     label: takeLabel,
     filename,
-    blob: finalBlob, url,
+    blob: rawBlob, url,
+    refBlob: null,      // baked reference audio, set below if withRef
+    refPeaks: null,     // waveform peaks for reference channel
     duration, withRef,
     passLabel, takeNum,
     startOffset: recStartOffset,
-    recordingSpeed: currentSpeed,   // speed at which the reference was playing during this recording
+    recordingSpeed: currentSpeed,
     ext, keep: false,
+    recVol: 1.0, refVol: 0.8,
+    recMuted: false, refMuted: false,
   };
   recClips.push(clip);
   renderRecClips();
+
+  // Bake reference channel at recorded speed — async, updates clip when ready
+  if (withRef && audioBuffer) {
+    _bakeRefChannel(clip).catch(() => {});
+  }
+}
+
+async function _bakeRefChannel(clip) {
+  try {
+    const speed = clip.recordingSpeed || 1.0;
+    const startSec = (clip.startOffset || 0) + (latencyOffset / 1000);
+    const sr = audioBuffer.sampleRate;
+    const numCh = audioBuffer.numberOfChannels;
+
+    // Duration of the clip in source (pre-speed) seconds
+    const srcDur = clip.duration * speed;
+    const startSample = Math.max(0, Math.floor(startSec * sr));
+    const frameCount  = Math.min(
+      Math.ceil(clip.duration * sr),   // frames at output rate
+      Math.ceil(srcDur * sr)
+    );
+
+    // Build an OfflineAudioContext at the target duration (clip.duration seconds)
+    const offCtx = new OfflineAudioContext(numCh, Math.ceil(clip.duration * sr), sr);
+    const refBuf = offCtx.createBuffer(numCh, Math.ceil(srcDur * sr), sr);
+    for (let c = 0; c < numCh; c++) {
+      const src = audioBuffer.getChannelData(Math.min(c, audioBuffer.numberOfChannels - 1));
+      const dst = refBuf.getChannelData(c);
+      const endSample = Math.min(src.length, startSample + Math.ceil(srcDur * sr));
+      dst.set(src.subarray(startSample, endSample));
+    }
+    const src = offCtx.createBufferSource();
+    src.buffer = refBuf;
+    src.playbackRate.value = 1 / speed; // time-stretch to match clip duration
+    src.connect(offCtx.destination);
+    src.start(0);
+    const rendered = await offCtx.startRendering();
+    clip.refBlob = _audioBufferToWavBlob(rendered);
+
+    // Compute ref peaks for waveform display
+    const BUCKETS = 200;
+    const data = rendered.getChannelData(0);
+    const peaks = new Float32Array(BUCKETS);
+    const step = data.length / BUCKETS;
+    for (let i = 0; i < BUCKETS; i++) {
+      const s = Math.floor(i*step), e = Math.floor((i+1)*step);
+      let pk = 0;
+      for (let j = s; j < e; j++) { const v = Math.abs(data[j]); if (v > pk) pk = v; }
+      peaks[i] = pk;
+    }
+    const sorted = peaks.slice().sort((a,b)=>a-b);
+    const p95 = sorted[Math.floor(sorted.length*0.95)] || 1;
+    for (let i = 0; i < BUCKETS; i++) peaks[i] = Math.min(1, peaks[i]/p95);
+    clip.refPeaks = peaks;
+
+    // Re-render clip row now that ref is ready
+    renderRecClips();
+  } catch(e) {
+    console.warn('Ref bake failed:', e);
+  }
+}
+
+// Thin WAV blob builder (used by bake + download)
+function _audioBufferToWavBlob(buffer) {
+  return new Blob([_audioBufferToWav(buffer)], { type: 'audio/wav' });
 }
 
 // ── Per-clip waveform peaks cache and audio elements ──
@@ -3513,6 +3349,10 @@ function renderRecClips() {
   el.innerHTML = recClips.map(clip => {
     const durStr = _fmtClipDur(clip.duration);
     const displayName = clip.customName || clip.filename.replace(/\.\w+$/, '');
+    const hasRef = clip.withRef && clip.refBlob;
+    const refReady = hasRef ? '' : (clip.withRef ? ' (baking…)' : '');
+    const recVolPct  = Math.round((clip.recVol  ?? 1.0) * 100);
+    const refVolPct  = Math.round((clip.refVol  ?? 0.8) * 100);
     return `<div class="rec-clip-row" id="rec-clip-${clip.id}">
       <div class="rec-clip-header">
         <input type="checkbox" class="review-clip-check" id="chk-${clip.id}"
@@ -3530,15 +3370,33 @@ function renderRecClips() {
       </div>
       <canvas class="clip-waveform-canvas" id="clip-wave-${clip.id}"
         onclick="seekClip(${clip.id},event)" title="Click to seek"></canvas>
+      ${hasRef ? `<canvas class="clip-waveform-canvas" id="clip-ref-wave-${clip.id}"
+        style="margin-top:1px;opacity:0.7" title="Reference (baked at ${Math.round((clip.recordingSpeed||1)*100)}%)"></canvas>` : ''}
       <div class="clip-transport">
         <button class="clip-play-btn" id="clip-btn-${clip.id}"
           onclick="toggleClipPlay(${clip.id})">▶</button>
         <span class="clip-time" id="clip-time-${clip.id}">0:00 / ${durStr}</span>
         <span class="take-badge" title="Recorded at this tempo">${Math.round((clip.recordingSpeed||1)*100)}%</span>
-        <button class="clip-save-btn" onclick="mixerLoadClip(${clip.id})"
-          title="Load this clip into the mixer" style="color:var(--blue);border-color:var(--blue)">⇥ mix</button>
         <button class="clip-save-btn" onclick="saveOneClip(${clip.id})"
-          title="Save as WAV">⬇ .wav</button>
+          title="Save as WAV — mix reflects current volume/mute settings">⬇ .wav</button>
+      </div>
+      <div class="clip-mixer${hasRef ? ' visible' : ''}" id="clip-mixer-${clip.id}">
+        <div class="clip-mixer-row">
+          <span class="clip-ch-label rec">Rec</span>
+          <input type="range" class="clip-vol-slider" min="0" max="100" value="${recVolPct}"
+            oninput="clipSetVol(${clip.id},'rec',this.value)">
+          <span class="clip-vol-pct" id="clip-rec-pct-${clip.id}">${recVolPct}%</span>
+          <button class="clip-mute-btn${clip.recMuted?' muted':''}" id="clip-rec-mute-${clip.id}"
+            onclick="clipToggleMute(${clip.id},'rec')">${clip.recMuted?'un-mute':'mute'}</button>
+        </div>
+        ${hasRef ? `<div class="clip-mixer-row">
+          <span class="clip-ch-label ref">Ref</span>
+          <input type="range" class="clip-vol-slider" min="0" max="100" value="${refVolPct}"
+            oninput="clipSetVol(${clip.id},'ref',this.value)">
+          <span class="clip-vol-pct" id="clip-ref-pct-${clip.id}">${refVolPct}%</span>
+          <button class="clip-mute-btn${clip.refMuted?' muted':''}" id="clip-ref-mute-${clip.id}"
+            onclick="clipToggleMute(${clip.id},'ref')">${clip.refMuted?'un-mute':'mute'}</button>
+        </div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -3592,6 +3450,36 @@ async function _initClipPlayer(clip) {
     }
   }
   _drawClipWaveform(clip.id, 0);
+  if (clip.refPeaks) _drawClipRefWaveform(clip.id, 0);
+}
+
+function _drawClipRefWaveform(clipId, progress) {
+  const canvas = document.getElementById(`clip-ref-wave-${clipId}`);
+  const clip = recClips.find(c => c.id === clipId);
+  if (!canvas || !clip || !clip.refPeaks) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 180;
+  const H = canvas.clientHeight || 32;
+  if (canvas.width !== W*dpr || canvas.height !== H*dpr) {
+    canvas.width = W*dpr; canvas.height = H*dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W*dpr,H*dpr);
+  ctx.scale(dpr,dpr);
+  const playX = Math.floor(progress * W);
+  const peaks = clip.refPeaks;
+  for (let px = 0; px < W; px++) {
+    const b = Math.min(Math.floor((px/W)*peaks.length), peaks.length-1);
+    const h = Math.max(2, peaks[b] * H * 0.88);
+    const y = (H-h)/2;
+    ctx.fillStyle = px < playX ? 'rgba(196,146,42,1)' : 'rgba(196,146,42,0.35)';
+    ctx.fillRect(px, y, 1, h);
+  }
+  if (progress > 0 && progress < 1) {
+    ctx.fillStyle = 'rgba(232,228,220,0.8)';
+    ctx.fillRect(playX, 0, 1, H);
+  }
+  ctx.setTransform(1,0,0,1,0,0);
 }
 
 function _drawClipWaveform(clipId, progress) {
@@ -3629,50 +3517,132 @@ function _updateClipPlayhead(clipId) {
   if (!a || !clip) return;
   const progress = clip.duration > 0 ? a.currentTime / clip.duration : 0;
   _drawClipWaveform(clipId, progress);
+  _drawClipRefWaveform(clipId, progress);
   const timeEl = document.getElementById(`clip-time-${clipId}`);
   if (timeEl) timeEl.textContent = `${_fmtClipDur(a.currentTime)} / ${_fmtClipDur(clip.duration)}`;
 }
 
-function toggleClipPlay(clipId) {
-  const a = clipAudioEls[clipId];
+// Per-clip inline mixer: live GainNode per channel
+const clipGainNodes = {};  // clipId -> { recGain, refGain, ctx, refAudio }
+
+function _getClipGains(clipId) {
+  return clipGainNodes[clipId] || null;
+}
+
+function clipSetVol(clipId, ch, val) {
   const clip = recClips.find(c => c.id === clipId);
-  const btn = document.getElementById(`clip-btn-${clipId}`);
-  if (!a || !clip || !btn) return;
-
-  // Pause all other clips
-  recClips.forEach(c => {
-    if (c.id !== clipId && clipAudioEls[c.id] && !clipAudioEls[c.id].paused) {
-      clipAudioEls[c.id].pause();
-      const b = document.getElementById(`clip-btn-${c.id}`);
-      if (b) { b.textContent = '▶'; b.classList.remove('playing'); }
-    }
-  });
-
-  if (a.paused) {
-    // Pause main player before starting clip
-    if (isPlaying) _pause();
-
-    a.play().then(() => {
-      btn.textContent = '⏸'; btn.classList.add('playing');
-      // Always play reference alongside clip — positioned at recording start offset
-      // Use the speed at which the clip was recorded so playback stays in sync
-      if (audioBuffer && audioEl) {
-        const refPos = (clip.startOffset || 0) + a.currentTime + (latencyOffset / 1000);
-        const clampedPos = Math.max(0, Math.min(audioDuration, refPos));
-        const refSpeed = clip.recordingSpeed || 1.0;
-        audioEl.currentTime = trimOffset + clampedPos;
-        audioEl.volume = 1;
-        audioEl.preservesPitch = true;
-        audioEl.playbackRate = refSpeed;
-        audioEl.play().catch(() => {});
-      }
-    }).catch(() => {});
+  if (!clip) return;
+  const v = parseInt(val) / 100;
+  if (ch === 'rec') {
+    clip.recVol = v;
+    const g = clipGainNodes[clipId];
+    if (g && !clip.recMuted) g.recGain.gain.value = v;
+    const el = document.getElementById(`clip-rec-pct-${clipId}`);
+    if (el) el.textContent = Math.round(v*100) + '%';
   } else {
-    a.pause();
-    btn.textContent = '▶'; btn.classList.remove('playing');
-    // Stop reference too
-    if (audioEl) { audioEl.pause(); audioEl.volume = 1; }
+    clip.refVol = v;
+    const g = clipGainNodes[clipId];
+    if (g && !clip.refMuted) g.refGain.gain.value = v;
+    const el = document.getElementById(`clip-ref-pct-${clipId}`);
+    if (el) el.textContent = Math.round(v*100) + '%';
   }
+}
+
+function clipToggleMute(clipId, ch) {
+  const clip = recClips.find(c => c.id === clipId);
+  if (!clip) return;
+  if (ch === 'rec') {
+    clip.recMuted = !clip.recMuted;
+    const g = clipGainNodes[clipId];
+    if (g) g.recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
+    const btn = document.getElementById(`clip-rec-mute-${clipId}`);
+    if (btn) { btn.classList.toggle('muted', clip.recMuted); btn.textContent = clip.recMuted ? 'un-mute' : 'mute'; }
+  } else {
+    clip.refMuted = !clip.refMuted;
+    const g = clipGainNodes[clipId];
+    if (g) g.refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
+    const btn = document.getElementById(`clip-ref-mute-${clipId}`);
+    if (btn) { btn.classList.toggle('muted', clip.refMuted); btn.textContent = clip.refMuted ? 'un-mute' : 'mute'; }
+  }
+}
+
+function _stopClipPlayback(clipId) {
+  const g = clipGainNodes[clipId];
+  if (g) {
+    try { g.ctx.close(); } catch(e) {}
+    delete clipGainNodes[clipId];
+  }
+  if (clipAudioEls[clipId]) {
+    clipAudioEls[clipId].pause();
+    clipAudioEls[clipId].currentTime = 0;
+  }
+  const btn = document.getElementById(`clip-btn-${clipId}`);
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+}
+
+function toggleClipPlay(clipId) {
+  const clip = recClips.find(c => c.id === clipId);
+  const btn  = document.getElementById(`clip-btn-${clipId}`);
+  if (!clip || !btn) return;
+
+  // Stop all other clips
+  recClips.forEach(c => { if (c.id !== clipId) _stopClipPlayback(c.id); });
+
+  const existing = clipGainNodes[clipId];
+  const recAudio = clipAudioEls[clipId];
+
+  if (existing && recAudio && !recAudio.paused) {
+    // Pause
+    recAudio.pause();
+    if (existing.refAudio) existing.refAudio.pause();
+    btn.textContent = '▶'; btn.classList.remove('playing');
+    return;
+  }
+
+  // Stop main player
+  if (isPlaying) _pause();
+
+  // Build AudioContext with GainNodes for live mix
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const recGain = ctx.createGain();
+  const refGain = ctx.createGain();
+  recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
+  refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
+  recGain.connect(ctx.destination);
+
+  let refAudio = null;
+
+  // Wire rec channel
+  if (!recAudio) { btn.textContent = '▶'; return; }
+  recAudio.currentTime = 0;
+  const recSrc = ctx.createMediaElementSource(recAudio);
+  recSrc.connect(recGain);
+
+  // Wire ref channel if baked blob available
+  if (clip.refBlob) {
+    refAudio = new Audio();
+    refAudio.src = URL.createObjectURL(clip.refBlob);
+    refAudio.currentTime = 0;
+    refGain.connect(ctx.destination);
+    const refSrc = ctx.createMediaElementSource(refAudio);
+    refSrc.connect(refGain);
+  }
+
+  clipGainNodes[clipId] = { ctx, recGain, refGain, refAudio };
+
+  // Play both
+  const playPromises = [recAudio.play()];
+  if (refAudio) playPromises.push(refAudio.play().catch(() => {}));
+  Promise.all(playPromises).then(() => {
+    btn.textContent = '⏸'; btn.classList.add('playing');
+  }).catch(() => {});
+
+  // Stop ref when rec ends
+  recAudio.onended = () => {
+    if (refAudio) refAudio.pause();
+    btn.textContent = '▶'; btn.classList.remove('playing');
+    _drawClipWaveform(clipId, 0);
+  };
 }
 
 function seekClip(clipId, event) {
@@ -3702,7 +3672,12 @@ function toggleKeep(id, val) {
 
 function deleteClip(id) {
   const clip = recClips.find(c => c.id === id);
-  if (clip) { URL.revokeObjectURL(clip.url); }
+  if (clip) {
+    URL.revokeObjectURL(clip.url);
+    if (clip.refBlob) URL.revokeObjectURL(URL.createObjectURL(clip.refBlob));
+  }
+  _stopClipPlayback(id);
+  if (clipGainNodes[id]) { try { clipGainNodes[id].ctx.close(); } catch(e){} delete clipGainNodes[id]; }
   if (clipAudioEls[id]) {
     const a = clipAudioEls[id];
     a.pause(); a.src = '';
@@ -3721,13 +3696,64 @@ function killLastClip() {
 async function saveOneClip(id) {
   const clip = recClips.find(c => c.id === id);
   if (!clip) return;
-  await _downloadClipAsWav(clip);
-  // Release after save
-  URL.revokeObjectURL(clip.url);
-  if (clipAudioEls[id]) { clipAudioEls[id].pause(); clipAudioEls[id].src=''; delete clipAudioEls[id]; }
-  delete clipPeaks[id];
-  recClips = recClips.filter(c => c.id !== id);
-  renderRecClips();
+  await _downloadMixedWav(clip);
+}
+
+// Render the current mix (volume + mute state) to a WAV file
+async function _downloadMixedWav(clip) {
+  try {
+    const recCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const recBuf = await clip.blob.arrayBuffer().then(b => recCtx.decodeAudioData(b));
+    recCtx.close();
+
+    const sr  = recBuf.sampleRate;
+    const numCh = recBuf.numberOfChannels;
+    const frames = recBuf.length;
+
+    const offCtx = new OfflineAudioContext(numCh, frames, sr);
+    const recGain = offCtx.createGain();
+    recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
+    const recSrc = offCtx.createBufferSource();
+    recSrc.buffer = recBuf;
+    recSrc.connect(recGain);
+    recGain.connect(offCtx.destination);
+    recSrc.start(0);
+
+    if (clip.refBlob && !clip.refMuted) {
+      const refCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+      const refBuf = await clip.refBlob.arrayBuffer().then(b => refCtx2.decodeAudioData(b));
+      refCtx2.close();
+      const refGain = offCtx.createGain();
+      refGain.gain.value = clip.refVol ?? 0.8;
+      const refSrc = offCtx.createBufferSource();
+      // Trim or pad refBuf to match frames
+      const mixBuf = offCtx.createBuffer(numCh, frames, sr);
+      for (let c = 0; c < numCh; c++) {
+        const src = refBuf.getChannelData(Math.min(c, refBuf.numberOfChannels-1));
+        mixBuf.getChannelData(c).set(src.subarray(0, Math.min(src.length, frames)));
+      }
+      refSrc.buffer = mixBuf;
+      refSrc.connect(refGain);
+      refGain.connect(offCtx.destination);
+      refSrc.start(0);
+    }
+
+    const rendered = await offCtx.startRendering();
+    const wavBlob  = _audioBufferToWavBlob(rendered);
+    const wavUrl   = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = wavUrl;
+    const baseName = (clip.customName || clip.filename || clip.label).replace(/\.\w+$/, '');
+    a.download = baseName + '.wav';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(wavUrl), 5000);
+  } catch(e) {
+    // Fallback: download raw blob
+    const a = document.createElement('a');
+    a.href = clip.url;
+    a.download = clip.filename || (clip.label + '.' + (clip.ext||'webm'));
+    a.click();
+  }
 }
 
 // Convert clip blob to WAV and trigger download
@@ -3764,7 +3790,7 @@ async function downloadSelected() {
   }
   let downloaded = 0;
   for (const clip of selected) {
-    await _downloadClipAsWav(clip);
+    await _downloadMixedWav(clip);
     downloaded++;
     await new Promise(r => setTimeout(r, 400));
   }
@@ -4621,6 +4647,13 @@ function loadIntention() {
     const all = JSON.parse(localStorage.getItem(INTENTION_KEY) || '{}');
     inp.value = all[key] || '';
   } catch(e) { inp.value = ''; }
+}
+
+// ── Single-pass recording ──
+function toggleSinglePass() {
+  singlePassMode = !singlePassMode;
+  const btn = document.getElementById('btn-single');
+  if (btn) btn.classList.toggle('active', singlePassMode);
 }
 
 document.addEventListener('keydown', e => {
