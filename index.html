@@ -328,7 +328,7 @@ input[type=file]{display:none}
 /* Loop rows: label | span | dur | ▶ | ⟳ | 🎯 | ✕ */
 .loop-col-header,.loop-row{
   display:grid;
-  grid-template-columns:12px 16px 18px 1fr 70px 46px 22px 22px 22px 22px 22px;
+  grid-template-columns:12px 16px 1fr 70px 46px 22px 22px 22px 22px 22px;
   gap:0.3rem;align-items:center}
 .passage-note-input{grid-column:1/-1}
 .loop-col-header{font-size:0.42rem;color:var(--text-faint);letter-spacing:0.1em;
@@ -338,11 +338,18 @@ input[type=file]{display:none}
 .loop-row:last-child{border-bottom:none}
 .loop-row:hover{background:var(--bg3)}
 .loop-row.active-loop{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
-.loop-row.starred-loop{background:color-mix(in srgb,var(--accent) 7%,var(--bg2));border-left:2px solid var(--accent);padding-left:0.3rem}
-.loop-row.starred-loop.active-loop{background:color-mix(in srgb,var(--accent) 14%,var(--bg2))}
-.star-btn{background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:0.65rem;padding:0;line-height:1;transition:color 0.15s}
-.star-btn:hover{color:var(--accent)}
-.star-btn.starred{color:var(--accent)}
+.loop-row.starred-loop{border-left:2px solid rgba(196,146,42,0.5);padding-left:0.3rem}
+.loop-row.starred-loop.active-loop{border-left:2px solid var(--accent)}
+/* Full-row background tint for fluency status */
+.loop-row.status-learning{background:color-mix(in srgb,var(--red) 8%,var(--bg2))!important}
+.loop-row.status-stable{background:color-mix(in srgb,var(--accent) 8%,var(--bg2))!important}
+.loop-row.status-fluent{background:color-mix(in srgb,var(--green) 8%,var(--bg2))!important}
+.loop-row.status-learning:hover{background:color-mix(in srgb,var(--red) 14%,var(--bg2))!important}
+.loop-row.status-stable:hover{background:color-mix(in srgb,var(--accent) 14%,var(--bg2))!important}
+.loop-row.status-fluent:hover{background:color-mix(in srgb,var(--green) 14%,var(--bg2))!important}
+.star-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;padding:0;line-height:1;transition:color 0.15s;color:transparent;text-shadow:none}
+.star-btn:hover{color:var(--text-faint)}
+.star-btn.starred{color:var(--text);font-weight:700}
 .loop-label-input{background:none;border:none;color:var(--text);
   font-family:'JetBrains Mono',monospace;font-size:0.5rem;
   padding:0.1rem 0;width:100%;outline:none;border-bottom:1px solid transparent;
@@ -365,9 +372,6 @@ input[type=file]{display:none}
 .status-dot.learning{background:var(--red);border-color:var(--red)}
 .status-dot.stable{background:var(--accent);border-color:var(--accent)}
 .status-dot.fluent{background:var(--green);border-color:var(--green)}
-.loop-row.status-learning{border-left:2px solid var(--red)!important}
-.loop-row.status-stable{border-left:2px solid var(--accent)!important}
-.loop-row.status-fluent{border-left:2px solid var(--green)!important}
 /* ── PASSAGE QUEUE ── */
 .queue-btn-bar{display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0.1rem;margin-bottom:0.2rem;flex-wrap:wrap}
 .queue-play-btn{background:var(--green);border:1px solid var(--green);color:#fff;font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:0.1rem 0.5rem;cursor:pointer;letter-spacing:0.05em;transition:all 0.15s}
@@ -394,11 +398,11 @@ input[type=file]{display:none}
 .btn-single:hover{border-color:var(--border-l);color:var(--text)}
 .btn-single.active{background:var(--blue);border-color:var(--blue);color:#fff}
 /* ── INTENTION PROMPT ── */
-.intention-bar{display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.5rem;border:1px solid rgba(196,146,42,0.4);background:rgba(196,146,42,0.06);margin-bottom:0.3rem;border-radius:1px}
-.intention-input{flex:1;background:none;border:none;border-bottom:1px solid rgba(196,146,42,0.4);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.44rem;padding:0.05rem 0;outline:none;transition:border-color 0.15s}
-.intention-input:focus{border-bottom-color:var(--accent)}
-.intention-input::placeholder{color:rgba(196,146,42,0.5);font-style:italic}
-.intention-label{font-size:0.38rem;color:var(--accent);white-space:nowrap;letter-spacing:0.06em;text-transform:uppercase;opacity:0.8}
+.intention-bar{display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.5rem;border:1px solid rgba(74,158,106,0.5);background:rgba(74,158,106,0.08);margin-bottom:0.3rem;border-radius:1px}
+.intention-input{flex:1;background:none;border:none;border-bottom:1px solid rgba(74,158,106,0.4);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.46rem;padding:0.05rem 0;outline:none;transition:border-color 0.15s}
+.intention-input:focus{border-bottom-color:var(--green)}
+.intention-input::placeholder{color:rgba(74,158,106,0.55);font-style:italic}
+.intention-label{font-size:0.4rem;color:var(--green);white-space:nowrap;letter-spacing:0.06em;text-transform:uppercase;opacity:0.9}
 /* ── NOTES (right column, fixed+scrollable) ── */
 .notes-panel{background:var(--bg2);border:1px solid var(--border);padding:0.65rem 0.8rem}
 .notes-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
@@ -539,7 +543,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v6.8</span>
+    <span class="app-ver">v6.9</span>
   </div>
 </header>
 
@@ -566,7 +570,7 @@ input[type=file]{display:none}
         <button class="mode-btn active-structural" id="wv-btn-structural"
           onclick="setMarkMode('structural')">Structural</button>
         <button class="mode-btn" id="wv-btn-performance"
-          onclick="setMarkMode('performance')">Performance</button>
+          onclick="setMarkMode('performance')">Practice</button>
         <button class="mode-btn" id="wv-btn-all"
           onclick="setMarkMode('all')">All</button>
       </div>
@@ -654,7 +658,7 @@ input[type=file]{display:none}
               <button class="mode-btn active-structural" id="btn-mode-structural"
                 onclick="setMarkMode('structural')">Structural</button>
               <button class="mode-btn" id="btn-mode-performance"
-                onclick="setMarkMode('performance')">Performance</button>
+                onclick="setMarkMode('performance')">Practice</button>
               <button class="mode-btn" id="btn-mode-all"
                 onclick="setMarkMode('all')">All</button>
             </div>
@@ -664,7 +668,7 @@ input[type=file]{display:none}
         <div class="marker-col-header" id="marker-col-header">
           <span>#</span><span>Label</span>
           <span>Time</span>
-          <span>►</span><span>⟳</span><span>T</span><span title="S=Structural / P=Performance">S/P</span><span>●</span><span>✕</span>
+          <span>►</span><span>⟳</span><span>T</span><span title="S=Structural / P=Practice">S/P</span><span>●</span><span>✕</span>
         </div>
         <div id="marker-list"></div>
         <div style="display:flex;align-items:center;gap:0.35rem;padding-top:0.45rem;border-top:1px solid var(--border);margin-top:0.35rem">
@@ -778,7 +782,7 @@ input[type=file]{display:none}
         <div class="collapsible-body" id="kbd-body" style="padding:0.4rem 0.8rem">
           <div class="kbd-ref">
             <strong>SPACE</strong> play/pause ·
-            <strong>M</strong> drop mark (Structural or Performance per mode) ·
+            <strong>M</strong> drop mark (Structural or Practice per mode) ·
             <strong>P</strong> play to next mark ·
             <strong>← →</strong> −5s / +10s ·
             <strong>↑ ↓</strong> prev/next mark ·
@@ -855,9 +859,9 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.8</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.9</span>
 
-      <div class="doc-h">WHAT'S NEW IN v6.8</div>
+      <div class="doc-h">WHAT'S NEW IN v6.9</div>
       <div class="doc-p">
         · <strong style="color:var(--text)">Passage fluency status:</strong> Color-coded dot on each passage row — click to cycle through Learning (red), Stable (amber), Fluent (green), or unscored. Press <strong>F</strong> to cycle the active passage from the keyboard. Status is persistent per passage across sessions. Independent passages sharing overlapping markers carry independent status values.<br>
         · <strong style="color:var(--text)">Passage naming:</strong> Span reference (e.g. 85→90) always shown first as the structural anchor. An optional descriptive name field below ("scalar run in D") gives a quick prose label. Both are always visible.<br>
@@ -865,7 +869,7 @@ input[type=file]{display:none}
         · <strong style="color:var(--text)">Loop counter removed:</strong> Cleaned out fully — counter, reset button, and all related state.<br>
         · <strong style="color:var(--text)">Recorder hardening:</strong> MediaRecorder errors now caught and handled gracefully. Stop call guarded against inactive-state crash. Stream tracks stopped defensively on all exit paths.
       </div>
-      · <strong style="color:var(--text)">Performance marks never autonumber:</strong> Adding a performance mark no longer triggers renumbering of structural marks. Autonumbering and cascade are now scoped exclusively to structural marks (type R).<br>
+      · <strong style="color:var(--text)">Practice marks never autonumber:</strong> Adding a practice mark no longer triggers renumbering of structural marks. Autonumbering and cascade are now scoped exclusively to structural marks (type R).<br>
       · <strong style="color:var(--text)">Recordings stay in sync at non-100% speed:</strong> Clips now store the playback rate at which they were recorded. The mini-player, mixer, and blend reference all match that speed, so a take recorded at 75% reviews correctly at 75%.<br>
       · <strong style="color:var(--text)">Manual piece data save/load:</strong> Three new buttons in the Repertoire panel — <em>↓ Save piece</em> (exports current markers + notes to a dated JSON), <em>↑ Load piece JSON</em> (restores markers and passages from a saved file), and <em>↑ Load notes .txt</em> (loads notes from a plain text file). Useful for data recovery and version protection.
 
@@ -1670,23 +1674,26 @@ function addMarker(label, type, time) {
   }
 
   const resolvedType = type || 'R';
-  markers.push({ id: markerIdCounter++, label: label || defaultLabel, type: resolvedType, time, locked: false, snappedTo: snappedTo || null });
+  const newId = markerIdCounter++;
+  markers.push({ id: newId, label: label || defaultLabel, type: resolvedType, time, locked: false, snappedTo: snappedTo || null });
   markers.sort((a,b)=>a.time-b.time);
-  const insertIdx = markers.findIndex(m => m.time === time && (m.label === label || m.label === '.'));
+  // Find insert position by id — immune to same-time practice marks shifting the index
+  const insertIdx = markers.findIndex(m => m.id === newId);
 
-  // Performance marks (type 'D') never get autonumbered and never trigger cascade.
+  // Practice marks (type 'D') never get autonumbered and never trigger cascade.
   // Autonumbering and cascade only apply to structural marks (type 'R').
   if (resolvedType !== 'D') {
     if (label) {
       // Explicit label provided — cascade within family from insert point (structural only)
       if (!isPlaceholder(label)) cascadeAfter(insertIdx, label);
     } else {
-      // Auto-label: only append at end gets auto-incremented label
-      // If inserting in middle, use placeholder
-      const isAtEnd = insertIdx === markers.length - 1;
+      // Auto-label: only append at end of structural marks gets auto-incremented label
+      const structuralMarkers = markers.filter(m => m.type === 'R');
+      const myStructIdx = structuralMarkers.findIndex(m => m.id === newId);
+      const isAtEnd = myStructIdx === structuralMarkers.length - 1;
       if (isAtEnd) {
         // Find last non-placeholder structural mark before this
-        const prevNonPh = markers.slice(0, insertIdx).filter(m => !isPlaceholder(m.label) && m.type !== 'D');
+        const prevNonPh = structuralMarkers.slice(0, myStructIdx).filter(m => !isPlaceholder(m.label));
         const autoLbl = prevNonPh.length ? nextLabel(prevNonPh[prevNonPh.length-1].label) : '1';
         markers[insertIdx].label = autoLbl;
         cascadeAfter(insertIdx, autoLbl);
@@ -1694,7 +1701,7 @@ function addMarker(label, type, time) {
       // else: leave as placeholder '.'
     }
   }
-  // Performance marks with no explicit label keep their defaultLabel ('') unchanged.
+  // Practice marks with no explicit label keep their defaultLabel ('') unchanged.
 
   renderMarkers();
   refreshSegmentDropdowns();
@@ -1755,7 +1762,7 @@ function setMarkMode(mode) {
     const sCount = markers.filter(m => m.type === 'R').length;
     const pCount = markers.filter(m => m.type === 'D').length;
     if (isStructural)  countEl.textContent = `${sCount} structural`;
-    else if (isPerformance) countEl.textContent = `${pCount} performance`;
+    else if (isPerformance) countEl.textContent = `${pCount} practice`;
     else countEl.textContent = `${sCount}S · ${pCount}P`;
     countEl.style.color = isStructural ? 'var(--accent)' : isPerformance ? 'var(--blue)' : 'var(--text-faint)';
   }
@@ -1910,11 +1917,11 @@ function renderMarkers() {
         title="Mark label">
       <input class="marker-time-input" value="${fmtTime(m.time)}"
         ${isGhost?'disabled':''} onblur="updateMarkerTime(${m.id},this.value)"
-        title="Start time · duration to next ${isStructuralMark?'structural':'performance'} mark: ${durStr}">
+        title="Start time · duration to next ${isStructuralMark?'structural':'practice'} mark: ${durStr}">
       <button class="marker-btn" onclick="previewFromMarker(${m.id})" title="Play from here">▶</button>
       <button class="marker-btn${isQLS?' quick-loop-start':''}" onclick="markerLoopToNext(${m.id})" title="Loop to next ${isStructuralMark?'structural ':''}mark">⟳</button>
       <button class="marker-btn" onclick="openTempoTrainingFromMarker(${m.id})" title="Open Woodshed" ${isGhost?'disabled':''}>T</button>
-      <button class="marker-btn" onclick="toggleMarkerType(${m.id})" title="${isStructuralMark?'Structural — click to make Performance':'Performance — click to make Structural'}" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}" ${isGhost?'disabled':''}>${isStructuralMark?'S':'P'}</button>
+      <button class="marker-btn" onclick="toggleMarkerType(${m.id})" title="${isStructuralMark?'Structural — click to make Practice':'Practice — click to make Structural'}" style="color:${isStructuralMark?'var(--accent)':'var(--blue)'}" ${isGhost?'disabled':''}>${isStructuralMark?'S':'P'}</button>
       <button class="marker-btn record" onclick="recordFromMarker(${m.id})" title="Record from here" ${isGhost?'disabled':''}>●</button>
       <button class="marker-btn delete"
         onclick="removeMarker(${m.id})" title="Remove" ${isGhost?'disabled':''}>✕</button>
@@ -1943,7 +1950,7 @@ function markerLoopToNext(id) {
 
   let endM;
   if (startM.type === 'R') {
-    // Structural mark — find next structural mark, skipping performance marks
+    // Structural mark — find next structural mark, skipping practice marks
     endM = markers.slice(idx + 1).find(m => m.type === 'R');
   } else {
     // Performance mark — loop to immediately next mark (any type)
@@ -2050,16 +2057,27 @@ function refreshSegmentDropdowns() {
   const startSel = document.getElementById('seg-start');
   const endSel   = document.getElementById('seg-end');
   const sv = startSel.value, ev = endSel.value;
-  // Performance marks first, then structural — sorted by time within each group
-  const perfMarkers   = markers.filter(m => m.type === 'D' && !isPlaceholder(m.label));
-  const structMarkers = markers.filter(m => m.type === 'R' && !isPlaceholder(m.label));
-  const ordered = [...perfMarkers, ...structMarkers];
-  const opts = ['<option value="">—</option>',
-    ...ordered.map(m => {
-      const prefix = m.type === 'D' ? 'P: ' : 'S: ';
-      return `<option value="${m.id}">${prefix}${m.label} (${fmtTime(m.time)})</option>`;
-    })
-  ].join('');
+  // Separate into practice (D) and structural (R) groups, sorted by time within each
+  const practiceMarkers = markers.filter(m => m.type === 'D' && !isPlaceholder(m.label))
+    .sort((a,b) => a.time - b.time);
+  const structMarkers   = markers.filter(m => m.type === 'R' && !isPlaceholder(m.label))
+    .sort((a,b) => a.time - b.time);
+  // Build optgroup HTML so same-numbered marks are unambiguous
+  let opts = '<option value="">—</option>';
+  if (practiceMarkers.length) {
+    opts += '<optgroup label="— Practice marks —">';
+    practiceMarkers.forEach(m => {
+      opts += `<option value="${m.id}">P: ${m.label} (${fmtTime(m.time)})</option>`;
+    });
+    opts += '</optgroup>';
+  }
+  if (structMarkers.length) {
+    opts += '<optgroup label="— Structural marks —">';
+    structMarkers.forEach(m => {
+      opts += `<option value="${m.id}">S: ${m.label} (${fmtTime(m.time)})</option>`;
+    });
+    opts += '</optgroup>';
+  }
   startSel.innerHTML = opts;
   endSel.innerHTML   = opts;
   if (sv) startSel.value = sv;
@@ -2163,9 +2181,11 @@ function renderLoops() {
         <input type="checkbox" class="queue-check" id="qchk-${seg.id}" ${isQueued?'checked':''} onchange="togglePassageQueue_check(${seg.id},this.checked)" title="Add to play queue">
         ${isQueued ? `<span class="rep-stepper"><button class="rep-btn" onclick="stepReps(${seg.id},-1)">−</button><span class="rep-num" id="repnum-${seg.id}">${seg.reps||1}</span><button class="rep-btn" onclick="stepReps(${seg.id},1)">+</button></span>` : ''}
       </span>
-      <button class="loop-btn star-btn${isStarred?' starred':''}" onclick="togglePassageStar(${seg.id})" title="${isStarred?'Remove star':'Star this passage'}">★</button>
       <div style="display:flex;flex-direction:column;min-width:0;gap:0.05rem">
-        <span style="font-size:0.46rem;color:var(--text-mid);font-family:'JetBrains Mono',monospace">${spanRef}</span>
+        <span style="display:flex;align-items:center;gap:0.3rem">
+          <button class="loop-btn star-btn${isStarred?' starred':''}" onclick="togglePassageStar(${seg.id})" title="${isStarred?'Remove star':'Star this passage'}" style="font-size:0.5rem;padding:0;flex-shrink:0">★</button>
+          <span style="font-size:0.46rem;color:${isStarred?'var(--text)':'var(--text-mid)'};font-family:'JetBrains Mono',monospace;${isStarred?'font-weight:600;':''}">${spanRef}</span>
+        </span>
         <input class="loop-label-input" value="${escHtml(seg.name||'')}"
           placeholder="add description…"
           onchange="updateLoopName(${seg.id},this.value)"
@@ -3314,7 +3334,7 @@ async function _bakeRefChannel(clip) {
     }
     const src = offCtx.createBufferSource();
     src.buffer = refBuf;
-    src.playbackRate.value = 1 / speed; // time-stretch to match clip duration
+    src.playbackRate.value = speed; // time-stretch: slow source to fill clip duration
     src.connect(offCtx.destination);
     src.start(0);
     const rendered = await offCtx.startRendering();
