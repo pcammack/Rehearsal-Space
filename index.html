@@ -1474,10 +1474,16 @@ function _onTimeUpdate() {
         document.getElementById('btn-rec').textContent = '● Record';
         document.getElementById('btn-rec').classList.remove('recording');
         document.getElementById('rec-scope').textContent = '';
+        // Capture speed and boundaries NOW before any async work
+        const armedSpeed = currentSpeed;
         const startTime = loopStart - trimOffset;
         const endTime   = loopEnd   - trimOffset;
         const passLabel = _recScopeLabel();
-        _startRecordingPass(startTime, endTime, passLabel, !!audioBuffer).catch(() => {});
+        // armedMode=true: keeps loop playing, auto-stop handles end of this pass
+        _startRecordingPass(startTime, endTime, passLabel, !!audioBuffer, armedSpeed, true).catch(() => {});
+      } else if (isRecording) {
+        // Recording was running through a loop pass — stop it now at the boundary
+        _stopRecording();
       }
     }
   }
@@ -3027,11 +3033,13 @@ function stepLatency(delta) {
 // startTime, endTime in display seconds (trimOffset already handled)
 // passLabel: human name for the passage e.g. "A→B" or "bar 23→bar 31"
 // withRef: true if reference track is playing
-async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
+// capturedSpeed: speed at the moment recording was initiated (avoids async currentSpeed drift)
+// armedMode: true when triggered from armed loop — keeps existing loop playback running
+async function _startRecordingPass(startTime, endTime, passLabel, withRef, capturedSpeed, armedMode) {
   if (isRecording) _stopRecording();
 
-  // Stop any active loop cleanly
-  if (activeLoopId !== null) {
+  // Stop any active loop cleanly — but NOT in armed mode (loop continues as reference)
+  if (!armedMode && activeLoopId !== null) {
     activeLoopId = null;
     previewingSegId = null;
     loopStart = null; loopEnd = null;
@@ -3051,31 +3059,35 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
 
     recChunks = [];
     const duration = endTime - startTime;
+    // Use capturedSpeed (set at arm/record time) — currentSpeed may reset to 1.0 by onstop
+    const speedAtRecord = capturedSpeed || currentSpeed;
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
-    mediaRecorder.onstop = () => _onRecordingStop(passLabel, withRef, duration);
+    mediaRecorder.onstop = () => _onRecordingStop(passLabel, withRef, duration, speedAtRecord);
     mediaRecorder.onerror = (e) => { console.warn('MediaRecorder error:', e); _stopRecording(); };
     mediaRecorder.start(100);
     isRecording = true;
     recStartTime = Date.now();
     recStartOffset = startTime;
 
-    // Start reference playback — always audible through headphones
-    // Microphone captures instrument only (not the headphone output)
-    if (audioEl && audioBuffer) {
-      const displayStart = Math.max(0, startTime - leadIn);
-      audioEl.currentTime = trimOffset + displayStart;
-      audioEl.playbackRate = currentSpeed;
-      audioEl.preservesPitch = true;
-      audioEl.volume = 1;
-      audioEl.play().catch(() => {});
-      isPlaying = true;
-      playOffset = displayStart;
-      queuePoint = displayStart; playStartedAt = Date.now();
-      loopStart = null; loopEnd = null;
-      document.getElementById('btn-play').textContent = '⏸ Pause';
-      document.getElementById('btn-play').classList.add('active');
-      animFrame = requestAnimationFrame(_animLoop);
+    if (!armedMode) {
+      // Normal mode: start reference playback from passage start
+      if (audioEl && audioBuffer) {
+        const displayStart = Math.max(0, startTime - leadIn);
+        audioEl.currentTime = trimOffset + displayStart;
+        audioEl.playbackRate = speedAtRecord;
+        audioEl.preservesPitch = true;
+        audioEl.volume = 1;
+        audioEl.play().catch(() => {});
+        isPlaying = true;
+        playOffset = displayStart;
+        queuePoint = displayStart; playStartedAt = Date.now();
+        loopStart = null; loopEnd = null;
+        document.getElementById('btn-play').textContent = '⏸ Pause';
+        document.getElementById('btn-play').classList.add('active');
+        animFrame = requestAnimationFrame(_animLoop);
+      }
     }
+    // In armed mode: loop is already playing — just let it run; _onTimeUpdate handles loop boundary
 
     // Update UI
     document.getElementById('rec-indicator').classList.add('visible');
@@ -3091,7 +3103,7 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef) {
 
     // Auto-stop at end of passage
     if (endTime > startTime) {
-      const stopDelay = ((duration + leadIn) / currentSpeed) * 1000 + 200;
+      const stopDelay = ((duration + leadIn) / speedAtRecord) * 1000 + 200;
       setTimeout(() => { if (isRecording) _stopRecording(); }, stopDelay);
     }
 
@@ -3200,7 +3212,7 @@ async function recordFromMarker(markerId) {
   const passLabel = sm.label + '→' + em.label;
   // withRef = true whenever reference audio is loaded — reference plays audibly
   // through headphones, microphone captures instrument only
-  await _startRecordingPass(sm.time, em.time, passLabel, !!audioBuffer);
+  await _startRecordingPass(sm.time, em.time, passLabel, !!audioBuffer, currentSpeed);
 }
 
 // ── Record from a segment ● button ──
@@ -3211,7 +3223,7 @@ async function recordSegment(segId) {
   const em = markers.find(m => m.id === seg.endId);
   if (!sm || !em) return;
   const passLabel = seg.name || `${sm.label}→${em.label}`;
-  await _startRecordingPass(sm.time, em.time, passLabel, !!audioBuffer);
+  await _startRecordingPass(sm.time, em.time, passLabel, !!audioBuffer, currentSpeed);
 }
 
 // ── Trim silence from live recording ──
@@ -3234,7 +3246,7 @@ function _trimAudioBuffer(audioCtx, buffer) {
   return out;
 }
 
-async function _onRecordingStop(passLabel, withRef, nominalDuration) {
+async function _onRecordingStop(passLabel, withRef, nominalDuration, speedAtRecord) {
   const mimeType = mediaRecorder ? mediaRecorder.mimeType : 'audio/webm';
   const rawBlob = new Blob(recChunks, { type: mimeType });
 
@@ -3262,7 +3274,7 @@ async function _onRecordingStop(passLabel, withRef, nominalDuration) {
     duration, withRef,
     passLabel, takeNum,
     startOffset: recStartOffset,
-    recordingSpeed: currentSpeed,
+    recordingSpeed: speedAtRecord || currentSpeed,
     ext, keep: false,
     recVol: 1.0, refVol: 0.8,
     recMuted: false, refMuted: false,
@@ -4551,7 +4563,7 @@ function _playQueuePass(seg, isLastRep) {
     const passLabel = _segDisplayName(seg);
     setTimeout(() => {
       if (_queueActive && isPlaying) {
-        _startRecordingPass(sm.time, em.time, passLabel, true).catch(() => {});
+        _startRecordingPass(sm.time, em.time, passLabel, true, currentSpeed).catch(() => {});
       }
     }, Math.max(0, (leadIn / currentSpeed) * 1000));
   }
