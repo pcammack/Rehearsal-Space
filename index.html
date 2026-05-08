@@ -339,11 +339,16 @@ input[type=file]{display:none}
 .loop-row.active-loop{background:var(--bg3);border-left:2px solid var(--accent);padding-left:0.3rem}
 .loop-row.starred-loop{border-left:2px solid rgba(196,146,42,0.5);padding-left:0.3rem}
 .loop-row.starred-loop.active-loop{border-left:2px solid var(--accent)}
-/* Full-row background tint for fluency status */
+/* Full-row background tint for passage status — Learning/Playing/Evolving */
 .loop-row.status-learning{background:color-mix(in srgb,var(--red) 8%,var(--bg2))!important}
+.loop-row.status-playing{background:color-mix(in srgb,var(--accent) 8%,var(--bg2))!important}
+.loop-row.status-evolving{background:color-mix(in srgb,var(--green) 8%,var(--bg2))!important}
+.loop-row.status-learning:hover{background:color-mix(in srgb,var(--red) 14%,var(--bg2))!important}
+.loop-row.status-playing:hover{background:color-mix(in srgb,var(--accent) 14%,var(--bg2))!important}
+.loop-row.status-evolving:hover{background:color-mix(in srgb,var(--green) 14%,var(--bg2))!important}
+/* Legacy aliases — keeps old saved data rendering correctly until migration runs */
 .loop-row.status-stable{background:color-mix(in srgb,var(--accent) 8%,var(--bg2))!important}
 .loop-row.status-fluent{background:color-mix(in srgb,var(--green) 8%,var(--bg2))!important}
-.loop-row.status-learning:hover{background:color-mix(in srgb,var(--red) 14%,var(--bg2))!important}
 .loop-row.status-stable:hover{background:color-mix(in srgb,var(--accent) 14%,var(--bg2))!important}
 .loop-row.status-fluent:hover{background:color-mix(in srgb,var(--green) 14%,var(--bg2))!important}
 .star-btn{background:none;border:none;cursor:pointer;font-size:0.55rem;padding:0;line-height:1;transition:color 0.15s;color:transparent;text-shadow:none}
@@ -365,12 +370,40 @@ input[type=file]{display:none}
 .loop-empty{font-size:0.5rem;color:var(--text-faint);padding:0.5rem 0;text-align:center}
 
 
-/* ── PASSAGE STATUS ── */
+/* ── PASSAGE / PIECE STATUS DOTS — unified Learning/Playing/Evolving ── */
 .status-dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--border-l);cursor:pointer;flex-shrink:0;transition:all 0.15s;display:inline-block}
 .status-dot:hover{transform:scale(1.25)}
 .status-dot.learning{background:var(--red);border-color:var(--red)}
+.status-dot.playing{background:var(--accent);border-color:var(--accent)}
+.status-dot.evolving{background:var(--green);border-color:var(--green)}
+/* Legacy dot aliases */
 .status-dot.stable{background:var(--accent);border-color:var(--accent)}
 .status-dot.fluent{background:var(--green);border-color:var(--green)}
+/* ── LIBRARY ROW EXTRAS ── */
+.lib-competence-dot{width:9px;height:9px;border-radius:50%;border:1px solid var(--border-l);
+  cursor:pointer;flex-shrink:0;transition:all 0.15s;display:inline-block;vertical-align:middle}
+.lib-competence-dot:hover{transform:scale(1.3)}
+.lib-competence-dot.learning{background:var(--red);border-color:var(--red)}
+.lib-competence-dot.playing{background:var(--accent);border-color:var(--accent)}
+.lib-competence-dot.evolving{background:var(--green);border-color:var(--green)}
+.lib-target-date{font-size:0.38rem;color:var(--text-faint);cursor:pointer;
+  padding:0.05rem 0.25rem;border:1px solid transparent;transition:all 0.15s;
+  white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.lib-target-date:hover{border-color:var(--border);color:var(--text-mid)}
+.lib-target-date.has-date{color:var(--accent);border-color:transparent}
+.lib-date-input{background:var(--bg3);border:1px solid var(--accent);color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:0.38rem;padding:0.05rem 0.2rem;
+  outline:none;display:none}
+.lib-date-input.visible{display:inline-block}
+/* ── LIBRARY SORT CONTROL ── */
+.lib-sort-bar{display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.5rem;
+  border-bottom:1px solid var(--border);margin-bottom:0.2rem}
+.lib-sort-label{font-size:0.38rem;color:var(--text-faint);letter-spacing:0.08em;white-space:nowrap}
+.lib-sort-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-family:'JetBrains Mono',monospace;font-size:0.38rem;padding:0.08rem 0.35rem;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.lib-sort-btn:hover{border-color:var(--border-l);color:var(--text)}
+.lib-sort-btn.active{background:var(--bg3);border-color:var(--accent);color:var(--accent)}
 /* ── PASSAGE QUEUE ── */
 .queue-btn-bar{display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0.1rem;margin-bottom:0.2rem;flex-wrap:wrap}
 .queue-play-btn{background:var(--green);border:1px solid var(--green);color:#fff;font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:0.1rem 0.5rem;cursor:pointer;letter-spacing:0.05em;transition:all 0.15s}
@@ -542,7 +575,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v6.9</span>
+    <span class="app-ver">v7.0</span>
   </div>
 </header>
 
@@ -790,7 +823,7 @@ input[type=file]{display:none}
             <strong>T</strong> open Woodshed ·
             <strong>S</strong> save passage ·
             <strong>R</strong> record ·
-            <strong>F</strong> cycle passage status (Learning/Stable/Fluent) ·
+            <strong>F</strong> cycle passage status (Learning/Playing/Evolving) ·
             <strong>K</strong> discard last clip ·
             <strong>[ ]</strong> step tempo ·
             <strong>, .</strong> step lead-in ·
@@ -840,6 +873,13 @@ input[type=file]{display:none}
     </div>
     <!-- Import feedback -->
     <div class="import-notice" id="import-notice"></div>
+    <!-- Sort control -->
+    <div class="lib-sort-bar">
+      <span class="lib-sort-label">Sort:</span>
+      <button class="lib-sort-btn active" id="lib-sort-alpha" onclick="setLibSort('alpha')">A–Z</button>
+      <button class="lib-sort-btn" id="lib-sort-competence" onclick="setLibSort('competence')">By level</button>
+      <button class="lib-sort-btn" id="lib-sort-date" onclick="setLibSort('date')">By target date</button>
+    </div>
     <div id="sessions-list"><span class="lib-empty">No pieces saved yet.</span></div>
     <!-- Add new piece -->
     <div class="lib-new-piece-form">
@@ -858,15 +898,16 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v6.9</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.0</span>
 
-      <div class="doc-h">WHAT'S NEW IN v6.9</div>
+      <div class="doc-h">WHAT'S NEW IN v7.0</div>
       <div class="doc-p">
-        · <strong style="color:var(--text)">Passage fluency status:</strong> Color-coded dot on each passage row — click to cycle through Learning (red), Stable (amber), Fluent (green), or unscored. Press <strong>F</strong> to cycle the active passage from the keyboard. Status is persistent per passage across sessions. Independent passages sharing overlapping markers carry independent status values.<br>
-        · <strong style="color:var(--text)">Passage naming:</strong> Span reference (e.g. 85→90) always shown first as the structural anchor. An optional descriptive name field below ("scalar run in D") gives a quick prose label. Both are always visible.<br>
-        · <strong style="color:var(--text)">Today's intention:</strong> Amber-highlighted field above Notes. Enter a focus for the session; on blur it appends a dated entry to the Notes field and clears itself. Builds an oral history of practice intentions over time.<br>
-        · <strong style="color:var(--text)">Loop counter removed:</strong> Cleaned out fully — counter, reset button, and all related state.<br>
-        · <strong style="color:var(--text)">Recorder hardening:</strong> MediaRecorder errors now caught and handled gracefully. Stop call guarded against inactive-state crash. Stream tracks stopped defensively on all exit paths.
+        · <strong style="color:var(--text)">Unified status vocabulary:</strong> Learning / Playing / Evolving now used consistently across passages and pieces. Existing data (Learning/Stable/Fluent) migrated automatically on load — no manual action needed.<br>
+        · <strong style="color:var(--text)">Piece competence level:</strong> Colored dot on each library row — click to cycle Learning (red) → Playing (amber) → Evolving (green) → unset. Stored per piece, included in export/import.<br>
+        · <strong style="color:var(--text)">Target date:</strong> Small date badge on library row for upcoming performance or recital. Click to set or change. Sorts correctly under "By target date".<br>
+        · <strong style="color:var(--text)">Library sort:</strong> A–Z / By level / By target date. Persisted across sessions.<br>
+        · <strong style="color:var(--text)">Piece creation without audio:</strong> A new piece can be created without immediately associating an audio file. Load the file later via the "Load audio file" button.<br>
+        · <strong style="color:var(--text)">Autonumber fix:</strong> Single-letter labels (A, B, C) cascade correctly; word labels (fast, intro, coda) are treated as unique names and never cascade into neighbouring marks.
       </div>
       · <strong style="color:var(--text)">Practice marks never autonumber:</strong> Adding a practice mark no longer triggers renumbering of structural marks. Autonumbering and cascade are now scoped exclusively to structural marks (type R).<br>
       · <strong style="color:var(--text)">Recordings stay in sync at non-100% speed:</strong> Clips now store the playback rate at which they were recorded. The mini-player, mixer, and blend reference all match that speed, so a take recorded at 75% reviews correctly at 75%.<br>
@@ -970,6 +1011,23 @@ let segmentIdCounter = 0;
 
 let undoStack = [];
 const UNDO_MAX = 50;
+
+// Piece-level metadata (loaded/saved with named session)
+let currentPieceCompetence = null;  // 'learning' | 'playing' | 'evolving' | null
+let currentPieceTargetDate = null;  // 'YYYY-MM-DD' | null
+
+// Library sort — persisted
+const LIB_SORT_KEY = 'rs_lib_sort_v1';
+let libSort = localStorage.getItem(LIB_SORT_KEY) || 'alpha'; // 'alpha' | 'competence' | 'date'
+
+// ── Migrate old passage status labels to unified vocabulary ──
+// stable → playing, fluent → evolving. Idempotent — safe to run on already-migrated data.
+function _migrateStatusLabels(segs) {
+  return (segs || []).map(s => {
+    const st = s.status;
+    return { ...s, status: st === 'stable' ? 'playing' : st === 'fluent' ? 'evolving' : st };
+  });
+}
 
 // Waveform view
 let viewStart  = 0;
@@ -2102,8 +2160,9 @@ function addSegment() {
 function cyclePassageStatus(id) {
   const seg = segments.find(s=>s.id===id);
   if (!seg) return;
-  const cycle = { null: 'learning', learning: 'stable', stable: 'fluent', fluent: null };
-  seg.status = cycle[seg.status] !== undefined ? cycle[seg.status] : 'learning';
+  const cycle = { null: 'learning', learning: 'playing', playing: 'evolving', evolving: null };
+  const cur = seg.status;
+  seg.status = (cur in cycle) ? cycle[cur] : 'learning';
   saveSession();
   renderLoops();
 }
@@ -2332,6 +2391,8 @@ function _autosaveToLibrary() {
         markers: markers.map(m => ({...m})),
         segments: segments.map(s => ({...s})),
         markerIdCounter, segmentIdCounter,
+        competence: currentPieceCompetence,
+        targetDate: currentPieceTargetDate,
         notes: document.getElementById('piece-notes')
           ? document.getElementById('piece-notes').value : '',
         savedAt: Date.now()
@@ -2353,9 +2414,11 @@ function loadSession() {
       markerIdCounter = Math.max(s.markerIdCounter||0, ...markers.map(m=>m.id+1));
     }
     if (s.segments&&s.segments.length) {
-      segments = s.segments;
+      segments = _migrateStatusLabels(s.segments);
       segmentIdCounter = Math.max(s.segmentIdCounter||0, ...segments.map(s=>s.id+1));
     }
+    currentPieceCompetence = s.competence || null;
+    currentPieceTargetDate = s.targetDate || null;
     if (s.notes) document.getElementById('piece-notes').value = s.notes;
     loadIntention();
     if (s.audioFileName) {
@@ -2436,20 +2499,26 @@ async function addNewPiece() {
   markers = []; markerIdCounter = 0;
   segments = []; segmentIdCounter = 0;
   audioFileName = ''; audioDuration = 0;
+  currentPieceCompetence = null;
+  currentPieceTargetDate = null;
   document.getElementById('piece-notes').value = '';
   _updatePieceTitle();
   renderMarkers(); renderLoops(); refreshSegmentDropdowns();
   renderSessionsList();
   _renderSessionLog();
 
-  // Open file picker for audio
+  // Offer file picker — skippable. If cancelled, piece exists and user can load audio later.
   _pendingNewPieceName = name;
   document.getElementById('new-piece-audio').click();
 }
 
 function onNewPieceAudio(file) {
-  if (!file) return;
-  // Load the audio file for the new piece
+  if (!file) {
+    // User cancelled the picker — piece already created, show no-file notice
+    _pendingNewPieceName = null;
+    _updateNoFileNotice();
+    return;
+  }
   onAudioFile(file);
   _pendingNewPieceName = null;
 }
@@ -2474,8 +2543,10 @@ async function loadNamedSession(name) {
   _updatePieceTitle();
   markers = s.markers||[];
   markerIdCounter = Math.max(s.markerIdCounter||0, ...(markers.length?markers.map(m=>m.id+1):[0]));
-  segments = s.segments||[];
+  segments = _migrateStatusLabels(s.segments||[]);
   segmentIdCounter = Math.max(s.segmentIdCounter||0, ...(segments.length?segments.map(x=>x.id+1):[0]));
+  currentPieceCompetence = s.competence || null;
+  currentPieceTargetDate = s.targetDate || null;
   audioFileName = s.audioFileName||'';
   document.getElementById('piece-notes').value = s.notes || '';
 
@@ -2530,24 +2601,110 @@ async function renameSession(oldName) {
   renderSessionsList();
 }
 
+// ── Library sort ──
+function setLibSort(mode) {
+  libSort = mode;
+  localStorage.setItem(LIB_SORT_KEY, mode);
+  ['alpha','competence','date'].forEach(m => {
+    const btn = document.getElementById(`lib-sort-${m}`);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  renderSessionsList();
+}
+
+// ── Cycle piece competence from library row ──
+async function cyclePieceCompetence(name, e) {
+  e.stopPropagation();
+  const sessions = await loadSessionsFromStorage();
+  if (!sessions[name]) return;
+  const cycle = { null: 'learning', learning: 'playing', playing: 'evolving', evolving: null };
+  const cur = sessions[name].competence || null;
+  sessions[name].competence = (cur in cycle) ? cycle[cur] : 'learning';
+  if (name === currentPieceName) currentPieceCompetence = sessions[name].competence;
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+// ── Set target date from library row ──
+async function setPieceTargetDate(name, val) {
+  const sessions = await loadSessionsFromStorage();
+  if (!sessions[name]) return;
+  sessions[name].targetDate = val || null;
+  if (name === currentPieceName) currentPieceTargetDate = sessions[name].targetDate || null;
+  await saveSessionsToStorage(sessions);
+  renderSessionsList();
+}
+
+function _showDateInput(name) {
+  const inp = document.getElementById(`lib-date-inp-${CSS.escape(name)}`);
+  const badge = document.getElementById(`lib-date-badge-${CSS.escape(name)}`);
+  if (!inp || !badge) return;
+  inp.classList.add('visible');
+  badge.style.display = 'none';
+  inp.focus();
+}
+
+function _hideDateInput(name, val) {
+  setPieceTargetDate(name, val);
+}
+
+function _fmtTargetDate(iso) {
+  if (!iso) return null;
+  try {
+    const [y, m, d] = iso.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m)-1]} ${parseInt(d)}`;
+  } catch(e) { return iso; }
+}
+
 let _dragSrcName = null;
 
 async function renderSessionsList() {
   const sessions = await loadSessionsFromStorage();
   const el = document.getElementById('sessions-list');
-  // Determine display order
+
+  // Apply sort button state
+  ['alpha','competence','date'].forEach(m => {
+    const btn = document.getElementById(`lib-sort-${m}`);
+    if (btn) btn.classList.toggle('active', m === libSort);
+  });
+
   const allKeys = Object.keys(sessions).filter(k => k !== '__order__');
   const storedOrder = sessions.__order__ || [];
-  const orderedKeys = [
+  let orderedKeys = [
     ...storedOrder.filter(k => allKeys.includes(k)),
     ...allKeys.filter(k => !storedOrder.includes(k))
   ];
+
+  // Apply sort
+  const competenceRank = { learning: 0, playing: 1, evolving: 2, null: 3 };
+  if (libSort === 'alpha') {
+    orderedKeys = [...orderedKeys].sort((a, b) => a.localeCompare(b));
+  } else if (libSort === 'competence') {
+    orderedKeys = [...orderedKeys].sort((a, b) => {
+      const ra = competenceRank[sessions[a]?.competence || 'null'] ?? 3;
+      const rb = competenceRank[sessions[b]?.competence || 'null'] ?? 3;
+      return ra !== rb ? ra - rb : a.localeCompare(b);
+    });
+  } else if (libSort === 'date') {
+    orderedKeys = [...orderedKeys].sort((a, b) => {
+      const da = sessions[a]?.targetDate || '';
+      const db = sessions[b]?.targetDate || '';
+      if (!da && !db) return a.localeCompare(b);
+      if (!da) return 1;
+      if (!db) return -1;
+      return da.localeCompare(db);
+    });
+  }
+
   if (!orderedKeys.length) { el.innerHTML = '<span class="lib-empty">No pieces saved yet.</span>'; return; }
+
   el.innerHTML = orderedKeys.map(name => {
     const s = sessions[name];
     const date = s.savedAt ? new Date(s.savedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
     const mc = s.markers?s.markers.length:0, sc = s.segments?s.segments.length:0;
     const safe = escHtml(name);
+    const safeJs = name.replace(/'/g, "\\'");
     const isActive = name === currentPieceName;
     const fileLoaded = isActive && !!audioBuffer;
     const statusHtml = isActive
@@ -2555,24 +2712,53 @@ async function renderSessionsList() {
           ? `<span class="lib-status-loaded">● loaded</span>`
           : `<span class="lib-status-reload">○ needs file</span>`)
       : '';
+
+    // Competence dot
+    const comp = s.competence || null;
+    const compDot = `<span class="lib-competence-dot${comp?' '+comp:''}"
+      onclick="cyclePieceCompetence('${safeJs}',event)"
+      title="${comp ? 'Level: '+comp+' — click to change' : 'No level set — click to set'}"
+      style="${!comp?'background:transparent;border-color:var(--border);opacity:0.5':''}"
+    ></span>`;
+
+    // Target date badge + inline input
+    const td = s.targetDate || null;
+    const tdDisplay = _fmtTargetDate(td);
+    const escapedName = name.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+    const targetDateHtml = `<span id="lib-date-badge-${safe}"
+        class="lib-target-date${td?' has-date':''}"
+        onclick="event.stopPropagation();_showDateInput('${safeJs}')"
+        title="${td ? 'Target: '+td+' — click to change' : 'Set target date'}"
+      >${td ? tdDisplay : '+ date'}</span>
+      <input type="date" id="lib-date-inp-${safe}"
+        class="lib-date-input"
+        value="${td||''}"
+        onclick="event.stopPropagation()"
+        onchange="event.stopPropagation();_hideDateInput('${safeJs}',this.value)"
+        onblur="event.stopPropagation();_hideDateInput('${safeJs}',this.value)">`;
+
     return `<div class="lib-row${isActive?' active':''}"
         data-name="${safe}"
         draggable="true"
-        onclick="loadNamedSession('${safe}')"
-        ondragstart="libDragStart(event,'${safe}')"
+        onclick="loadNamedSession('${safeJs}')"
+        ondragstart="libDragStart(event,'${safeJs}')"
         ondragover="libDragOver(event)"
-        ondrop="libDrop(event,'${safe}')"
+        ondrop="libDrop(event,'${safeJs}')"
         ondragleave="libDragLeave(event)"
         ondragend="libDragEnd(event)">
       <div class="lib-row-left">
-        <span class="lib-name" ondblclick="event.stopPropagation();renameSession('${safe}')"
-          title="Double-click to rename">${safe}</span>
-        <span class="lib-meta">${mc} marker${mc!==1?'s':''} · ${sc} loop${sc!==1?'s':''} ${statusHtml}</span>
+        <span style="display:flex;align-items:center;gap:0.35rem">
+          ${compDot}
+          <span class="lib-name" ondblclick="event.stopPropagation();renameSession('${safeJs}')"
+            title="Double-click to rename">${safe}</span>
+        </span>
+        <span class="lib-meta">${mc} mark${mc!==1?'s':''} · ${sc} passage${sc!==1?'s':''} ${statusHtml}</span>
       </div>
-      <div class="lib-row-right">
+      <div class="lib-row-right" style="gap:0.3rem">
+        ${targetDateHtml}
         <span class="lib-drag-handle" title="Drag to reorder">⠿</span>
         <span class="lib-date">${date}</span>
-        <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safe}')" title="Remove">✕</button>
+        <button class="lib-del" onclick="event.stopPropagation();deleteNamedSession('${safeJs}')" title="Remove">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -2691,7 +2877,8 @@ function importLibraryJSON(file) {
         markerIdCounter: s.markerIdCounter || 0,
         segments: (s.segments || []).map(seg => ({
           id: seg.id ?? 0, startId: seg.startId, endId: seg.endId,
-          name: seg.name || '', include: seg.include !== false
+          name: seg.name || '', include: seg.include !== false,
+          status: seg.status === 'stable' ? 'playing' : seg.status === 'fluent' ? 'evolving' : (seg.status || null)
         })),
         segmentIdCounter: s.segmentIdCounter || 0,
         notes: s.notes || '',
@@ -2783,11 +2970,11 @@ function manualLoadPieceJSON(file) {
       annotation: m.annotation || null
     }));
     markerIdCounter = Math.max(data.markerIdCounter || 0, ...(markers.length ? markers.map(m => m.id + 1) : [0]));
-    segments = (data.segments || []).map(seg => ({
+    segments = _migrateStatusLabels((data.segments || []).map(seg => ({
       id: seg.id ?? 0, startId: seg.startId, endId: seg.endId,
       name: seg.name || '', note: seg.note || '', include: seg.include !== false,
-      starred: !!seg.starred
-    }));
+      starred: !!seg.starred, status: seg.status || null
+    })));
     segmentIdCounter = Math.max(data.segmentIdCounter || 0, ...(segments.length ? segments.map(s => s.id + 1) : [0]));
     if (data.notes !== undefined) {
       const notesEl = document.getElementById('piece-notes');
