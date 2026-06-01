@@ -407,14 +407,15 @@ input[type=file]{display:none}
 /* category select on lib row */
 .lib-cat-select{background:var(--bg3);border:1px solid transparent;color:var(--text-faint);
   font-family:'JetBrains Mono',monospace;font-size:0.38rem;padding:0.04rem 0.2rem;
-  cursor:pointer;outline:none;transition:all 0.15s;max-width:90px;
+  cursor:pointer;outline:none;transition:all 0.15s;width:90px;flex-shrink:0;
   overflow:hidden;text-overflow:ellipsis}
 .lib-cat-select:hover{border-color:var(--border);color:var(--text-mid)}
 .lib-cat-select:focus{border-color:var(--accent);color:var(--text)}
 /* category field in new-piece form */
 .lib-cat-new-input{background:var(--bg3);border:1px solid var(--border);
   color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.48rem;
-  padding:0.18rem 0.35rem;outline:none;transition:border-color 0.15s;min-width:90px}
+  padding:0.18rem 0.35rem;outline:none;transition:border-color 0.15s;
+  width:110px;flex-shrink:0}
 .lib-cat-new-input:focus{border-color:var(--accent)}
 .lib-cat-new-input::placeholder{color:var(--text-faint)}
 /* ── PASSAGE QUEUE ── */
@@ -588,7 +589,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v7.1</span>
+    <span class="app-ver">v7.2</span>
   </div>
 </header>
 
@@ -915,7 +916,11 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.1</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.2</span>
+
+      <div class="doc-h">WHAT'S NEW IN v7.2</div>
+      · <strong style="color:var(--text)">Clip playback fixed:</strong> Recording clips can now be replayed any number of times. The AudioContext and source wiring are built once per clip and reused — previously they were rebuilt on every play, which caused the audio element to become permanently unplayable after the first listen.<br>
+      · <strong style="color:var(--text)">AudioContext leak fixed:</strong> Waveform peak decoding now uses a single shared context rather than creating and leaking one per clip.<br>
 
       <div class="doc-h">WHAT'S NEW IN v7.1</div>
       · <strong style="color:var(--text)">Category grouping in the library:</strong> Assign pieces to categories (Jazz, Solo, Duet, Pedagogy, etc.) using the dropdown on each library row or the category field when creating a new piece. The library displays collapsible category sections. Collapsed state is remembered across sessions. Categories build themselves from what you type — no predefined list.<br>
@@ -3206,6 +3211,15 @@ let recStartOffset   = null;
 let recTimerInterval = null;
 let recClips         = [];
 let recClipCounter   = 0;
+// Shared offline-style context for waveform peak decoding — avoids creating
+// a new AudioContext per clip which exhausts the browser's context limit.
+let _sharedDecodeCtx = null;
+function _getDecodeCtx() {
+  if (!_sharedDecodeCtx || _sharedDecodeCtx.state === 'closed') {
+    _sharedDecodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _sharedDecodeCtx;
+}
 let isRecording      = false;
 let latencyOffset    = 0;
 
@@ -3753,10 +3767,9 @@ async function _initClipPlayer(clip) {
   // Decode peaks lazily
   if (!clipPeaks[clip.id]) {
     try {
-      const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx2 = _getDecodeCtx();
       const buf = await clip.blob.arrayBuffer();
       const decoded = await ctx2.decodeAudioData(buf);
-      ctx2.close();
       const BUCKETS = 200;
       const data = decoded.getChannelData(0);
       const n = data.length;
@@ -3907,6 +3920,44 @@ function _stopClipPlayback(clipId) {
   if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
 }
 
+function _ensureClipAudioGraph(clip) {
+  // Build the AudioContext and wire sources exactly once per clip.
+  // createMediaElementSource() can only be called once per HTMLAudioElement —
+  // calling it again on a subsequent play throws and silently breaks playback.
+  if (clipGainNodes[clip.id] && clipGainNodes[clip.id].ctx) return;
+
+  const recAudio = clipAudioEls[clip.id];
+  if (!recAudio) return;
+
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const recGain = ctx.createGain();
+  const refGain = ctx.createGain();
+  recGain.connect(ctx.destination);
+
+  const recSrc = ctx.createMediaElementSource(recAudio);
+  recSrc.connect(recGain);
+
+  let refAudio = null;
+  if (clip.refBlob) {
+    refAudio = new Audio();
+    refAudio.src = URL.createObjectURL(clip.refBlob);
+    refAudio.playbackRate = clip.recordingSpeed || 1.0;
+    refAudio.preservesPitch = true;
+    refGain.connect(ctx.destination);
+    const refSrc = ctx.createMediaElementSource(refAudio);
+    refSrc.connect(refGain);
+  }
+
+  clipGainNodes[clip.id] = { ctx, recGain, refGain, refAudio };
+}
+
+function _applyClipGains(clip) {
+  const g = clipGainNodes[clip.id];
+  if (!g) return;
+  g.recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
+  g.refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
+}
+
 function toggleClipPlay(clipId) {
   const clip = recClips.find(c => c.id === clipId);
   const btn  = document.getElementById(`clip-btn-${clipId}`);
@@ -3915,13 +3966,14 @@ function toggleClipPlay(clipId) {
   // Stop all other clips
   recClips.forEach(c => { if (c.id !== clipId) _stopClipPlayback(c.id); });
 
-  const existing = clipGainNodes[clipId];
   const recAudio = clipAudioEls[clipId];
+  if (!recAudio) return;
 
-  if (existing && recAudio && !recAudio.paused) {
-    // Pause
+  // Pause if already playing
+  if (!recAudio.paused) {
     recAudio.pause();
-    if (existing.refAudio) existing.refAudio.pause();
+    const g = clipGainNodes[clipId];
+    if (g && g.refAudio) g.refAudio.pause();
     btn.textContent = '▶'; btn.classList.remove('playing');
     return;
   }
@@ -3929,47 +3981,30 @@ function toggleClipPlay(clipId) {
   // Stop main player
   if (isPlaying) _pause();
 
-  // Build AudioContext with GainNodes for live mix
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const recGain = ctx.createGain();
-  const refGain = ctx.createGain();
-  recGain.gain.value = clip.recMuted ? 0 : (clip.recVol ?? 1.0);
-  refGain.gain.value = clip.refMuted ? 0 : (clip.refVol ?? 0.8);
-  recGain.connect(ctx.destination);
+  // Build audio graph once; reuse on every subsequent play
+  _ensureClipAudioGraph(clip);
+  _applyClipGains(clip);
 
-  let refAudio = null;
+  const g = clipGainNodes[clipId];
+  if (!g) return;
 
-  // Wire rec channel
-  if (!recAudio) { btn.textContent = '▶'; return; }
+  // Resume context if suspended (browser autoplay policy)
+  if (g.ctx.state === 'suspended') g.ctx.resume();
+
   recAudio.currentTime = 0;
-  const recSrc = ctx.createMediaElementSource(recAudio);
-  recSrc.connect(recGain);
-
-  // Wire ref channel if baked blob available
-  if (clip.refBlob) {
-    refAudio = new Audio();
-    refAudio.src = URL.createObjectURL(clip.refBlob);
-    refAudio.currentTime = 0;
-    // Play at recordingSpeed with pitch correction — matches how reference played during recording
-    refAudio.playbackRate = clip.recordingSpeed || 1.0;
-    refAudio.preservesPitch = true;
-    refGain.connect(ctx.destination);
-    const refSrc = ctx.createMediaElementSource(refAudio);
-    refSrc.connect(refGain);
+  if (g.refAudio) {
+    g.refAudio.currentTime = 0;
+    g.refAudio.playbackRate = clip.recordingSpeed || 1.0;
   }
 
-  clipGainNodes[clipId] = { ctx, recGain, refGain, refAudio };
-
-  // Play both
   const playPromises = [recAudio.play()];
-  if (refAudio) playPromises.push(refAudio.play().catch(() => {}));
+  if (g.refAudio) playPromises.push(g.refAudio.play().catch(() => {}));
   Promise.all(playPromises).then(() => {
     btn.textContent = '⏸'; btn.classList.add('playing');
   }).catch(() => {});
 
-  // Stop ref when rec ends
   recAudio.onended = () => {
-    if (refAudio) refAudio.pause();
+    if (g.refAudio) g.refAudio.pause();
     btn.textContent = '▶'; btn.classList.remove('playing');
     _drawClipWaveform(clipId, 0);
   };
@@ -4089,7 +4124,7 @@ async function _downloadMixedWav(clip) {
 // Convert clip blob to WAV and trigger download
 async function _downloadClipAsWav(clip) {
   try {
-    const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx2 = _getDecodeCtx();
     const arrayBuf = await clip.blob.arrayBuffer();
     const decoded = await ctx2.decodeAudioData(arrayBuf);
     ctx2.close();
