@@ -589,7 +589,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v7.3</span>
+    <span class="app-ver">v7.5</span>
   </div>
 </header>
 
@@ -916,7 +916,13 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.3</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.5</span>
+
+      <div class="doc-h">WHAT'S NEW IN v7.5</div>
+      · <strong style="color:var(--text)">MediaRecorder warm-up gap fixed:</strong> Recording start time is now captured on the first actual audio chunk rather than at the moment mediaRecorder.start() is called. This absorbs the ~130ms browser/hardware initialisation delay that was causing the reference track to play ahead of the recording.<br>
+
+      <div class="doc-h">WHAT'S NEW IN v7.4</div>
+      · Diagnostic build — measured MediaRecorder warm-up gap (133ms). No user-facing changes.<br>
 
       <div class="doc-h">WHAT'S NEW IN v7.3</div>
       · <strong style="color:var(--text)">Latency compensation sign fixed:</strong> The calibration was measuring mic delay correctly but applying the correction in the wrong direction — making sync worse rather than better. Fixed. Re-run calibration once to reapply with the corrected sign.<br>
@@ -3271,14 +3277,13 @@ function _startArmedRecording(startTime, endTime, passLabel, withRef, capturedSp
   recChunks = [];
   const duration = endTime - startTime;
   const speedAtRecord = capturedSpeed || currentSpeed;
-  let _diagFirstChunk = true;
-  const _diagStartMs = Date.now();
+  let _firstChunk = true;
   mediaRecorder.ondataavailable = e => {
     if (e.data.size > 0) {
-      if (_diagFirstChunk) {
-        const gap = Date.now() - _diagStartMs;
-        console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: armed)`);
-        _diagFirstChunk = false;
+      if (_firstChunk) {
+        // Capture recStartTime on first actual audio data — absorbs MediaRecorder warm-up gap
+        recStartTime = Date.now();
+        _firstChunk = false;
       }
       recChunks.push(e.data);
     }
@@ -3345,14 +3350,12 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef, captu
     const duration = endTime - startTime;
     // Use capturedSpeed (set at arm/record time) — currentSpeed may reset to 1.0 by onstop
     const speedAtRecord = capturedSpeed || currentSpeed;
-    let _diagFirstChunk2 = true;
-    const _diagStartMs2 = Date.now();
+    let _firstChunk2 = true;
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) {
-        if (_diagFirstChunk2) {
-          const gap = Date.now() - _diagStartMs2;
-          console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: normal)`);
-          _diagFirstChunk2 = false;
+        if (_firstChunk2) {
+          recStartTime = Date.now();
+          _firstChunk2 = false;
         }
         recChunks.push(e.data);
       }
@@ -3422,14 +3425,12 @@ async function _startFreeRecording() {
       ? new MediaRecorder(stream, { mimeType })
       : new MediaRecorder(stream);
     recChunks = [];
-    let _diagFirstChunk3 = true;
-    const _diagStartMs3 = Date.now();
+    let _firstChunk3 = true;
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) {
-        if (_diagFirstChunk3) {
-          const gap = Date.now() - _diagStartMs3;
-          console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: free)`);
-          _diagFirstChunk3 = false;
+        if (_firstChunk3) {
+          recStartTime = Date.now();
+          _firstChunk3 = false;
         }
         recChunks.push(e.data);
       }
