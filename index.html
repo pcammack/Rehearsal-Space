@@ -589,7 +589,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v7.2</span>
+    <span class="app-ver">v7.3</span>
   </div>
 </header>
 
@@ -916,7 +916,10 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.2</span>
+      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v7.3</span>
+
+      <div class="doc-h">WHAT'S NEW IN v7.3</div>
+      · <strong style="color:var(--text)">Latency compensation sign fixed:</strong> The calibration was measuring mic delay correctly but applying the correction in the wrong direction — making sync worse rather than better. Fixed. Re-run calibration once to reapply with the corrected sign.<br>
 
       <div class="doc-h">WHAT'S NEW IN v7.2</div>
       · <strong style="color:var(--text)">Clip playback fixed:</strong> Recording clips can now be replayed any number of times. The AudioContext and source wiring are built once per clip and reused — previously they were rebuilt on every play, which caused the audio element to become permanently unplayable after the first listen.<br>
@@ -3612,7 +3615,7 @@ async function _onRecordingStop(passLabel, withRef, nominalDuration, speedAtReco
 async function _bakeRefChannel(clip) {
   try {
     const speed = clip.recordingSpeed || 1.0;
-    const startSec = (clip.startOffset || 0) + (latencyOffset / 1000);
+    const startSec = (clip.startOffset || 0) - (latencyOffset / 1000);
     const sr = audioBuffer.sampleRate;
     const numCh = audioBuffer.numberOfChannels;
 
@@ -4022,7 +4025,7 @@ function seekClip(clipId, event) {
   _drawClipWaveform(clipId, progress);
   // Reposition reference to match new clip position
   if (audioBuffer && audioEl && !a.paused) {
-    const refPos = (clip.startOffset || 0) + a.currentTime + (latencyOffset / 1000);
+    const refPos = (clip.startOffset || 0) + a.currentTime - (latencyOffset / 1000);
     audioEl.currentTime = trimOffset + Math.max(0, Math.min(audioDuration, refPos));
   }
 }
