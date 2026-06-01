@@ -3271,7 +3271,18 @@ function _startArmedRecording(startTime, endTime, passLabel, withRef, capturedSp
   recChunks = [];
   const duration = endTime - startTime;
   const speedAtRecord = capturedSpeed || currentSpeed;
-  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+  let _diagFirstChunk = true;
+  const _diagStartMs = Date.now();
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) {
+      if (_diagFirstChunk) {
+        const gap = Date.now() - _diagStartMs;
+        console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: armed)`);
+        _diagFirstChunk = false;
+      }
+      recChunks.push(e.data);
+    }
+  };
   mediaRecorder.onstop = () => {
     // Stop tracks after onstop fires — stopping before can prevent onstop in some browsers
     try { stream.getTracks().forEach(t => t.stop()); } catch(e) {}
@@ -3334,7 +3345,18 @@ async function _startRecordingPass(startTime, endTime, passLabel, withRef, captu
     const duration = endTime - startTime;
     // Use capturedSpeed (set at arm/record time) — currentSpeed may reset to 1.0 by onstop
     const speedAtRecord = capturedSpeed || currentSpeed;
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    let _diagFirstChunk2 = true;
+    const _diagStartMs2 = Date.now();
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) {
+        if (_diagFirstChunk2) {
+          const gap = Date.now() - _diagStartMs2;
+          console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: normal)`);
+          _diagFirstChunk2 = false;
+        }
+        recChunks.push(e.data);
+      }
+    };
     mediaRecorder.onstop = () => _onRecordingStop(passLabel, withRef, duration, speedAtRecord);
     mediaRecorder.onerror = (e) => { console.warn('MediaRecorder error:', e); _stopRecording(); };
     mediaRecorder.start(100);
@@ -3400,7 +3422,18 @@ async function _startFreeRecording() {
       ? new MediaRecorder(stream, { mimeType })
       : new MediaRecorder(stream);
     recChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    let _diagFirstChunk3 = true;
+    const _diagStartMs3 = Date.now();
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) {
+        if (_diagFirstChunk3) {
+          const gap = Date.now() - _diagStartMs3;
+          console.log(`[DIAG] MediaRecorder first-chunk gap: ${gap}ms (path: free)`);
+          _diagFirstChunk3 = false;
+        }
+        recChunks.push(e.data);
+      }
+    };
     mediaRecorder.onstop = () => _onRecordingStop('free', false, null);
     mediaRecorder.onerror = (e) => { console.warn('MediaRecorder error:', e); _stopRecording(); };
     mediaRecorder.start(100);
