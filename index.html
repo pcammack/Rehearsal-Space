@@ -258,6 +258,34 @@ input[type=file]{display:none}
 .universal-notes-textarea:focus{border-color:var(--accent);color:var(--text)}
 .universal-notes-textarea::placeholder{color:var(--text-faint)}
 
+/* ── Journal: one component, three scopes ── */
+.journal-scope-bar{display:flex;align-items:center;gap:0;margin-bottom:0.3rem}
+.journal-scope-btn{background:none;border:1px solid var(--border);border-right:none;
+  color:var(--text-faint);font-family:'JetBrains Mono',monospace;font-size:0.42rem;
+  letter-spacing:0.06em;text-transform:uppercase;padding:0.22rem 0.5rem;cursor:pointer;
+  transition:all 0.15s}
+.journal-scope-btn:first-child{border-radius:1px 0 0 1px}
+.journal-scope-btn-end{border-right:1px solid var(--border);border-radius:0 1px 1px 0}
+.journal-scope-btn:hover{color:var(--text)}
+.journal-scope-btn.active{background:var(--accent);color:var(--bg);font-weight:500}
+.journal-expand-btn{background:none;border:1px solid var(--border);color:var(--text-faint);
+  font-size:0.5rem;padding:0.2rem 0.4rem;margin-left:auto;cursor:pointer;transition:all 0.15s}
+.journal-expand-btn:hover{color:var(--text);border-color:var(--border-l)}
+.journal-expand-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  z-index:200;align-items:center;justify-content:center;padding:3rem 2rem}
+.journal-expand-panel{background:var(--bg2);border:1px solid var(--border-l);
+  width:100%;max-width:640px;height:100%;max-height:560px;display:flex;flex-direction:column;
+  padding:0.8rem}
+.journal-expand-header{display:flex;align-items:center;padding-bottom:0.5rem;
+  border-bottom:1px solid var(--border);margin-bottom:0.5rem}
+.journal-expand-header span{font-size:0.5rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text-mid)}
+.journal-expand-close{background:none;border:none;color:var(--text-faint);font-size:0.6rem;
+  margin-left:auto;cursor:pointer}
+.journal-expand-close:hover{color:var(--text)}
+.journal-textarea-expanded{flex:1;font-size:0.6rem!important;line-height:1.9!important;
+  max-height:none!important;min-height:0!important;height:100%!important}
+
 /* ── END-OF-SESSION REVIEW ── */
 .review-panel{background:var(--bg2);border:1px solid var(--border);
   padding:0.65rem 0.8rem;margin-bottom:0.75rem;display:none}
@@ -845,13 +873,33 @@ input[type=file]{display:none}
             placeholder="What are you listening for today?"
             onblur="appendIntention(this.value)">
         </div>
-        <textarea class="scratchpad-textarea" id="piece-notes"
-          placeholder="Musical intentions, teacher feedback, phrasing ideas…"
-          oninput="onNotesInput()"></textarea>
-        <div class="notes-divider">Practice journal</div>
-        <textarea class="universal-notes-textarea" id="universal-notes"
-          placeholder="Observations that apply across all pieces…"
-          oninput="onUniversalNotesInput()"></textarea>
+        <div class="journal-scope-bar">
+          <button class="journal-scope-btn" id="journal-scope-universal" onclick="setJournalScope('universal')">Universal</button>
+          <button class="journal-scope-btn" id="journal-scope-collection" onclick="setJournalScope('collection')">Collection</button>
+          <button class="journal-scope-btn journal-scope-btn-end" id="journal-scope-piece" onclick="setJournalScope('piece')">Piece</button>
+          <button class="journal-expand-btn" onclick="toggleJournalExpand()" title="Expand to write more">⤢</button>
+        </div>
+        <div id="journal-compact-slot">
+          <textarea class="scratchpad-textarea" id="journal-textarea"
+            oninput="onJournalInput()"></textarea>
+        </div>
+        <!-- Backing stores for piece/universal notes — kept as hidden elements
+             so the existing save/cloud-sync code (which reads/writes these by
+             id in many places) needs no changes. The visible journal textarea
+             above mirrors into/out of whichever of these matches the current
+             scope; see setJournalScope() / onJournalInput(). -->
+        <textarea id="piece-notes" style="display:none"></textarea>
+        <textarea id="universal-notes" style="display:none"></textarea>
+        </div>
+      </div>
+
+      <div class="journal-expand-overlay" id="journal-expand-overlay">
+        <div class="journal-expand-panel">
+          <div class="journal-expand-header">
+            <span id="journal-expand-title">Journal</span>
+            <button class="journal-expand-close" onclick="toggleJournalExpand()" title="Close">✕</button>
+          </div>
+          <div id="journal-expand-slot" style="flex:1;display:flex"></div>
         </div>
       </div>
 
@@ -1036,6 +1084,11 @@ input[type=file]{display:none}
     <div class="collapsible-body" id="docs-body">
       <span style="color:var(--accent);font-size:0.56rem" id="docs-ver-label"></span>
 
+      <div class="doc-h">WHAT'S NEW IN v10.2</div>
+      · <strong style="color:var(--text)">Journal reworked: one component, three scopes.</strong> Universal notes and piece notes were two separate boxes competing for attention; now there's a single journal with a Universal / Collection / Piece switcher, defaulting to whatever you're currently looking at. Collection is new — a collection's own journal, tracking whichever collection the library's "Filter:" is currently set to, with no separate picker to keep in sync. No mood pickers, no required fields — same free-text box as before, just one of them instead of two (plus the new collection one).<br>
+      · <strong style="color:var(--text)">Expand-to-write.</strong> A small ⤢ button opens the journal in a larger, quieter overlay for real thinking, then closes back into the compact box with no ceremony — same text, same autosave, either way.<br>
+      · <strong style="color:var(--text)">Journal entries are now individually dated under the hood.</strong> Paragraphs (separated by a blank line, exactly how you'd write anyway) are tracked with their own first-written date, foundational plumbing for progress views later — nothing surfaced yet, this just starts capturing it.<br>
+      · <strong style="color:var(--text)">Today's intention now lands as its own paragraph</strong> instead of an extra line tacked onto whatever came before it, so it gets its own date like anything else you write.<br>
       <div class="doc-h">WHAT'S NEW IN v10.1</div>
       · <strong style="color:var(--text)">Default mark view is now "All" instead of "Structural".</strong> Applied both on cold load and on opening any piece — no more auto-guessing based on whether structural marks exist.<br>
       · <strong style="color:var(--text)">Tempo is now remembered per passage.</strong> Previewing or looping a passage restores the last speed you practiced it at; adjusting the slider (or [ ]) while a passage is active saves that speed back onto it. A passage with no stored speed yet just keeps whatever tempo is already playing, rather than resetting to 100% — so splitting or merging passages as they evolve doesn't lose or orphan anything. Woodshed's own stepped-tempo ladder is unaffected — it doesn't read or overwrite a passage's remembered speed.<br>
@@ -1103,7 +1156,7 @@ input[type=file]{display:none}
 // Bump ONLY this constant when releasing a new version; both display spots
 // below read from it automatically, so there is nothing else to remember or
 // keep in sync by hand.
-const APP_VERSION = '10.1';
+const APP_VERSION = '10.2';
 document.addEventListener('DOMContentLoaded', () => {
   const badge = document.getElementById('app-ver-badge');
   if (badge) badge.textContent = 'v' + APP_VERSION;
@@ -1387,6 +1440,7 @@ let collectionFilter = '';
 function setCollectionFilter(id) {
   collectionFilter = id;
   renderSessionsList();
+  if (journalScope === 'collection') _loadJournalForScope();
 }
 
 // ── Manager strip renderer (collection chips) ──
@@ -1665,6 +1719,7 @@ async function syncAllPiecesNow() {
           currentPieceCompetence = s.competence || null;
           const notesEl = document.getElementById('piece-notes');
           if (notesEl) notesEl.value = s.notes || '';
+          if (journalScope === 'piece') _loadJournalForScope();
           renderMarkers(); renderSegments(); refreshSegmentDropdowns();
         }
       }
@@ -1836,6 +1891,7 @@ async function _autoCloudPullOnOpen(name, myGen) {
         audioFileName = sessions[name].audioFileName;
         const notesEl = document.getElementById('piece-notes');
         if (notesEl) notesEl.value = sessions[name].notes || '';
+        if (journalScope === 'piece') _loadJournalForScope();
         renderMarkers(); renderSegments(); refreshSegmentDropdowns(); renderSessionsList();
       }
     } else {
@@ -3240,6 +3296,7 @@ function loadSession() {
     }
     currentPieceCompetence = s.competence || null;
     if (s.notes) document.getElementById('piece-notes').value = s.notes;
+    if (journalScope === 'piece') _loadJournalForScope();
     loadIntention();
     if (s.audioFileName) {
       audioFileName = s.audioFileName;
@@ -3306,6 +3363,7 @@ async function addNewPiece() {
   audioFileName = ''; audioDuration = 0;
   currentPieceCompetence = null;
   document.getElementById('piece-notes').value = '';
+  if (journalScope === 'piece') _loadJournalForScope();
   _updatePieceTitle();
   renderMarkers(); renderLoops(); refreshSegmentDropdowns();
   renderSessionsList();
@@ -3355,6 +3413,7 @@ async function loadNamedSession(name, opts = {}) {
   currentPieceCompetence = s.competence || null;
   audioFileName = s.audioFileName||'';
   document.getElementById('piece-notes').value = s.notes || '';
+  if (journalScope === 'piece') _loadJournalForScope();
 
   // Default to showing all marks (structural + practice) on open.
   setMarkMode('all');
@@ -3943,6 +4002,7 @@ function manualLoadPieceTxt(file) {
     if (!confirm(`Replace the current piece notes with the contents of "${file.name}"?`)) return;
     const notesEl = document.getElementById('piece-notes');
     if (notesEl) notesEl.value = text;
+    if (journalScope === 'piece') _loadJournalForScope();
     saveSession();
     const notice = document.getElementById('import-notice');
     if (notice) {
@@ -5324,6 +5384,7 @@ window._syncUniversalNotesWithCloud = async function() {
       el.value = cloudText;
       localStorage.setItem(UNIVERSAL_NOTES_KEY, cloudText);
       _initAutoResize('universal-notes');
+      if (journalScope === 'universal') _loadJournalForScope();
       _setUniversalNotesBaseline(cloudText);
       return;
     }
@@ -5348,6 +5409,7 @@ window._syncUniversalNotesWithCloud = async function() {
     el.value = merged;
     localStorage.setItem(UNIVERSAL_NOTES_KEY, merged);
     _initAutoResize('universal-notes');
+    if (journalScope === 'universal') _loadJournalForScope();
     await window.cloudPushUniversalNotes(merged);
     _setUniversalNotesBaseline(merged);
   } catch(e) {
@@ -5374,7 +5436,164 @@ function _loadUniversalNotes() {
     const stored = localStorage.getItem(UNIVERSAL_NOTES_KEY);
     if (stored !== null) { el.value = stored; el.style.height='auto'; el.style.height=Math.min(260,el.scrollHeight)+'px'; }
   } catch(e) {}
+  if (journalScope === 'universal') _loadJournalForScope();
 }
+
+// ══════════════════════════════════════════════
+// JOURNAL — one visible component, three scopes (Universal / Collection /
+// Piece). The piece and universal scopes still store their text in the
+// original `#piece-notes` / `#universal-notes` hidden elements — kept
+// exactly as before so every bit of existing save/cloud-sync code that
+// reads/writes those ids by name needs no changes. The visible textarea
+// below just mirrors whichever scope is currently selected into/out of the
+// right backing store. Collection notes are new storage (collections
+// previously only had {id, name, archived} — no notes field existed).
+// ══════════════════════════════════════════════
+let journalScope = 'piece'; // 'universal' | 'collection' | 'piece'
+let journalExpanded = false;
+let currentCollectionNotesText = ''; // cache for whichever collection is active
+
+const JOURNAL_PLACEHOLDERS = [
+  "what did you notice today?",
+  "what's still nagging at you?",
+  "anything worth remembering from this session?",
+  "what would you tell yourself next time?",
+  "what felt different this time?"
+];
+function _journalPlaceholder() {
+  const day = new Date().getDate();
+  return JOURNAL_PLACEHOLDERS[day % JOURNAL_PLACEHOLDERS.length];
+}
+
+function setJournalScope(scope) {
+  journalScope = scope;
+  ['universal','collection','piece'].forEach(s => {
+    const btn = document.getElementById('journal-scope-' + s);
+    if (btn) btn.classList.toggle('active', s === journalScope);
+  });
+  _loadJournalForScope();
+}
+
+async function _loadJournalForScope() {
+  const ta = document.getElementById('journal-textarea');
+  if (!ta) return;
+  if (journalScope === 'universal') {
+    ta.disabled = false;
+    ta.value = document.getElementById('universal-notes')?.value || '';
+    ta.placeholder = _journalPlaceholder();
+  } else if (journalScope === 'collection') {
+    if (!collectionFilter) {
+      ta.value = '';
+      ta.placeholder = 'select a collection filter in the library to see its journal…';
+      ta.disabled = true;
+      _autoResizeJournal();
+      return;
+    }
+    ta.disabled = false;
+    const sessions = await loadSessionsFromStorage();
+    const col = sessions.__collections__ ? sessions.__collections__[collectionFilter] : null;
+    currentCollectionNotesText = (col && col.notes) || '';
+    ta.value = currentCollectionNotesText;
+    ta.placeholder = _journalPlaceholder();
+  } else {
+    ta.disabled = false;
+    ta.value = document.getElementById('piece-notes')?.value || '';
+    ta.placeholder = 'musical intentions, teacher feedback, phrasing ideas…';
+  }
+  _autoResizeJournal();
+}
+
+function _autoResizeJournal() {
+  const ta = document.getElementById('journal-textarea');
+  if (!ta) return;
+  if (journalExpanded) return; // expanded view fills its panel; no auto-height needed
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(320, ta.scrollHeight) + 'px';
+}
+
+function onJournalInput() {
+  const ta = document.getElementById('journal-textarea');
+  if (!ta) return;
+  _autoResizeJournal();
+  if (journalScope === 'universal') {
+    const hidden = document.getElementById('universal-notes');
+    if (hidden) { hidden.value = ta.value; onUniversalNotesInput(); }
+  } else if (journalScope === 'piece') {
+    const hidden = document.getElementById('piece-notes');
+    if (hidden) { hidden.value = ta.value; onNotesInput(); }
+  } else if (journalScope === 'collection') {
+    currentCollectionNotesText = ta.value;
+    _scheduleCollectionNotesSave();
+  }
+  _touchJournalDates(journalScope, ta.value);
+}
+
+let _collectionNotesSaveTimer = null;
+function _scheduleCollectionNotesSave() {
+  clearTimeout(_collectionNotesSaveTimer);
+  _collectionNotesSaveTimer = setTimeout(async () => {
+    if (!collectionFilter) return;
+    const sessions = await loadSessionsFromStorage();
+    const col = sessions.__collections__ ? sessions.__collections__[collectionFilter] : null;
+    if (!col) return;
+    col.notes = currentCollectionNotesText;
+    await saveSessionsToStorage(sessions);
+  }, 800);
+}
+
+function toggleJournalExpand() {
+  journalExpanded = !journalExpanded;
+  const ta = document.getElementById('journal-textarea');
+  const compactSlot = document.getElementById('journal-compact-slot');
+  const overlay = document.getElementById('journal-expand-overlay');
+  const expandSlot = document.getElementById('journal-expand-slot');
+  const title = document.getElementById('journal-expand-title');
+  if (!ta || !compactSlot || !overlay || !expandSlot) return;
+  if (journalExpanded) {
+    expandSlot.appendChild(ta);
+    ta.classList.add('journal-textarea-expanded');
+    overlay.style.display = 'flex';
+    if (title) title.textContent = journalScope.charAt(0).toUpperCase() + journalScope.slice(1) + ' journal';
+  } else {
+    compactSlot.appendChild(ta);
+    ta.classList.remove('journal-textarea-expanded');
+    overlay.style.display = 'none';
+    _autoResizeJournal();
+  }
+  ta.focus();
+}
+
+// ── Paragraph dates (local-only side table; not meant to survive
+// reordering or mid-document edits — just enough to know roughly when a
+// given entry was first written, for later use in progress views). ──
+const JOURNAL_DATES_KEY = 'rs_journal_dates_v1';
+function _splitJournalParagraphs(text) {
+  return (text || '').split(/\n\s*\n+/).map(p => p.trim()).filter(p => p.length);
+}
+function _loadJournalDatesMap() {
+  try { return JSON.parse(localStorage.getItem(JOURNAL_DATES_KEY) || '{}'); } catch(e) { return {}; }
+}
+function _saveJournalDatesMap(map) {
+  try { localStorage.setItem(JOURNAL_DATES_KEY, JSON.stringify(map)); } catch(e) {}
+}
+function _journalDatesMapKey(scope) {
+  if (scope === 'universal') return 'universal';
+  if (scope === 'collection') return collectionFilter ? ('collection:' + collectionFilter) : null;
+  return currentPieceName ? ('piece:' + currentPieceName) : null;
+}
+function _touchJournalDates(scope, text) {
+  const key = _journalDatesMapKey(scope);
+  if (!key) return;
+  const map = _loadJournalDatesMap();
+  const paras = _splitJournalParagraphs(text);
+  const oldDates = map[key];
+  const now = Date.now();
+  const dates = [];
+  for (let i = 0; i < paras.length; i++) dates.push((oldDates && oldDates[i]) || now);
+  map[key] = dates;
+  _saveJournalDatesMap(map);
+}
+
 
 // ══════════════════════════════════════════════
 // WAVEFORM INTERACTION
@@ -5818,9 +6037,11 @@ function appendIntention(val) {
   const date = new Date().toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
   const entry = `— ${date}: ${trimmed}`;
   const current = notesEl.value;
-  // Append: blank line separator only if there is existing raw notes content
+  // Append as its own paragraph (blank-line separated) so it becomes its
+  // own dated journal entry, same as any other paragraph — not just an
+  // extra line tacked onto whatever preceded it.
   if (current.trim()) {
-    notesEl.value = current + '\n' + entry;
+    notesEl.value = current + '\n\n' + entry;
   } else {
     notesEl.value = entry;
   }
@@ -5830,6 +6051,8 @@ function appendIntention(val) {
   // Resize notes textarea and save
   notesEl.style.height = 'auto';
   notesEl.style.height = Math.min(320, notesEl.scrollHeight) + 'px';
+  if (journalScope === 'piece') _loadJournalForScope();
+  _touchJournalDates('piece', notesEl.value);
   saveSession();
 }
 
@@ -6080,8 +6303,8 @@ _renderSessionLog();
 setMarkMode('all');
 _loadUniversalNotes();
 _renderCalHistory();
-_initAutoResize('piece-notes');
-_initAutoResize('universal-notes');
+setJournalScope('piece'); // sets scope-button active state; text itself was
+                          // already populated by loadSession() above
 // Collapsible sections — all windows except the main player/waveform.
 // Primary working panels default OPEN; reference/rarely-used panels default collapsed.
 _restoreSectionCollapse('library', false);
