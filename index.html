@@ -673,7 +673,7 @@ input[type=file]{display:none}
 <header>
   <div style="display:flex;align-items:center">
     <span class="app-name">Rehearsal Space</span>
-    <span class="app-ver">v9.12</span>
+    <span class="app-ver" id="app-ver-badge"></span>
   </div>
 </header>
 
@@ -1034,9 +1034,14 @@ input[type=file]{display:none}
       <span>Documentation</span><span id="docs-arrow">▸</span>
     </button>
     <div class="collapsible-body" id="docs-body">
-      <span style="color:var(--accent);font-size:0.56rem">REHEARSAL SPACE v10.0</span>
+      <span style="color:var(--accent);font-size:0.56rem" id="docs-ver-label"></span>
 
-      <div class="doc-h">WHAT'S NEW IN v10.0</div>
+      <div class="doc-h">WHAT'S NEW IN v10.1</div>
+      · <strong style="color:var(--text)">Default mark view is now "All" instead of "Structural".</strong> Applied both on cold load and on opening any piece — no more auto-guessing based on whether structural marks exist.<br>
+      · <strong style="color:var(--text)">Tempo is now remembered per passage.</strong> Previewing or looping a passage restores the last speed you practiced it at; adjusting the slider (or [ ]) while a passage is active saves that speed back onto it. A passage with no stored speed yet just keeps whatever tempo is already playing, rather than resetting to 100% — so splitting or merging passages as they evolve doesn't lose or orphan anything. Woodshed's own stepped-tempo ladder is unaffected — it doesn't read or overwrite a passage's remembered speed.<br>
+      · <strong style="color:var(--text)">Fixed: waveform could visually misalign with marks when zoomed in close.</strong> The waveform was always drawn from a fixed 2,000-bucket downsample of the whole track, so at deep zoom each bucket could span many screen pixels, visually smearing/quantizing the waveform relative to marks (drawn from exact timestamps). Past a certain zoom threshold, peaks are now read directly from the raw decoded audio for just the visible window instead, keeping the waveform pixel-accurate against marks at any zoom level.<br>
+      · <strong style="color:var(--text)">Cleaned up the leftover static "v9.12"/"v10.0" text</strong> sitting in the raw HTML for the header badge and this label — both are now blank in source and filled in only by <code>APP_VERSION</code> at load, so there's no stale text to glimpse even before the script runs.<br>
+      <div class="doc-h">WHAT'S NEW IN v10.0.1</div>
       · <strong style="color:var(--text)">Piece-organization audit and redesign.</strong> A full audit of every piece-level control (architecture, metadata, collections, sync tools) turned up real redundancy and real bugs — this release acts on the findings.<br>
       · <strong style="color:var(--text)">Library architecture removed, folded entirely into Collections.</strong> Library only ever offered exclusive, single-value membership; the actual need (genre + function + event, all at once) was always multi-membership, which Collections already did. A data check confirmed the feature had gone essentially unused. Removed: library CRUD, the per-row library dropdown/color-coding, and the grouped/collapsible list view — the list now always renders flat.<br>
       · <strong style="color:var(--text)">"Connect local folder" removed entirely.</strong> A whole parallel, single-device persistence system that predated cloud sync and had gone unused since. Regular OS file browsing covers audio uploads instead.<br>
@@ -1049,14 +1054,14 @@ input[type=file]{display:none}
       · <strong style="color:var(--text)">New "Recent" sort</strong>, using last-practiced data already shown on every row.<br>
       · <strong style="color:var(--text)">Collection filter now labeled</strong> ("Filter:") — it became the primary slicing tool once Collections absorbed Library's old job too.<br>
       · <strong style="color:var(--text)">Fixed:</strong> the sign-in banner's stale "data still saves locally only" copy — cloud sync has been fully automatic since v9.0.<br>
-      · <strong style="color:var(--text)">Documentation split:</strong> full version history before v9.11 moved to <code>CHANGELOG-v10.0.md</code> — see the note just below. Also removed the unused Workflow/Marker Naming/Keyboard reference block.<br>
+      · <strong style="color:var(--text)">Documentation split:</strong> full version history before v9.11 moved to <code>CHANGELOG-v10.0.1.md</code> — see the note just below. Also removed the unused Workflow/Marker Naming/Keyboard reference block.<br>
       <div class="doc-h">WHAT'S NEW IN v9.12</div>
       · <strong style="color:var(--text)">Fixed: "☁ Sync all pieces now" could leave the currently-open piece looking stale even when it pulled a real update.</strong> The bulk pull only ever wrote to localStorage — deliberately, since it's built to loop over pieces you're not currently looking at, and never touches live playback state for those. But if the piece it just pulled a newer copy of was the one you had open at the time, the on-screen notes/markers/passages sat unrefreshed until you closed and reopened that piece or reloaded the page — the pulled data was saved correctly, just not visibly reflected. Bulk sync now also refreshes the visible fields when the currently-open piece is the one it just updated.<br>
       <div class="doc-h">WHAT'S NEW IN v9.11</div>
       · <strong style="color:var(--text)">Fixed: the practice journal could miss cross-device updates for an entire session.</strong> Every other synced field gets rechecked against the cloud each time you open a piece; the journal previously only checked at sign-in/page-load, when you typed into it yourself, or via manual "↻ Sync now" — so a browser tab left open (not reloaded) had no way to learn about a journal edit made elsewhere, no matter how many pieces you opened or synced in the meantime. Opening any piece and "☁ Sync all pieces now" now also trigger the journal's existing conflict-safe merge check. No change to the merge logic itself (still safe-pull / safe-push / keep-both-on-conflict, per v9.8) — just added the missing trigger.<br>
 
       <div class="doc-h">FULL VERSION HISTORY</div>
-      Everything before v9.11 — including v7.0 through v9.10 — lives in <code>CHANGELOG-v10.0.md</code>, alongside this file. <strong style="color:var(--text)">Keep both updated together:</strong> when a new version ships, add its entry here, and move the oldest of the 3 entries above into <code>CHANGELOG-v10.0.md</code> instead of letting it just disappear.
+      Everything before v9.11 — including v7.0 through v9.10 — lives in <code>CHANGELOG-v10.0.1.md</code>, alongside this file. <strong style="color:var(--text)">Keep both updated together:</strong> when a new version ships, add its entry here, and move the oldest of the 3 entries above into <code>CHANGELOG-v10.0.1.md</code> instead of letting it just disappear.
 
       <div class="doc-h">FUTURE FEATURES</div>
       <div style="color:var(--accent);font-size:0.4rem;letter-spacing:0.1em;margin:0.3rem 0 0.1rem">NEAR-TERM — contained, low risk</div>
@@ -1088,6 +1093,24 @@ input[type=file]{display:none}
 </div>
 
 <script>
+// ══════════════════════════════════════════════
+// VERSION — single source of truth
+// ══════════════════════════════════════════════
+// There are TWO places in the HTML that display this number (the small
+// badge in the top app header, and the label at the top of the
+// Documentation section) — both used to be hardcoded separately, and drifted
+// out of sync more than once (a version bump updated one but not the other).
+// Bump ONLY this constant when releasing a new version; both display spots
+// below read from it automatically, so there is nothing else to remember or
+// keep in sync by hand.
+const APP_VERSION = '10.1';
+document.addEventListener('DOMContentLoaded', () => {
+  const badge = document.getElementById('app-ver-badge');
+  if (badge) badge.textContent = 'v' + APP_VERSION;
+  const docsLabel = document.getElementById('docs-ver-label');
+  if (docsLabel) docsLabel.textContent = 'REHEARSAL SPACE v' + APP_VERSION;
+});
+
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
@@ -1127,7 +1150,7 @@ let playStartedAt = 0;
 // Markers: { id, label, type:'R'|'D', time, locked }
 let markers         = [];
 let markerIdCounter = 0;
-let markMode        = 'structural'; // 'structural' | 'performance'
+let markMode        = 'all'; // 'structural' | 'performance' | 'all'
 
 // Segments: { id, startId, endId, name, include }
 let segments         = [];
@@ -2001,7 +2024,10 @@ function trimEdges(buf) {
 // ══════════════════════════════════════════════
 // WAVEFORM RENDERING
 // ══════════════════════════════════════════════
-let waveCache = null; // downsampled peaks for fast drawing
+let waveCache = null; // downsampled peaks for fast drawing (whole-track, fixed resolution)
+let waveNormFactor = 1; // 95th-percentile amplitude used to normalize bar heights —
+                         // stored so the raw-sample high-zoom path (below) can match
+                         // the same vertical scale as the cached low-zoom path.
 
 function buildWaveformCache() {
   if (!audioBuffer) return;
@@ -2019,6 +2045,7 @@ function buildWaveformCache() {
   // Normalize to 95th percentile
   const sorted = waveCache.slice().sort((a,b)=>a-b);
   const p95 = sorted[Math.floor(sorted.length * 0.95)] || 1;
+  waveNormFactor = p95;
   for (let i = 0; i < BUCKETS; i++) waveCache[i] = Math.min(1, waveCache[i] / p95);
 }
 
@@ -2047,19 +2074,50 @@ function drawOverview() {
   const vDur = viewEnd - viewStart;
   const BUCKETS = waveCache.length;
 
-  // Draw waveform
+  // Draw waveform. The whole-track cache above is fixed at 2000 buckets, so at
+  // deep zoom each bucket can span many screen pixels — every pixel in that
+  // span reads the same cached value, which visually smears/quantizes the
+  // waveform relative to markers (drawn from exact, continuous timestamps).
+  // Once a screen pixel represents less time than one cache bucket, fall back
+  // to reading peaks straight from the raw decoded audio for just the visible
+  // window instead — cheap at this zoom level, since each pixel only covers a
+  // handful of samples, and it keeps the waveform pixel-accurate against marks.
+  const cacheSecPerBucket = audioDuration / BUCKETS;
+  const viewSecPerPixel   = vDur / W;
+  const useRawSamples = audioBuffer && viewSecPerPixel < cacheSecPerBucket;
+
   ctx.fillStyle = '#2d2a26';
-  for (let px = 0; px < W; px++) {
-    const tLeft  = viewStart + (px/W) * vDur;
-    const tRight = viewStart + ((px+1)/W) * vDur;
-    const bLeft  = Math.floor((tLeft/audioDuration) * BUCKETS);
-    const bRight = Math.ceil((tRight/audioDuration) * BUCKETS);
-    let peak = 0;
-    for (let b = bLeft; b < bRight && b < BUCKETS; b++) {
-      if (waveCache[b] > peak) peak = waveCache[b];
+  if (useRawSamples) {
+    const chan = audioBuffer.getChannelData(0);
+    const sr   = audioBuffer.sampleRate;
+    const nSamp = chan.length;
+    for (let px = 0; px < W; px++) {
+      const tLeft  = viewStart + (px/W) * vDur;
+      const tRight = viewStart + ((px+1)/W) * vDur;
+      const sLeft  = Math.max(0, Math.floor(tLeft * sr));
+      const sRight = Math.min(nSamp, Math.max(sLeft+1, Math.ceil(tRight * sr)));
+      let peak = 0;
+      for (let s = sLeft; s < sRight; s++) {
+        const v = Math.abs(chan[s]);
+        if (v > peak) peak = v;
+      }
+      const norm = Math.min(1, peak / waveNormFactor);
+      const h = Math.max(1, norm * (WAVE_H * 0.92));
+      ctx.fillRect(px, WAVE_TOP + (WAVE_H - h)/2, 1, h);
     }
-    const h = Math.max(1, peak * (WAVE_H * 0.92));
-    ctx.fillRect(px, WAVE_TOP + (WAVE_H - h)/2, 1, h);
+  } else {
+    for (let px = 0; px < W; px++) {
+      const tLeft  = viewStart + (px/W) * vDur;
+      const tRight = viewStart + ((px+1)/W) * vDur;
+      const bLeft  = Math.floor((tLeft/audioDuration) * BUCKETS);
+      const bRight = Math.ceil((tRight/audioDuration) * BUCKETS);
+      let peak = 0;
+      for (let b = bLeft; b < bRight && b < BUCKETS; b++) {
+        if (waveCache[b] > peak) peak = waveCache[b];
+      }
+      const h = Math.max(1, peak * (WAVE_H * 0.92));
+      ctx.fillRect(px, WAVE_TOP + (WAVE_H - h)/2, 1, h);
+    }
   }
 
   // Highlight active loop on waveform
@@ -2476,7 +2534,7 @@ function playToNextMarker() {
   _startPlayback(cur, dur);
 }
 
-function onSpeedChange(v) {
+function onSpeedChange(v, opts = {}) {
   currentSpeed = parseFloat(v);
   const STOPS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0, 1.05, 1.1, 1.2];
   const snapped = STOPS.reduce((a,b) => Math.abs(b-currentSpeed)<Math.abs(a-currentSpeed)?b:a);
@@ -2484,6 +2542,24 @@ function onSpeedChange(v) {
   document.getElementById('speed-slider').value = currentSpeed;
   document.getElementById('speed-val').textContent = `${Math.round(currentSpeed*100)}%`;
   if (audioEl) { audioEl.playbackRate = currentSpeed; audioEl.preservesPitch = true; }
+  if (opts.remember !== false) _rememberPassageSpeed();
+}
+
+// Persists the current tempo onto whichever passage is active (previewing or
+// looping), so reopening/re-looping that passage later resumes at the speed
+// you were actually practicing it at. A passage with no stored speed yet
+// (brand new, or freshly split/merged from others) just keeps inheriting
+// whatever tempo is already playing rather than resetting to 100% — nothing
+// to clean up when passages get deleted or consolidated, since the value
+// lives on the segment itself and simply goes with it.
+function _rememberPassageSpeed() {
+  const segId = previewingSegId !== null ? previewingSegId : activeLoopId;
+  if (segId === null) return;
+  const seg = segments.find(s => s.id === segId);
+  if (seg && seg.speed !== currentSpeed) {
+    seg.speed = currentSpeed;
+    saveSession();
+  }
 }
 
 function stepTempo(dir) {
@@ -2494,11 +2570,12 @@ function stepTempo(dir) {
   onSpeedChange(STOPS[newIdx]);
 }
 
-function resetSpeed() {
+function resetSpeed(opts = {}) {
   currentSpeed = 1.0;
   document.getElementById('speed-slider').value = 1.0;
   document.getElementById('speed-val').textContent = '100%';
   if (audioEl) { audioEl.playbackRate = 1.0; audioEl.preservesPitch = true; }
+  if (opts.remember !== false) _rememberPassageSpeed();
 }
 
 // ══════════════════════════════════════════════
@@ -2858,7 +2935,7 @@ function saveQuickLoop() {
   const name = prompt('Save loop as:', `${sm.label} → ${em.label}`);
   if (!name||!name.trim()) return;
   pushUndo();
-  segments.push({ id: segmentIdCounter++, startId: sm.id, endId: em.id, name: name.trim(), include: true });
+  segments.push({ id: segmentIdCounter++, startId: sm.id, endId: em.id, name: name.trim(), include: true, speed: null });
   renderLoops(); saveSession();
 }
 
@@ -2908,7 +2985,7 @@ function addSegment() {
   // Don't duplicate
   if (segments.some(s=>s.startId===startId&&s.endId===endId)) return;
   pushUndo();
-  segments.push({ id: segmentIdCounter++, startId, endId, include: true, status: null });
+  segments.push({ id: segmentIdCounter++, startId, endId, include: true, status: null, speed: null });
   renderLoops(); saveSession();
 }
 
@@ -2936,6 +3013,7 @@ function previewSegment(id) {
   const em = markers.find(m=>m.id===seg.endId);
   if (!sm||!em) return;
   previewingSegId = id;
+  if (seg.speed) onSpeedChange(seg.speed);
   const segDur = em.time - sm.time;
   const pad = segDur * 0.2;
   viewStart = Math.max(0, sm.time - pad);
@@ -3055,6 +3133,7 @@ function toggleLoop(id) {
     previewingSegId = id;
     const seg = segments.find(s=>s.id===id);
     if (seg && audioBuffer) {
+      if (seg.speed) onSpeedChange(seg.speed);
       const sm = markers.find(m=>m.id===seg.startId);
       const em = markers.find(m=>m.id===seg.endId);
       if (sm && em) {
@@ -3277,9 +3356,8 @@ async function loadNamedSession(name, opts = {}) {
   audioFileName = s.audioFileName||'';
   document.getElementById('piece-notes').value = s.notes || '';
 
-  // Auto-select mode based on whether structural marks exist
-  const hasStructural = (markers || []).some(m => m.type === 'R');
-  setMarkMode(hasStructural ? 'performance' : 'structural');
+  // Default to showing all marks (structural + practice) on open.
+  setMarkMode('all');
 
   renderMarkers(); renderSegments(); refreshSegmentDropdowns();
   renderSessionsList();
@@ -3969,8 +4047,9 @@ function _ttRunStep() {
     startTime = ttAdHocStart; endTime = ttAdHocEnd;
   } else { tempoTrainStop(); return; }
 
-  // Set tempo
-  onSpeedChange(cfg.pct);
+  // Set tempo — Woodshed's own stepped ladder, not a manual choice, so it
+  // shouldn't overwrite the passage's remembered practice speed.
+  onSpeedChange(cfg.pct, {remember:false});
 
   // Update status
   document.getElementById('tt-status').textContent =
@@ -4040,7 +4119,7 @@ function tempoTrainStop() {
   clearTimeout(ttRepTimeout);
   ttState = null;
   if (isPlaying) _pause();
-  resetSpeed();
+  resetSpeed({remember:false});
   const startBtn = document.getElementById('tt-start-btn');
   const pauseBtn = document.getElementById('tt-pause-btn');
   const stopBtn  = document.getElementById('tt-stop-btn');
@@ -5998,7 +6077,7 @@ renderSessionsList();
 _updatePieceTitle();
 _loadLeadIn();
 _renderSessionLog();
-setMarkMode('structural');
+setMarkMode('all');
 _loadUniversalNotes();
 _renderCalHistory();
 _initAutoResize('piece-notes');
